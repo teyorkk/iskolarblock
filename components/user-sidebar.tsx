@@ -1,0 +1,295 @@
+'use client'
+
+import { motion, AnimatePresence } from "framer-motion"
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { 
+  Home, 
+  FileText, 
+  History, 
+  Settings, 
+  Menu, 
+  X, 
+  Shield, 
+  LogOut,
+  User,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuthStore } from "@/lib/store"
+import { useMobile } from "@/hooks/use-mobile"
+
+const navigation = [
+  { name: 'Dashboard', href: '/user-dashboard', icon: Home },
+  { name: 'Application', href: '/application', icon: FileText },
+  { name: 'History', href: '/history', icon: History },
+  { name: 'Settings', href: '/settings', icon: Settings },
+]
+
+export function UserSidebar() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const pathname = usePathname()
+  const { user, logout } = useAuthStore()
+  const isMobile = useMobile()
+
+  const handleLogout = () => {
+    logout()
+    window.location.href = '/'
+  }
+
+  // Mobile bottom navigation
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile Menu Overlay */}
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
+        {/* Mobile Sidebar */}
+        <motion.div
+          initial={{ x: -300 }}
+          animate={{ x: isSidebarOpen ? 0 : -300 }}
+          className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-50"
+        >
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-6 h-6 text-orange-500" />
+                <span className="font-bold text-lg">ScholarBlock</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <div className="flex items-center space-x-3 mb-6">
+              <Avatar>
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-orange-100 text-orange-600">
+                  {user?.name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium text-gray-900">{user?.name}</p>
+                <p className="text-sm text-gray-500">{user?.email}</p>
+              </div>
+            </div>
+
+            <nav className="space-y-2">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                    pathname === item.href
+                      ? 'bg-orange-50 text-orange-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+            </nav>
+
+            <div className="mt-6 pt-6 border-t">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Mobile Header */}
+        <header className="bg-white border-b sticky top-0 z-30">
+          <div className="px-4 py-3 flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Shield className="w-5 h-5 text-orange-500" />
+              <span className="font-bold">ScholarBlock</span>
+            </div>
+            <Avatar className="w-8 h-8">
+              <AvatarImage src="" />
+              <AvatarFallback className="bg-orange-100 text-orange-600 text-xs">
+                {user?.name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        </header>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-30">
+          <div className="flex items-center justify-around py-2">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
+                  pathname === item.href
+                    ? 'text-orange-600'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-xs mt-1">{item.name}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+      </>
+    )
+  }
+
+  // Desktop Sidebar
+  return (
+    <>
+      {/* Collapsible Sidebar */}
+      <motion.div
+        initial={false}
+        animate={{ width: isCollapsed ? 80 : 256 }}
+        transition={{ duration: 0.3 }}
+        className="fixed left-0 top-0 h-screen bg-white shadow-lg z-40 hidden md:block"
+      >
+        {/* Header */}
+        <div className="p-6 border-b flex items-center justify-between">
+          {!isCollapsed && (
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <span className="font-bold text-xl">ScholarBlock</span>
+            </div>
+          )}
+          {isCollapsed && (
+            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Toggle Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute -right-3 top-20 bg-white border shadow-md rounded-full hover:bg-gray-100 z-50"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
+        </Button>
+
+        <div className="p-4 overflow-y-auto h-[calc(100vh-88px)]">
+          {/* User Profile */}
+          {!isCollapsed && (
+            <div className="flex items-center space-x-3 mb-6 p-3 bg-gray-50 rounded-lg">
+              <Avatar>
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-orange-100 text-orange-600">
+                  {user?.name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="overflow-hidden">
+                <p className="font-medium text-gray-900 truncate">{user?.name}</p>
+                <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+              </div>
+            </div>
+          )}
+          
+          {isCollapsed && (
+            <div className="flex justify-center mb-6">
+              <Avatar>
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-orange-100 text-orange-600">
+                  {user?.name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <nav className="space-y-1">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-3 py-2 rounded-lg transition-colors ${
+                  pathname === item.href
+                    ? 'bg-orange-50 text-orange-600'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+                title={isCollapsed ? item.name : ''}
+              >
+                <item.icon className="w-5 h-5" />
+                {!isCollapsed && <span className="font-medium">{item.name}</span>}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Logout */}
+          <div className="mt-6 pt-6 border-t">
+            <Button
+              variant="ghost"
+              className={`w-full ${isCollapsed ? 'justify-center px-2' : 'justify-start'} text-red-600 hover:text-red-700 hover:bg-red-50`}
+              onClick={handleLogout}
+              title={isCollapsed ? 'Logout' : ''}
+            >
+              <LogOut className="w-4 h-4" />
+              {!isCollapsed && <span className="ml-2">Logout</span>}
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Desktop Header */}
+      <motion.header
+        initial={false}
+        animate={{ marginLeft: isCollapsed ? 80 : 256 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white border-b px-6 py-4 fixed top-0 right-0 left-0 z-30 hidden md:block"
+      >
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {navigation.find(item => item.href === pathname)?.name || 'Dashboard'}
+          </h1>
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="icon">
+              <User className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </motion.header>
+    </>
+  )
+}
