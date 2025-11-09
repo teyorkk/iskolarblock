@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Shield, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,18 +24,41 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setError,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
+  const getErrorMessage = (error: string): string => {
+    const lowerError = error.toLowerCase();
+    if (
+      lowerError.includes("invalid login credentials") ||
+      lowerError.includes("invalid credentials")
+    ) {
+      return "Wrong credentials. Please check your email and password.";
+    }
+    if (lowerError.includes("password")) {
+      return "Wrong password. Please try again.";
+    }
+    if (
+      lowerError.includes("email not confirmed") ||
+      lowerError.includes("confirm")
+    ) {
+      return "Email not confirmed. Please check your inbox for a verification code.";
+    }
+    return error || "Login failed. Please try again.";
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
+      setErrorMessage("");
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,7 +66,23 @@ export default function LoginPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error || "Login failed");
+        const errorMsg = getErrorMessage(json.error || "Login failed");
+        setErrorMessage(errorMsg);
+        toast.error(errorMsg);
+
+        // Set field-specific errors
+        if (json.error?.toLowerCase().includes("password")) {
+          setError("password", { type: "manual", message: "Wrong password" });
+        } else if (
+          json.error?.toLowerCase().includes("invalid login credentials")
+        ) {
+          setError("email", { type: "manual", message: "Invalid credentials" });
+          setError("password", {
+            type: "manual",
+            message: "Invalid credentials",
+          });
+        }
+
         setIsLoading(false);
         return;
       }
@@ -56,6 +94,7 @@ export default function LoginPage() {
         // Check if user is admin and redirect accordingly
         const user = sessionData.session.user;
         const isAdmin =
+          user?.email === "admin@admin.com" ||
           user?.email === "admin@scholarblock.com" ||
           user?.user_metadata?.role === "admin" ||
           user?.user_metadata?.isAdmin === true;
@@ -114,6 +153,11 @@ export default function LoginPage() {
 
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {errorMessage && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -122,6 +166,7 @@ export default function LoginPage() {
                   placeholder="Enter your email"
                   {...register("email")}
                   className={errors.email ? "border-red-500" : ""}
+                  onChange={() => setErrorMessage("")}
                 />
                 {errors.email && (
                   <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -139,6 +184,7 @@ export default function LoginPage() {
                     className={
                       errors.password ? "border-red-500 pr-10" : "pr-10"
                     }
+                    onChange={() => setErrorMessage("")}
                   />
                   <Button
                     type="button"
@@ -215,16 +261,6 @@ export default function LoginPage() {
                   Create an Account
                 </Button>
               </Link>
-            </div>
-
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-600 text-center">
-                <strong>Demo Accounts:</strong>
-                <br />
-                User: juan@example.com / password
-                <br />
-                Admin: admin@scholarblock.com / admin1234
-              </p>
             </div>
           </CardContent>
         </Card>

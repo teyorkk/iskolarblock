@@ -31,6 +31,7 @@ export default function RegisterPage() {
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
   const [pendingUserData, setPendingUserData] =
     useState<RegisterFormData | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const router = useRouter();
   // SessionProvider will pick up auth changes; no manual login state needed
 
@@ -39,16 +40,43 @@ export default function RegisterPage() {
     handleSubmit,
     formState: { errors },
     watch,
+    setError,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
   const password = watch("password", "");
 
+  const getErrorMessage = (error: string): string => {
+    const lowerError = error.toLowerCase();
+    // Check for various "email is taken" error patterns
+    if (
+      lowerError.includes("email is taken") ||
+      lowerError.includes("already registered") ||
+      lowerError.includes("already exists") ||
+      lowerError.includes("user already registered") ||
+      lowerError.includes("user with this email") ||
+      lowerError.includes("email address already") ||
+      lowerError.includes("email already")
+    ) {
+      return "Email is taken. Please use a different email address.";
+    }
+    if (lowerError.includes("email") && !lowerError.includes("taken") && !lowerError.includes("already")) {
+      return "Invalid email address. Please check and try again.";
+    }
+    if (lowerError.includes("password")) {
+      return "Password does not meet requirements. Please try again.";
+    }
+    return error || "Registration failed. Please try again.";
+  };
+
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsLoading(true);
-      setPendingUserData(data);
+      setErrorMessage("");
+      setShowOTPModal(false); // Ensure OTP modal is closed initially
+      setPendingUserData(null); // Clear pending data initially
+      
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,17 +87,49 @@ export default function RegisterPage() {
         }),
       });
       const json = await res.json();
+      
+      // Check if email is taken or any other error occurred
       if (!res.ok) {
-        toast.error(json.error || "Registration failed");
+        const errorMsg = getErrorMessage(json.error || "Registration failed");
+        setErrorMessage(errorMsg);
+        toast.error(errorMsg);
+        
+        // Ensure OTP modal is closed if there's an error
+        setShowOTPModal(false);
+        setPendingUserData(null);
+        
+        // Set field-specific errors
+        const lowerError = (json.error || "").toLowerCase();
+        if (
+          lowerError.includes("email is taken") ||
+          lowerError.includes("already") ||
+          lowerError.includes("taken") ||
+          res.status === 409
+        ) {
+          setError("email", { type: "manual", message: "Email is taken" });
+        } else if (lowerError.includes("email") && !lowerError.includes("taken") && !lowerError.includes("already")) {
+          setError("email", { type: "manual", message: "Invalid email address" });
+        } else if (lowerError.includes("password")) {
+          setError("password", { type: "manual", message: "Password does not meet requirements" });
+        }
+        
         setIsLoading(false);
-        return;
+        return; // Exit early - don't show OTP modal
       }
-      // Supabase will send email confirmation if enabled; we present OTP modal for manual code entry (user will input 6-digit code sent by Supabase)
-      setShowOTPModal(true);
-      toast.info(`Check your email for a verification code.`);
+      
+      // Only show OTP modal if registration was successful
+      if (res.ok && json.success) {
+        setPendingUserData(data);
+        setShowOTPModal(true);
+        toast.info(`Check your email for a verification code.`);
+      }
     } catch (e) {
       const error = e as Error;
+      setErrorMessage(error.message || "Unexpected error");
       toast.error(error.message || "Unexpected error");
+      // Ensure OTP modal is closed on error
+      setShowOTPModal(false);
+      setPendingUserData(null);
     } finally {
       setIsLoading(false);
     }
@@ -152,6 +212,11 @@ export default function RegisterPage() {
 
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {errorMessage && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <div className="relative">
@@ -162,6 +227,7 @@ export default function RegisterPage() {
                     placeholder="Enter your full name"
                     {...register("name")}
                     className={`pl-10 ${errors.name ? "border-red-500" : ""}`}
+                    onChange={() => setErrorMessage("")}
                   />
                 </div>
                 {errors.name && (
@@ -179,6 +245,7 @@ export default function RegisterPage() {
                     placeholder="Enter your email"
                     {...register("email")}
                     className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
+                    onChange={() => setErrorMessage("")}
                   />
                 </div>
                 {errors.email && (
@@ -194,7 +261,11 @@ export default function RegisterPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
-                    {...register("password")}
+                    {...register("password", {
+                      onChange: () => {
+                        setErrorMessage("");
+                      }
+                    })}
                     className={`pl-10 pr-10 ${
                       errors.password ? "border-red-500" : ""
                     }`}

@@ -151,7 +151,7 @@ export default function ForgotPasswordPage() {
                   className="w-full"
                   onClick={() => setIsSubmitted(false)}
                 >
-                  Try Different Email
+                  Cancel
                 </Button>
               </div>
 
