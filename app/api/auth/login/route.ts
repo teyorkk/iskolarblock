@@ -29,6 +29,21 @@ export async function POST(req: Request) {
           { status: 409 }
         );
       }
+      if (
+        /invalid login credentials/i.test(message) ||
+        /invalid credentials/i.test(message)
+      ) {
+        return NextResponse.json(
+          { error: "Wrong credentials. Please check your email and password." },
+          { status: 401 }
+        );
+      }
+      if (/password/i.test(message) && !/confirm/i.test(message)) {
+        return NextResponse.json(
+          { error: "Wrong password. Please try again." },
+          { status: 401 }
+        );
+      }
       // Optional dev helper: auto-provision demo account if service role key is available
       const canProvision = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (/invalid login credentials/i.test(message) && canProvision) {

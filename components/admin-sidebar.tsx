@@ -170,38 +170,11 @@ export function AdminSidebar() {
             </Button>
             <div className="flex items-center space-x-2">
               <Shield className="w-5 h-5 text-orange-500" />
-              <span className="font-bold">ScholarBlock Admin</span>
+              <span className="font-bold">ScholarBlock</span>
             </div>
-            <Avatar className="w-8 h-8">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-red-100 text-red-600 text-xs">
-                {(user?.user_metadata?.name as string)?.charAt(0) ||
-                  user?.email?.charAt(0) ||
-                  "A"}
-              </AvatarFallback>
-            </Avatar>
+            <div className="w-8 h-8"></div>
           </div>
         </header>
-
-        {/* Mobile Bottom Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-30">
-          <div className="flex items-center justify-around py-2">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-                  pathname === item.href
-                    ? "text-red-600"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="text-xs mt-1">{item.name}</span>
-              </Link>
-            ))}
-          </div>
-        </nav>
       </>
     );
   }

@@ -154,7 +154,11 @@ export default function ResetPasswordPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
-                    {...register("password")}
+                    {...register("password", {
+                      onChange: () => {
+                        // This ensures watch("password") updates in real-time
+                      }
+                    })}
                     className={`pl-10 pr-10 ${errors.password ? "border-red-500" : ""}`}
                   />
                   <Button
