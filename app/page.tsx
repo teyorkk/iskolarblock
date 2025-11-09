@@ -223,8 +223,8 @@ export default function Home() {
             className="text-center max-w-4xl mx-auto"
           >
             <div className="flex justify-center items-center gap-4 mb-6">
-              <div className="w-24 h-24 bg-orange-500 rounded-2xl flex items-center justify-center">
-                <Shield className="w-16 h-16 text-white" />
+              <div className="w-20 h-20 bg-orange-500 rounded-2xl flex items-center justify-center">
+                <Shield className="w-12 h-12 text-white" />
               </div>
               <div className="relative w-24 h-24">
                 <Image
