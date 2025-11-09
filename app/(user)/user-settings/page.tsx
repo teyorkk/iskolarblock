@@ -297,12 +297,14 @@ export default function SettingsPage() {
                         authUser?.email?.split("@")[0]}
                     </CardTitle>
                     <CardDescription>{authUser?.email}</CardDescription>
-                    <Badge
-                      variant="secondary"
-                      className="mt-2 bg-orange-100 text-orange-700"
-                    >
-                      Student
-                    </Badge>
+                    <div className="flex justify-center mt-2">
+                      <Badge
+                        variant="secondary"
+                        className="bg-blue-100 text-blue-700"
+                      >
+                        User
+                      </Badge>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center text-sm text-gray-600">

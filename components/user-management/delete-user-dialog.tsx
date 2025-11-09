@@ -1,0 +1,47 @@
+"use client";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { DeleteUserDialogProps } from "@/types/components";
+
+export function DeleteUserDialog({
+  user,
+  isOpen,
+  onClose,
+  onConfirm,
+  isDeleting,
+}: DeleteUserDialogProps): React.JSX.Element {
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the user
+            account{" "}
+            <span className="font-semibold">{user?.name || user?.email}</span>{" "}
+            and all associated data.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

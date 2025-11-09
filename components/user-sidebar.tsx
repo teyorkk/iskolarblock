@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
-import React from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { usePathname } from "next/navigation";
@@ -30,7 +29,7 @@ const navigation = [
   { name: "Settings", href: "/user-settings", icon: Settings },
 ];
 
-export function UserSidebar() {
+export function UserSidebar(): React.JSX.Element {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
@@ -44,13 +43,13 @@ export function UserSidebar() {
   const isMobile = useMobile();
 
   // Save collapse state to localStorage
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("user-sidebar-collapsed", isCollapsed.toString());
     }
   }, [isCollapsed]);
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     try {
       const supabase = getSupabaseBrowserClient();
       await supabase.auth.signOut();

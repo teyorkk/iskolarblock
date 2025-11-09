@@ -297,12 +297,14 @@ export default function AdminSettingsPage() {
                         authUser?.email?.split("@")[0]}
                     </CardTitle>
                     <CardDescription>{authUser?.email}</CardDescription>
-                    <Badge
-                      variant="secondary"
-                      className="mt-2 bg-red-100 text-red-700"
-                    >
-                      Administrator
-                    </Badge>
+                    <div className="flex justify-center mt-2">
+                      <Badge
+                        variant="secondary"
+                        className="bg-red-100 text-red-700"
+                      >
+                        Administrator
+                      </Badge>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center text-sm text-gray-600">
