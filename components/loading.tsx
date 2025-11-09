@@ -35,9 +35,9 @@ export function Loading() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-gray-600 font-medium"
+          className="text-gray-600 text-2xl font-medium"
         >
-          Loading...
+          Loading ScholarBlock...
         </motion.p>
       </div>
     </div>
