@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/session-provider"
+import { Loading } from "@/components/loading"
 
 export default function AdminLayout({
   children,
@@ -22,7 +23,7 @@ export default function AdminLayout({
   }, [hydrated, user, router])
 
   if (!hydrated || !user) {
-    return null
+    return <Loading />
   }
 
   return (

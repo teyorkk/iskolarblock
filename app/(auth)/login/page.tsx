@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Shield, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -56,6 +55,7 @@ export default function LoginPage() {
         // Check if user is admin and redirect accordingly
         const user = sessionData.session.user;
         const isAdmin =
+          user?.email === "admin@admin.com" ||
           user?.email === "admin@scholarblock.com" ||
           user?.user_metadata?.role === "admin" ||
           user?.user_metadata?.isAdmin === true;
@@ -215,16 +215,6 @@ export default function LoginPage() {
                   Create an Account
                 </Button>
               </Link>
-            </div>
-
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-600 text-center">
-                <strong>Demo Accounts:</strong>
-                <br />
-                User: juan@example.com / password
-                <br />
-                Admin: admin@scholarblock.com / admin1234
-              </p>
             </div>
           </CardContent>
         </Card>

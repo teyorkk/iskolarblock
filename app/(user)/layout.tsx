@@ -1,28 +1,29 @@
-'use client'
+"use client";
 
-import { motion } from "framer-motion"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useSession } from "@/components/session-provider"
+import { motion } from "framer-motion";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/components/session-provider";
+import { Loading } from "@/components/loading";
 
 export default function UserLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const router = useRouter()
-  const { ready, user } = useSession()
-  const hydrated = ready && typeof window !== 'undefined'
+  const router = useRouter();
+  const { ready, user } = useSession();
+  const hydrated = ready && typeof window !== "undefined";
 
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated) return;
     if (!user) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [hydrated, user, router])
+  }, [hydrated, user, router]);
 
   if (!hydrated || !user) {
-    return null
+    return <Loading />;
   }
 
   return (
@@ -33,5 +34,5 @@ export default function UserLayout({
     >
       {children}
     </motion.div>
-  )
+  );
 }

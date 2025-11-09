@@ -13,10 +13,10 @@ import {
   Menu,
   X,
   LogOut,
-  User,
   Settings,
   ChevronLeft,
   ChevronRight,
+  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import { useMobile } from "@/hooks/use-mobile";
 
 const navigation = [
   { name: "Dashboard", href: "/admin-dashboard", icon: Home },
+  { name: "Users", href: "/users", icon: UserCircle },
   { name: "Screening", href: "/screening", icon: Users },
   { name: "Blockchain Records", href: "/blockchain", icon: Shield },
   { name: "Awarding", href: "/awarding", icon: Award },
@@ -341,14 +342,6 @@ export function AdminSidebar() {
             {navigation.find((item) => item.href === pathname)?.name ||
               "Dashboard"}
           </h1>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon">
-              <Settings className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <User className="w-5 h-5" />
-            </Button>
-          </div>
         </div>
       </motion.header>
     </>

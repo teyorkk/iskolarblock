@@ -14,7 +14,6 @@ import {
   X, 
   Shield, 
   LogOut,
-  User,
   ChevronLeft,
   ChevronRight
 } from "lucide-react"
@@ -304,11 +303,6 @@ export function UserSidebar() {
           <h1 className="text-2xl font-bold text-gray-900">
             {navigation.find(item => item.href === pathname)?.name || 'Dashboard'}
           </h1>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon">
-              <User className="w-5 h-5" />
-            </Button>
-          </div>
         </div>
       </motion.header>
     </>

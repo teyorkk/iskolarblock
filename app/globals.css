@@ -131,3 +131,30 @@ input::-webkit-textfield-decoration-container {
   display: none !important;
   appearance: none;
 }
+
+/* Custom Scrollbar Styling - White and Orange Theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f9fafb;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #f97316;
+  border-radius: 10px;
+  border: 2px solid #f9fafb;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ea580c;
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #f97316 #f9fafb;
+}
