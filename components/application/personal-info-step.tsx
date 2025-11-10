@@ -20,12 +20,13 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ApplicationStepProps } from "@/types/components";
+import type { ApplicationFormData } from "@/lib/validations";
 
 export function PersonalInfoStep({
   register,
   errors,
   setValue,
-}: ApplicationStepProps): React.JSX.Element {
+}: ApplicationStepProps<ApplicationFormData>): React.JSX.Element {
   return (
     <Card>
       <CardHeader>
