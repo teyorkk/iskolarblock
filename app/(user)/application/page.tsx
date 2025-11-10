@@ -40,8 +40,8 @@ export default function ApplicationPage() {
                 <Card className="flex h-full cursor-pointer flex-col transition-all hover:shadow-lg hover:scale-105">
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                        <FileText className="w-5 h-5 text-orange-500" />
                       </div>
                       New Application
                     </CardTitle>
@@ -55,7 +55,7 @@ export default function ApplicationPage() {
                       to complete your personal information and upload required
                       documents.
                     </p>
-                    <div className="mt-4 text-sm font-medium text-blue-600">
+                    <div className="mt-4 text-sm font-medium text-orange-500">
                       5 steps • ~15 minutes
                     </div>
                   </CardContent>
@@ -66,8 +66,8 @@ export default function ApplicationPage() {
                 <Card className="flex h-full cursor-pointer flex-col transition-all hover:shadow-lg hover:scale-105">
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                        <Zap className="w-5 h-5 text-green-600" />
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                        <Zap className="w-5 h-5 text-orange-500" />
                       </div>
                       Renewal Application
                     </CardTitle>
@@ -80,7 +80,7 @@ export default function ApplicationPage() {
                       Renew your existing scholarship. You will need to verify
                       your identity and upload updated documents.
                     </p>
-                    <div className="mt-4 text-sm font-medium text-green-600">
+                    <div className="mt-4 text-sm font-medium text-orange-500">
                       3 steps • ~10 minutes
                     </div>
                   </CardContent>
