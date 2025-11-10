@@ -37,7 +37,7 @@ export function Loading() {
           transition={{ delay: 0.2 }}
           className="text-gray-600 text-2xl font-medium"
         >
-          Loading SCholarBlock Please wait...
+          Loading ScholarBlock Please wait...
         </motion.p>
       </div>
     </div>
