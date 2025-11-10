@@ -18,6 +18,9 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Ignore third-party bundled workers and assets
+      "public/pdfjs/**",
+      "public/**/*.min.*",
     ],
   },
 ];

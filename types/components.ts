@@ -15,7 +15,11 @@ import type {
   UseFormWatch,
   FieldErrors,
 } from "react-hook-form";
-import type { ApplicationFormData } from "@/lib/validations";
+import type {
+  ApplicationFormData,
+  NewApplicationFormData,
+  RenewalApplicationFormData,
+} from "@/lib/validations";
 import type { DropzoneRootProps, DropzoneInputProps } from "react-dropzone";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -25,34 +29,22 @@ export interface LandingNavigationProps {
   onMobileMenuToggle: () => void;
 }
 
-export interface LandingHeroProps {
-  // No props needed currently
-}
+export type LandingHeroProps = Record<string, never>;
 
 export interface LandingFeaturesProps {
   features: Feature[];
 }
 
-export interface LandingAboutProps {
-  // No props needed currently
-}
+export type LandingAboutProps = Record<string, never>;
 
-export interface LandingFooterProps {
-  // No props needed currently
-}
+export type LandingFooterProps = Record<string, never>;
 
 // Sidebar component props
-export interface SidebarProps {
-  // Common props for both admin and user sidebars
-}
+export type SidebarProps = Record<string, never>;
 
-export interface AdminSidebarProps extends SidebarProps {
-  // Admin-specific props
-}
+export type AdminSidebarProps = SidebarProps;
 
-export interface UserSidebarProps extends SidebarProps {
-  // User-specific props
-}
+export type UserSidebarProps = SidebarProps;
 
 export interface SidebarNavigationProps {
   navigation: NavigationItem[];
@@ -71,20 +63,26 @@ export interface SidebarHeaderProps {
 }
 
 // Application form component props
-export interface ApplicationFormProps {
-  // Main form props
-}
+export type ApplicationFormProps = Record<string, never>;
 
 export interface ApplicationProgressProps {
   currentStep: number;
   steps: ApplicationStep[];
 }
 
-export interface ApplicationStepProps {
-  register: UseFormRegister<ApplicationFormData>;
-  errors: FieldErrors<ApplicationFormData>;
-  setValue: UseFormSetValue<ApplicationFormData>;
-  watch: UseFormWatch<ApplicationFormData>;
+export interface ApplicationStepProps<
+  T extends
+    | ApplicationFormData
+    | NewApplicationFormData
+    | RenewalApplicationFormData =
+    | ApplicationFormData
+    | NewApplicationFormData
+    | RenewalApplicationFormData
+> {
+  register: UseFormRegister<T>;
+  errors: FieldErrors<T>;
+  setValue: UseFormSetValue<T>;
+  watch: UseFormWatch<T>;
 }
 
 export interface FileUploadZoneProps {
@@ -101,9 +99,7 @@ export interface ApplicationSuccessProps {
 }
 
 // User management component props
-export interface UserManagementProps {
-  // Main component props
-}
+export type UserManagementProps = Record<string, never>;
 
 export interface UserSearchBarProps {
   searchQuery: string;
@@ -153,17 +149,11 @@ export interface StatusBadgeProps {
 }
 
 // Dashboard component props
-export interface DashboardProps {
-  // Common dashboard props
-}
+export type DashboardProps = Record<string, never>;
 
-export interface AdminDashboardProps extends DashboardProps {
-  // Admin-specific props
-}
+export type AdminDashboardProps = DashboardProps;
 
-export interface UserDashboardProps extends DashboardProps {
-  // User-specific props
-}
+export type UserDashboardProps = DashboardProps;
 
 export interface DashboardHeaderProps {
   title: string;

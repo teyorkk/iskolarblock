@@ -25,18 +25,23 @@ export function ApplicationProgress({
       <CardContent>
         <div className="space-y-4">
           <Progress value={(currentStep / steps.length) * 100} className="h-2" />
-          <div className="grid grid-cols-5 gap-2">
+          <div
+            className="grid gap-3 sm:gap-4"
+            style={{
+              gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))`,
+            }}
+          >
             {steps.map((step) => (
               <div
                 key={step.id}
-                className={`text-center ${
+                className={`text-center transition-colors ${
                   currentStep >= step.id
                     ? "text-orange-600"
                     : "text-gray-400"
                 }`}
               >
                 <div
-                  className={`w-8 h-8 mx-auto mb-2 rounded-full flex items-center justify-center ${
+                  className={`mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full ${
                     currentStep >= step.id
                       ? "bg-orange-100"
                       : "bg-gray-100"

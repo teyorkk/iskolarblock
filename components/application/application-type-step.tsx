@@ -15,6 +15,9 @@ export function ApplicationTypeStep({
   setValue,
   watch,
 }: ApplicationStepProps): React.JSX.Element {
+  // Defensive read of potential error message across RHF union types
+  const typeErrorMessage =
+    (errors as unknown as { type?: { message?: string } })?.type?.message;
   return (
     <Card>
       <CardHeader>
@@ -74,9 +77,9 @@ export function ApplicationTypeStep({
             </CardContent>
           </Card>
         </div>
-        {errors.type && (
-          <p className="text-sm text-red-500">{errors.type.message}</p>
-        )}
+        {typeErrorMessage ? (
+          <p className="text-sm text-red-500">{typeErrorMessage}</p>
+        ) : null}
       </CardContent>
     </Card>
   );

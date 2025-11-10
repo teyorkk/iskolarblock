@@ -11,8 +11,13 @@ import {
 import type { DropzoneRootProps, DropzoneInputProps } from "react-dropzone";
 import { FileUploadZone } from "./file-upload-zone";
 import type { ApplicationStepProps } from "@/types/components";
+import type {
+  NewApplicationFormData,
+  RenewalApplicationFormData,
+} from "@/lib/validations";
 
-interface DocumentsUploadStepProps extends ApplicationStepProps {
+interface DocumentsUploadStepProps<T extends NewApplicationFormData | RenewalApplicationFormData>
+  extends ApplicationStepProps<T> {
   certificateOfGrades: File | null;
   certificateOfRegistration: File | null;
   getRootPropsGrades: () => DropzoneRootProps;
@@ -23,7 +28,7 @@ interface DocumentsUploadStepProps extends ApplicationStepProps {
   isDragActiveRegistration: boolean;
 }
 
-export function DocumentsUploadStep({
+export function DocumentsUploadStep<T extends NewApplicationFormData | RenewalApplicationFormData>({
   errors,
   certificateOfGrades,
   certificateOfRegistration,
@@ -33,7 +38,18 @@ export function DocumentsUploadStep({
   getRootPropsRegistration,
   getInputPropsRegistration,
   isDragActiveRegistration,
-}: DocumentsUploadStepProps): React.JSX.Element {
+}: DocumentsUploadStepProps<T>): React.JSX.Element {
+  const gradesMessage =
+    (errors as unknown as { certificateOfGrades?: { message?: unknown } })
+      ?.certificateOfGrades?.message;
+  const registrationMessage =
+    (errors as unknown as { certificateOfRegistration?: { message?: unknown } })
+      ?.certificateOfRegistration?.message;
+
+  const gradesErrorText =
+    typeof gradesMessage === "string" ? gradesMessage : undefined;
+  const registrationErrorText =
+    typeof registrationMessage === "string" ? registrationMessage : undefined;
   return (
     <Card>
       <CardHeader>
@@ -51,7 +67,7 @@ export function DocumentsUploadStep({
           isDragActive={isDragActiveGrades}
           getRootProps={getRootPropsGrades}
           getInputProps={getInputPropsGrades}
-          error={errors.certificateOfGrades?.message}
+          error={gradesErrorText}
           label="Certificate of Grades"
         />
 
@@ -60,7 +76,7 @@ export function DocumentsUploadStep({
           isDragActive={isDragActiveRegistration}
           getRootProps={getRootPropsRegistration}
           getInputProps={getInputPropsRegistration}
-          error={errors.certificateOfRegistration?.message}
+          error={registrationErrorText}
           label="Certificate of Registration"
         />
 

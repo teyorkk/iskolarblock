@@ -11,24 +11,30 @@ import {
 import type { DropzoneRootProps, DropzoneInputProps } from "react-dropzone";
 import { FileUploadZone } from "./file-upload-zone";
 import type { ApplicationStepProps } from "@/types/components";
+import type {
+  NewApplicationFormData,
+  RenewalApplicationFormData,
+} from "@/lib/validations";
 import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { extractText } from "@/lib/services/ocr";
 
-interface IdUploadStepProps extends ApplicationStepProps {
+type IdForm = NewApplicationFormData | RenewalApplicationFormData;
+
+interface IdUploadStepProps<T extends IdForm> extends ApplicationStepProps<T> {
   uploadedFile: File | null;
   getRootProps: () => DropzoneRootProps;
   getInputProps: () => DropzoneInputProps;
   isDragActive: boolean;
 }
 
-export function IdUploadStep({
+export function IdUploadStep<T extends IdForm>({
   errors,
   uploadedFile,
   getRootProps,
   getInputProps,
   isDragActive,
-}: IdUploadStepProps): React.JSX.Element {
+}: IdUploadStepProps<T>): React.JSX.Element {
   const [ocrText, setOcrText] = useState<string>("");
   const [ocrError, setOcrError] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -96,7 +102,13 @@ export function IdUploadStep({
           isDragActive={isDragActive}
           getRootProps={getRootProps}
           getInputProps={getInputProps}
-          error={errors.idDocument?.message}
+          error={
+            typeof (errors as unknown as { idDocument?: { message?: unknown } })
+              ?.idDocument?.message === "string"
+              ? ((errors as unknown as { idDocument?: { message?: unknown } })
+                  ?.idDocument?.message as string)
+              : undefined
+          }
         />
 
         {/* OCR Status */}

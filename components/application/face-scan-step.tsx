@@ -11,16 +11,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ApplicationStepProps } from "@/types/components";
+import type {
+  NewApplicationFormData,
+  RenewalApplicationFormData,
+} from "@/lib/validations";
 
-interface FaceScanStepProps extends ApplicationStepProps {
+type FaceForm = NewApplicationFormData | RenewalApplicationFormData;
+
+interface FaceScanStepProps<T extends FaceForm> extends ApplicationStepProps<T> {
   isScanning: boolean;
   onStartScan: () => void;
 }
 
-export function FaceScanStep({
+export function FaceScanStep<T extends FaceForm>({
   isScanning,
   onStartScan,
-}: FaceScanStepProps): React.JSX.Element {
+}: FaceScanStepProps<T>): React.JSX.Element {
   return (
     <Card>
       <CardHeader>
