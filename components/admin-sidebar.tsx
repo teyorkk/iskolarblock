@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "./session-provider";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useMobile } from "@/hooks/use-mobile";
 import { AdminSidebarMobile } from "./admin-sidebar/admin-sidebar-mobile";
 import { AdminSidebarDesktop } from "./admin-sidebar/admin-sidebar-desktop";
@@ -16,10 +15,18 @@ export function AdminSidebar(): React.JSX.Element {
 
   const handleLogout = async (): Promise<void> => {
     try {
-      const supabase = getSupabaseBrowserClient();
-      await supabase.auth.signOut();
-    } catch {
-      // Ignore errors
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Logout failed");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
     } finally {
       window.location.href = "/login";
     }
