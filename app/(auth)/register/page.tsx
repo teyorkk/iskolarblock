@@ -62,7 +62,11 @@ export default function RegisterPage() {
     ) {
       return "Email is taken. Please use a different email address.";
     }
-    if (lowerError.includes("email") && !lowerError.includes("taken") && !lowerError.includes("already")) {
+    if (
+      lowerError.includes("email") &&
+      !lowerError.includes("taken") &&
+      !lowerError.includes("already")
+    ) {
       return "Invalid email address. Please check and try again.";
     }
     if (lowerError.includes("password")) {
@@ -77,7 +81,7 @@ export default function RegisterPage() {
       setErrorMessage("");
       setShowOTPModal(false); // Ensure OTP modal is closed initially
       setPendingUserData(null); // Clear pending data initially
-      
+
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -88,17 +92,17 @@ export default function RegisterPage() {
         }),
       });
       const json = await res.json();
-      
+
       // Check if email is taken or any other error occurred
       if (!res.ok) {
         const errorMsg = getErrorMessage(json.error || "Registration failed");
         setErrorMessage(errorMsg);
         toast.error(errorMsg);
-        
+
         // Ensure OTP modal is closed if there's an error
         setShowOTPModal(false);
         setPendingUserData(null);
-        
+
         // Set field-specific errors
         const lowerError = (json.error || "").toLowerCase();
         if (
@@ -108,16 +112,26 @@ export default function RegisterPage() {
           res.status === 409
         ) {
           setError("email", { type: "manual", message: "Email is taken" });
-        } else if (lowerError.includes("email") && !lowerError.includes("taken") && !lowerError.includes("already")) {
-          setError("email", { type: "manual", message: "Invalid email address" });
+        } else if (
+          lowerError.includes("email") &&
+          !lowerError.includes("taken") &&
+          !lowerError.includes("already")
+        ) {
+          setError("email", {
+            type: "manual",
+            message: "Invalid email address",
+          });
         } else if (lowerError.includes("password")) {
-          setError("password", { type: "manual", message: "Password does not meet requirements" });
+          setError("password", {
+            type: "manual",
+            message: "Password does not meet requirements",
+          });
         }
-        
+
         setIsLoading(false);
         return; // Exit early - don't show OTP modal
       }
-      
+
       // Only show OTP modal if registration was successful
       if (res.ok && json.success) {
         setPendingUserData(data);
@@ -140,8 +154,9 @@ export default function RegisterPage() {
     try {
       setIsVerifyingOTP(true);
       if (!pendingUserData) {
-        toast.error("No pending user data.");
-        return;
+        const errorMsg = "No pending user data.";
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
@@ -154,8 +169,9 @@ export default function RegisterPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error || "Verification failed");
-        return;
+        const errorMsg = json.error || "Verification failed";
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
       toast.success("Registration verified! You can now sign in.");
       setShowOTPModal(false);
@@ -163,6 +179,7 @@ export default function RegisterPage() {
     } catch (e) {
       const error = e as Error;
       toast.error(error.message || "Unexpected error");
+      throw error;
     } finally {
       setIsVerifyingOTP(false);
     }
@@ -189,7 +206,7 @@ export default function RegisterPage() {
   };
 
   return (
-  <div className="min-h-screen bg-linear-to-br from-orange-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-orange-50 to-white flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -271,7 +288,7 @@ export default function RegisterPage() {
                     {...register("password", {
                       onChange: () => {
                         setErrorMessage("");
-                      }
+                      },
                     })}
                     className={`pl-10 pr-10 ${
                       errors.password ? "border-red-500" : ""
@@ -401,7 +418,7 @@ export default function RegisterPage() {
         onResend={handleResendOTP}
         isLoading={isVerifyingOTP}
         email={pendingUserData?.email}
-  length={6}
+        length={8}
       />
     </div>
   );

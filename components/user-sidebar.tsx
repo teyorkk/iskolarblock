@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession } from "./session-provider";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useMobile } from "@/hooks/use-mobile";
 
 const navigation = [
@@ -51,10 +50,18 @@ export function UserSidebar(): React.JSX.Element {
 
   const handleLogout = async (): Promise<void> => {
     try {
-      const supabase = getSupabaseBrowserClient();
-      await supabase.auth.signOut();
-    } catch {
-      // ignore
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Logout failed");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
     } finally {
       window.location.href = "/login";
     }

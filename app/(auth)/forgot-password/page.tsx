@@ -78,8 +78,9 @@ export default function ForgotPasswordPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error || "Verification failed");
-        return;
+        const errorMsg = json.error || "Verification failed";
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
       setShowOTPModal(false);
       setIsSubmitted(true);
@@ -87,6 +88,7 @@ export default function ForgotPasswordPage() {
     } catch (e) {
       const error = e as Error;
       toast.error(error.message || "Unexpected error");
+      throw error;
     } finally {
       setIsVerifyingOTP(false);
     }
