@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/card";
 import type { RecentApplicationsProps } from "@/types/components";
 
-export function RecentApplications({ applications }: RecentApplicationsProps): React.JSX.Element {
+export function RecentApplications({
+  applications,
+}: RecentApplicationsProps): React.JSX.Element {
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -27,9 +29,7 @@ export function RecentApplications({ applications }: RecentApplicationsProps): R
             <FileText className="w-5 h-5 mr-2 text-orange-500" />
             Recent Applications
           </CardTitle>
-          <CardDescription>
-            Your latest scholarship submissions
-          </CardDescription>
+          <CardDescription>Your latest scholarship submissions</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -46,16 +46,16 @@ export function RecentApplications({ applications }: RecentApplicationsProps): R
                 </div>
                 <Badge
                   variant={
-                    application.status === "Approved"
+                    application.status === "APPROVED"
                       ? "default"
-                      : application.status === "Pending"
+                      : application.status === "PENDING"
                       ? "secondary"
                       : "destructive"
                   }
                   className={
-                    application.status === "Approved"
+                    application.status === "APPROVED"
                       ? "bg-green-100 text-green-700"
-                      : application.status === "Pending"
+                      : application.status === "PENDING"
                       ? "bg-orange-100 text-orange-700"
                       : "bg-red-100 text-red-700"
                   }
@@ -78,4 +78,3 @@ export function RecentApplications({ applications }: RecentApplicationsProps): R
     </motion.div>
   );
 }
-

@@ -67,7 +67,7 @@ export default function ScreeningPage() {
                     <div>
                       <p className="text-sm text-gray-600">Pending</p>
                       <p className="text-2xl font-bold text-orange-600">
-                        {mockApplicants.filter(app => app.status === 'Pending').length}
+                        {mockApplicants.filter(app => app.status === 'PENDING').length}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -83,7 +83,7 @@ export default function ScreeningPage() {
                     <div>
                       <p className="text-sm text-gray-600">Approved</p>
                       <p className="text-2xl font-bold text-green-600">
-                        {mockApplicants.filter(app => app.status === 'Approved').length}
+                        {mockApplicants.filter(app => app.status === 'APPROVED').length}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -99,7 +99,7 @@ export default function ScreeningPage() {
                     <div>
                       <p className="text-sm text-gray-600">Rejected</p>
                       <p className="text-2xl font-bold text-red-600">
-                        {mockApplicants.filter(app => app.status === 'Rejected').length}
+                        {mockApplicants.filter(app => app.status === 'REJECTED').length}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
@@ -146,13 +146,13 @@ export default function ScreeningPage() {
                           <TableCell>
                             <Badge 
                               variant={
-                                applicant.status === 'Approved' ? 'default' :
-                                applicant.status === 'Pending' ? 'secondary' :
+                                applicant.status === 'APPROVED' ? 'default' :
+                                applicant.status === 'PENDING' ? 'secondary' :
                                 'destructive'
                               }
                               className={
-                                applicant.status === 'Approved' ? 'bg-green-100 text-green-700' :
-                                applicant.status === 'Pending' ? 'bg-orange-100 text-orange-700' :
+                                applicant.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
+                                applicant.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
                                 'bg-red-100 text-red-700'
                               }
                             >

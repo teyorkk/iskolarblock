@@ -22,18 +22,36 @@ import { PersonalInfoStepPart1 } from "@/components/application/personal-info-st
 import { PersonalInfoStepPart2 } from "@/components/application/personal-info-step-part2";
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
 import { ApplicationSuccess } from "@/components/application/application-success";
+import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
 
 export default function NewApplicationPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
+  const [processedIdFile, setProcessedIdFile] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
+  const [isCogProcessingDone, setIsCogProcessingDone] = useState<boolean>(false);
   const [certificateOfRegistration, setCertificateOfRegistration] =
     useState<File | null>(null);
+  const [isCorProcessingDone, setIsCorProcessingDone] = useState<boolean>(false);
+
+  // Track processed files to prevent reprocessing
+  const [processedCogFile, setProcessedCogFile] = useState<string>("");
+  const [processedCorFile, setProcessedCorFile] = useState<string>("");
+
+  // Pending files for confirmation
+  const [pendingIdFile, setPendingIdFile] = useState<File | null>(null);
+  const [pendingCogFile, setPendingCogFile] = useState<File | null>(null);
+  const [pendingCorFile, setPendingCorFile] = useState<File | null>(null);
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [currentFileType, setCurrentFileType] = useState<
+    "ID Document" | "Certificate of Grades" | "Certificate of Registration"
+  >("ID Document");
 
   const {
     register,
@@ -51,23 +69,80 @@ export default function NewApplicationPage() {
 
   const onDrop = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
-      setUploadedFile(acceptedFiles[0]);
-      setValue("idDocument", acceptedFiles[0]);
+      setPendingIdFile(acceptedFiles[0]);
+      setCurrentFileType("ID Document");
+      setConfirmationModalOpen(true);
     }
   };
 
   const onDropGrades = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
-      setCertificateOfGrades(acceptedFiles[0]);
-      setValue("certificateOfGrades", acceptedFiles[0]);
+      setPendingCogFile(acceptedFiles[0]);
+      setCurrentFileType("Certificate of Grades");
+      setConfirmationModalOpen(true);
     }
   };
 
   const onDropRegistration = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
-      setCertificateOfRegistration(acceptedFiles[0]);
-      setValue("certificateOfRegistration", acceptedFiles[0]);
+      setPendingCorFile(acceptedFiles[0]);
+      setCurrentFileType("Certificate of Registration");
+      setConfirmationModalOpen(true);
     }
+  };
+
+  const handleConfirmUpload = (): void => {
+    if (pendingIdFile) {
+      setUploadedFile(pendingIdFile);
+      setValue("idDocument", pendingIdFile);
+      // Reset processing state for new file
+      setIsIdProcessingDone(false);
+      setProcessedIdFile("");
+      setPendingIdFile(null);
+    } else if (pendingCogFile) {
+      setCertificateOfGrades(pendingCogFile);
+      setValue("certificateOfGrades", pendingCogFile);
+      // Reset processing state for new file
+      setIsCogProcessingDone(false);
+      setProcessedCogFile("");
+      setPendingCogFile(null);
+    } else if (pendingCorFile) {
+      setCertificateOfRegistration(pendingCorFile);
+      setValue("certificateOfRegistration", pendingCorFile);
+      // Reset processing state for new file
+      setIsCorProcessingDone(false);
+      setProcessedCorFile("");
+      setPendingCorFile(null);
+    }
+    setConfirmationModalOpen(false);
+  };
+
+  const handleCancelUpload = (): void => {
+    setPendingIdFile(null);
+    setPendingCogFile(null);
+    setPendingCorFile(null);
+    setConfirmationModalOpen(false);
+  };
+
+  const handleRemoveIdFile = (): void => {
+    setUploadedFile(null);
+    setIsIdProcessingDone(false);
+    setProcessedIdFile("");
+    setValue("idDocument", undefined as never);
+  };
+
+  const handleRemoveGradesFile = (): void => {
+    setCertificateOfGrades(null);
+    setIsCogProcessingDone(false);
+    setProcessedCogFile("");
+    setValue("certificateOfGrades", undefined as never);
+  };
+
+  const handleRemoveRegistrationFile = (): void => {
+    setCertificateOfRegistration(null);
+    setIsCorProcessingDone(false);
+    setProcessedCorFile("");
+    setValue("certificateOfRegistration", undefined as never);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -178,6 +253,11 @@ export default function NewApplicationPage() {
                   getRootProps={getRootProps}
                   getInputProps={getInputProps}
                   isDragActive={isDragActive}
+                  onRemoveFile={handleRemoveIdFile}
+                  isProcessingDone={isIdProcessingDone}
+                  setIsProcessingDone={setIsIdProcessingDone}
+                  processedIdFile={processedIdFile}
+                  setProcessedIdFile={setProcessedIdFile}
                 />
               )}
 
@@ -224,6 +304,16 @@ export default function NewApplicationPage() {
                   getRootPropsRegistration={getRootPropsRegistration}
                   getInputPropsRegistration={getInputPropsRegistration}
                   isDragActiveRegistration={isDragActiveRegistration}
+                  onRemoveGradesFile={handleRemoveGradesFile}
+                  onRemoveRegistrationFile={handleRemoveRegistrationFile}
+                  isCogProcessingDone={isCogProcessingDone}
+                  setIsCogProcessingDone={setIsCogProcessingDone}
+                  isCorProcessingDone={isCorProcessingDone}
+                  setIsCorProcessingDone={setIsCorProcessingDone}
+                  processedCogFile={processedCogFile}
+                  setProcessedCogFile={setProcessedCogFile}
+                  processedCorFile={processedCorFile}
+                  setProcessedCorFile={setProcessedCorFile}
                 />
               )}
             </motion.div>
@@ -281,6 +371,20 @@ export default function NewApplicationPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* File Upload Confirmation Modal */}
+      <FileUploadConfirmationModal
+        isOpen={confirmationModalOpen}
+        onConfirm={handleConfirmUpload}
+        onCancel={handleCancelUpload}
+        fileName={
+          pendingIdFile?.name ||
+          pendingCogFile?.name ||
+          pendingCorFile?.name ||
+          ""
+        }
+        fileType={currentFileType}
+      />
     </div>
   );
 }
