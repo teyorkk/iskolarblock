@@ -1,7 +1,8 @@
 "use client";
 
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import type { FileUploadZoneProps } from "@/types/components";
+import { Button } from "@/components/ui/button";
 
 export function FileUploadZone({
   uploadedFile,
@@ -10,7 +11,13 @@ export function FileUploadZone({
   getInputProps,
   error,
   label = "Upload Document",
+  onRemove,
 }: FileUploadZoneProps): React.JSX.Element {
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the file picker
+    onRemove?.();
+  };
+
   return (
     <div>
       {label && (
@@ -27,9 +34,21 @@ export function FileUploadZone({
         <input {...getInputProps()} />
         <Upload className="w-10 h-10 mx-auto mb-3 text-gray-400" />
         {uploadedFile ? (
-          <div>
+          <div className="space-y-2">
             <p className="font-medium text-green-600">{uploadedFile.name}</p>
             <p className="text-sm text-gray-500">File uploaded successfully</p>
+            {onRemove && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRemove}
+                className="mt-2"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Remove File
+              </Button>
+            )}
           </div>
         ) : (
           <div>

@@ -43,15 +43,15 @@ import { mockApplications } from "@/lib/mock-data";
 type Application = (typeof mockApplications)[number];
 
 const statusColors = {
-  Approved: "bg-green-100 text-green-700",
-  Pending: "bg-orange-100 text-orange-700",
-  Rejected: "bg-red-100 text-red-700",
+  APPROVED: "bg-green-100 text-green-700",
+  PENDING: "bg-orange-100 text-orange-700",
+  REJECTED: "bg-red-100 text-red-700",
 };
 
 const statusIcons = {
-  Approved: CheckCircle,
-  Pending: Clock,
-  Rejected: XCircle,
+  APPROVED: CheckCircle,
+  PENDING: Clock,
+  REJECTED: XCircle,
 };
 
 export default function HistoryPage() {
@@ -130,7 +130,7 @@ export default function HistoryPage() {
                       <p className="text-2xl font-bold text-green-600">
                         {
                           mockApplications.filter(
-                            (app) => app.status === "Approved"
+                            (app) => app.status === "APPROVED"
                           ).length
                         }
                       </p>
@@ -150,7 +150,7 @@ export default function HistoryPage() {
                       <p className="text-2xl font-bold text-orange-600">
                         {
                           mockApplications.filter(
-                            (app) => app.status === "Pending"
+                            (app) => app.status === "PENDING"
                           ).length
                         }
                       </p>
@@ -176,40 +176,40 @@ export default function HistoryPage() {
                     All ({mockApplications.length})
                   </Button>
                   <Button
-                    variant={filter === "Pending" ? "default" : "outline"}
+                    variant={filter === "PENDING" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setFilter("Pending")}
+                    onClick={() => setFilter("PENDING")}
                   >
                     Pending (
                     {
                       mockApplications.filter(
-                        (app: Application) => app.status === "Pending"
+                        (app: Application) => app.status === "PENDING"
                       ).length
                     }
                     )
                   </Button>
                   <Button
-                    variant={filter === "Approved" ? "default" : "outline"}
+                    variant={filter === "APPROVED" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setFilter("Approved")}
+                    onClick={() => setFilter("APPROVED")}
                   >
                     Approved (
                     {
                       mockApplications.filter(
-                        (app: Application) => app.status === "Approved"
+                        (app: Application) => app.status === "APPROVED"
                       ).length
                     }
                     )
                   </Button>
                   <Button
-                    variant={filter === "Rejected" ? "default" : "outline"}
+                    variant={filter === "REJECTED" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setFilter("Rejected")}
+                    onClick={() => setFilter("REJECTED")}
                   >
                     Rejected (
                     {
                       mockApplications.filter(
-                        (app: Application) => app.status === "Rejected"
+                        (app: Application) => app.status === "REJECTED"
                       ).length
                     }
                     )

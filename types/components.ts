@@ -92,6 +92,7 @@ export interface FileUploadZoneProps {
   getInputProps: () => DropzoneInputProps;
   error?: string;
   label?: string;
+  onRemove?: () => void;
 }
 
 export interface ApplicationSuccessProps {

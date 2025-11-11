@@ -59,16 +59,16 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
                 <div className="text-right">
                   <Badge
                     variant={
-                      applicant.status === "Approved"
+                      applicant.status === "APPROVED"
                         ? "default"
-                        : applicant.status === "Pending"
+                        : applicant.status === "PENDING"
                         ? "secondary"
                         : "destructive"
                     }
                     className={
-                      applicant.status === "Approved"
+                      applicant.status === "APPROVED"
                         ? "bg-green-100 text-green-700"
-                        : applicant.status === "Pending"
+                        : applicant.status === "PENDING"
                         ? "bg-orange-100 text-orange-700"
                         : "bg-red-100 text-red-700"
                     }

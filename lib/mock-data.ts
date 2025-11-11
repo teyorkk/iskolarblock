@@ -17,21 +17,21 @@ export const mockApplications = [
     id: '1',
     date: '2024-01-15',
     type: 'New',
-    status: 'Approved',
+    status: 'APPROVED',
     remarks: 'Complete requirements',
   },
   {
     id: '2',
     date: '2024-02-20',
     type: 'Renewal',
-    status: 'Pending',
+    status: 'PENDING',
     remarks: 'Under review',
   },
   {
     id: '3',
     date: '2024-03-10',
     type: 'New',
-    status: 'Rejected',
+    status: 'REJECTED',
     remarks: 'Incomplete documents',
   },
 ]
@@ -42,7 +42,7 @@ export const mockApplicants = [
     name: 'Maria Santos',
     email: 'maria@example.com',
     type: 'New',
-    status: 'Pending',
+    status: 'PENDING',
     submittedDate: '2024-01-15',
   },
   {
@@ -50,7 +50,7 @@ export const mockApplicants = [
     name: 'Jose Reyes',
     email: 'jose@example.com',
     type: 'Renewal',
-    status: 'Approved',
+    status: 'APPROVED',
     submittedDate: '2024-02-20',
   },
   {
@@ -58,7 +58,7 @@ export const mockApplicants = [
     name: 'Ana Cruz',
     email: 'ana@example.com',
     type: 'New',
-    status: 'Pending',
+    status: 'PENDING',
     submittedDate: '2024-03-10',
   },
 ]

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserSidebar } from "@/components/user-sidebar";
@@ -20,18 +20,41 @@ import { IdUploadStep } from "@/components/application/id-upload-step";
 import { FaceScanStep } from "@/components/application/face-scan-step";
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
 import { ApplicationSuccess } from "@/components/application/application-success";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useSession } from "@/components/session-provider";
+import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
 
 export default function RenewalApplicationPage() {
   const router = useRouter();
+  const { user } = useSession();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [isScanning, setIsScanning] = useState(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
+  const [isCogProcessingDone, setIsCogProcessingDone] =
+    useState<boolean>(false);
   const [certificateOfRegistration, setCertificateOfRegistration] =
     useState<File | null>(null);
+  const [isCorProcessingDone, setIsCorProcessingDone] =
+    useState<boolean>(false);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
+
+  // Track processed files to prevent reprocessing
+  const [processedCogFile, setProcessedCogFile] = useState<string>("");
+  const [processedCorFile, setProcessedCorFile] = useState<string>("");
+
+  // Pending files for confirmation
+  const [pendingIdFile, setPendingIdFile] = useState<File | null>(null);
+  const [pendingCogFile, setPendingCogFile] = useState<File | null>(null);
+  const [pendingCorFile, setPendingCorFile] = useState<File | null>(null);
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [currentFileType, setCurrentFileType] = useState<
+    "ID Document" | "Certificate of Grades" | "Certificate of Registration"
+  >("ID Document");
 
   const {
     register,
@@ -43,25 +66,132 @@ export default function RenewalApplicationPage() {
     resolver: zodResolver(renewalApplicationSchema),
   });
 
+  // Check if user is eligible for renewal
+  useEffect(() => {
+    async function checkRenewalEligibility() {
+      if (!user) {
+        setIsCheckingEligibility(false);
+        return;
+      }
+
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from("Application")
+          .select("id, status")
+          .eq("userId", user.id)
+          .eq("status", "APPROVED")
+          .limit(1);
+
+        if (error) {
+          console.error("Error checking renewal eligibility:", error);
+          console.error("Error details:", JSON.stringify(error, null, 2));
+
+          // Fail gracefully - redirect to application page without approved status
+          toast.warning(
+            "Unable to verify eligibility. Redirecting to application selection.",
+            { duration: 5000 }
+          );
+          router.push("/application");
+          return;
+        }
+
+        // User must have at least one approved application
+        if (!data || data.length === 0) {
+          toast.error(
+            "You need an approved scholarship before applying for renewal",
+            { duration: 6000 }
+          );
+          router.push("/application");
+          return;
+        }
+
+        setIsCheckingEligibility(false);
+      } catch (error) {
+        console.error("Unexpected error checking renewal eligibility:", error);
+        toast.warning(
+          "An error occurred while checking eligibility. Redirecting to application selection.",
+          { duration: 5000 }
+        );
+        router.push("/application");
+      }
+    }
+
+    void checkRenewalEligibility();
+  }, [user, router]);
+
   const onDrop = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
-      setUploadedFile(acceptedFiles[0]);
-      setValue("idDocument", acceptedFiles[0]);
+      setPendingIdFile(acceptedFiles[0]);
+      setCurrentFileType("ID Document");
+      setConfirmationModalOpen(true);
     }
   };
 
   const onDropGrades = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
-      setCertificateOfGrades(acceptedFiles[0]);
-      setValue("certificateOfGrades", acceptedFiles[0]);
+      setPendingCogFile(acceptedFiles[0]);
+      setCurrentFileType("Certificate of Grades");
+      setConfirmationModalOpen(true);
     }
   };
 
   const onDropRegistration = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
-      setCertificateOfRegistration(acceptedFiles[0]);
-      setValue("certificateOfRegistration", acceptedFiles[0]);
+      setPendingCorFile(acceptedFiles[0]);
+      setCurrentFileType("Certificate of Registration");
+      setConfirmationModalOpen(true);
     }
+  };
+
+  const handleConfirmUpload = (): void => {
+    if (pendingIdFile) {
+      setUploadedFile(pendingIdFile);
+      setValue("idDocument", pendingIdFile);
+      setPendingIdFile(null);
+    } else if (pendingCogFile) {
+      setCertificateOfGrades(pendingCogFile);
+      setValue("certificateOfGrades", pendingCogFile);
+      // Reset processing state for new file
+      setIsCogProcessingDone(false);
+      setProcessedCogFile("");
+      setPendingCogFile(null);
+    } else if (pendingCorFile) {
+      setCertificateOfRegistration(pendingCorFile);
+      setValue("certificateOfRegistration", pendingCorFile);
+      // Reset processing state for new file
+      setIsCorProcessingDone(false);
+      setProcessedCorFile("");
+      setPendingCorFile(null);
+    }
+    setConfirmationModalOpen(false);
+  };
+
+  const handleCancelUpload = (): void => {
+    setPendingIdFile(null);
+    setPendingCogFile(null);
+    setPendingCorFile(null);
+    setConfirmationModalOpen(false);
+  };
+
+  const handleRemoveIdFile = (): void => {
+    setUploadedFile(null);
+    setIsIdProcessingDone(false);
+    setValue("idDocument", undefined as never);
+  };
+
+  const handleRemoveGradesFile = (): void => {
+    setCertificateOfGrades(null);
+    setIsCogProcessingDone(false);
+    setProcessedCogFile("");
+    setValue("certificateOfGrades", undefined as never);
+  };
+
+  const handleRemoveRegistrationFile = (): void => {
+    setCertificateOfRegistration(null);
+    setIsCorProcessingDone(false);
+    setProcessedCorFile("");
+    setValue("certificateOfRegistration", undefined as never);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -124,6 +254,23 @@ export default function RenewalApplicationPage() {
     }, 2000);
   };
 
+  // Show loading while checking eligibility
+  if (isCheckingEligibility) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <UserSidebar />
+        <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
+          <div className="p-4 md:p-6 flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Verifying renewal eligibility...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -172,6 +319,9 @@ export default function RenewalApplicationPage() {
                   getRootProps={getRootProps}
                   getInputProps={getInputProps}
                   isDragActive={isDragActive}
+                  onRemoveFile={handleRemoveIdFile}
+                  isProcessingDone={isIdProcessingDone}
+                  setIsProcessingDone={setIsIdProcessingDone}
                 />
               )}
 
@@ -200,6 +350,16 @@ export default function RenewalApplicationPage() {
                   getRootPropsRegistration={getRootPropsRegistration}
                   getInputPropsRegistration={getInputPropsRegistration}
                   isDragActiveRegistration={isDragActiveRegistration}
+                  onRemoveGradesFile={handleRemoveGradesFile}
+                  onRemoveRegistrationFile={handleRemoveRegistrationFile}
+                  isCogProcessingDone={isCogProcessingDone}
+                  setIsCogProcessingDone={setIsCogProcessingDone}
+                  isCorProcessingDone={isCorProcessingDone}
+                  setIsCorProcessingDone={setIsCorProcessingDone}
+                  processedCogFile={processedCogFile}
+                  setProcessedCogFile={setProcessedCogFile}
+                  processedCorFile={processedCorFile}
+                  setProcessedCorFile={setProcessedCorFile}
                 />
               )}
             </motion.div>
@@ -235,6 +395,20 @@ export default function RenewalApplicationPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* File Upload Confirmation Modal */}
+      <FileUploadConfirmationModal
+        isOpen={confirmationModalOpen}
+        onConfirm={handleConfirmUpload}
+        onCancel={handleCancelUpload}
+        fileName={
+          pendingIdFile?.name ||
+          pendingCogFile?.name ||
+          pendingCorFile?.name ||
+          ""
+        }
+        fileType={currentFileType}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Eye, EyeOff, ArrowLeft, User, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { OTPVerification } from "@/components/ui/otp-verification";
 import { PasswordStrength } from "@/components/ui/password-strength";
+import { TermsModal } from "@/components/ui/terms-modal";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, type RegisterFormData } from "@/lib/validations";
@@ -33,6 +35,8 @@ export default function RegisterPage() {
   const [pendingUserData, setPendingUserData] =
     useState<RegisterFormData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const router = useRouter();
   // SessionProvider will pick up auth changes; no manual login state needed
 
@@ -76,6 +80,11 @@ export default function RegisterPage() {
   };
 
   const onSubmit = async (data: RegisterFormData) => {
+    if (!termsAccepted) {
+      setShowTermsModal(true);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setErrorMessage("");
@@ -203,6 +212,21 @@ export default function RegisterPage() {
       return;
     }
     toast.info("Verification code resent.");
+  };
+
+  const handleTermsAccept = () => {
+    setTermsAccepted(true);
+    setShowTermsModal(false);
+    // Auto-submit form after terms are accepted
+    const form = document.querySelector('form');
+    if (form) {
+      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    }
+  };
+
+  const handleTermsDecline = () => {
+    setTermsAccepted(false);
+    setShowTermsModal(false);
   };
 
   return (
@@ -350,10 +374,34 @@ export default function RegisterPage() {
                 )}
               </div>
 
+              {/* Terms and Conditions Checkbox */}
+              <div className="space-y-2">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="terms-checkbox"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked: boolean) => setTermsAccepted(checked)}
+                  />
+                  <label
+                    htmlFor="terms-checkbox"
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    I agree to the{" "}
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-orange-500 hover:text-orange-600 underline"
+                    >
+                      Terms and Conditions
+                    </button>
+                  </label>
+                </div>
+              </div>
+
               <Button
                 type="submit"
                 className="w-full bg-orange-500 hover:bg-orange-600"
-                disabled={isLoading}
+                disabled={isLoading || !termsAccepted}
               >
                 {isLoading ? (
                   <motion.div
@@ -419,6 +467,13 @@ export default function RegisterPage() {
         isLoading={isVerifyingOTP}
         email={pendingUserData?.email}
         length={8}
+      />
+
+      {/* Terms and Conditions Modal */}
+      <TermsModal
+        isOpen={showTermsModal}
+        onAccept={handleTermsAccept}
+        onDecline={handleTermsDecline}
       />
     </div>
   );
