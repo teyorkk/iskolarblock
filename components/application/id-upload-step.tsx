@@ -15,7 +15,7 @@ import type {
   NewApplicationFormData,
   RenewalApplicationFormData,
 } from "@/lib/validations";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { extractText } from "@/lib/services/ocr";
 import {
@@ -35,6 +35,8 @@ interface IdUploadStepProps<T extends IdForm> extends ApplicationStepProps<T> {
   onRemoveFile?: () => void;
   isProcessingDone: boolean;
   setIsProcessingDone: (done: boolean) => void;
+  processedIdFile: string;
+  setProcessedIdFile: (filename: string) => void;
 }
 
 export function IdUploadStep<T extends IdForm>({
@@ -47,6 +49,8 @@ export function IdUploadStep<T extends IdForm>({
   onRemoveFile,
   isProcessingDone,
   setIsProcessingDone,
+  processedIdFile,
+  setProcessedIdFile,
 }: IdUploadStepProps<T>): React.JSX.Element {
   const [ocrText, setOcrText] = useState<string>("");
   const [ocrError, setOcrError] = useState<string>("");
@@ -56,7 +60,6 @@ export function IdUploadStep<T extends IdForm>({
   const [extractedData, setExtractedData] =
     useState<IDExtractionResponse | null>(null);
   const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
-  const processedFileRef = useRef<string>("");
 
   // Auto-fill form fields with extracted data
   const autoFillFormFields = (data: IDExtractionResponse): void => {
@@ -130,12 +133,12 @@ export function IdUploadStep<T extends IdForm>({
         setIsProcessing(false);
         setExtractedData(null);
         setIsProcessingDone(false);
-        processedFileRef.current = "";
+        setProcessedIdFile("");
         return;
       }
 
       // Skip if we've already processed this exact file
-      if (uploadedFile.name === processedFileRef.current && isProcessingDone) {
+      if (uploadedFile.name === processedIdFile && isProcessingDone) {
         console.log(
           "✓ Skipping re-processing - file already processed:",
           uploadedFile.name
@@ -185,7 +188,7 @@ export function IdUploadStep<T extends IdForm>({
 
             if (extractedInfo) {
               setExtractedData(extractedInfo);
-              processedFileRef.current = uploadedFile.name; // Mark as processed
+              setProcessedIdFile(uploadedFile.name); // Mark as processed
               setIsProcessingDone(true); // Mark processing as complete
               autoFillFormFields(extractedInfo);
             } else {
@@ -277,7 +280,7 @@ export function IdUploadStep<T extends IdForm>({
     return () => {
       cancelled = true;
     };
-  }, [uploadedFile, setValue]);
+  }, [uploadedFile, setValue, processedIdFile, isProcessingDone, setIsProcessingDone, setProcessedIdFile]);
 
   return (
     <Card>

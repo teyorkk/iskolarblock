@@ -36,19 +36,21 @@ export function FileUploadConfirmationModal({
             <FileText className="w-5 h-5 text-blue-600" />
             Confirm File Upload
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3 pt-2">
-            <p>You are about to upload the following file:</p>
+          <div className="space-y-3 pt-2">
+            <AlertDialogDescription>
+              You are about to upload the following file:
+            </AlertDialogDescription>
             <div className="bg-gray-50 p-3 rounded-md border">
               <p className="text-sm font-medium text-gray-900">{fileName}</p>
               <p className="text-xs text-gray-500 mt-1">
                 Document Type: {fileType}
               </p>
             </div>
-            <p className="text-sm">
+            <p className="text-sm text-muted-foreground">
               This file will be processed and scanned automatically. Do you want
               to proceed?
             </p>
-          </AlertDialogDescription>
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>

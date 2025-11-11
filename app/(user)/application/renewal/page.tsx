@@ -31,6 +31,7 @@ export default function RenewalApplicationPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
+  const [processedIdFile, setProcessedIdFile] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
@@ -148,6 +149,9 @@ export default function RenewalApplicationPage() {
     if (pendingIdFile) {
       setUploadedFile(pendingIdFile);
       setValue("idDocument", pendingIdFile);
+      // Reset processing state for new file
+      setIsIdProcessingDone(false);
+      setProcessedIdFile("");
       setPendingIdFile(null);
     } else if (pendingCogFile) {
       setCertificateOfGrades(pendingCogFile);
@@ -177,6 +181,7 @@ export default function RenewalApplicationPage() {
   const handleRemoveIdFile = (): void => {
     setUploadedFile(null);
     setIsIdProcessingDone(false);
+    setProcessedIdFile("");
     setValue("idDocument", undefined as never);
   };
 
@@ -322,6 +327,8 @@ export default function RenewalApplicationPage() {
                   onRemoveFile={handleRemoveIdFile}
                   isProcessingDone={isIdProcessingDone}
                   setIsProcessingDone={setIsIdProcessingDone}
+                  processedIdFile={processedIdFile}
+                  setProcessedIdFile={setProcessedIdFile}
                 />
               )}
 

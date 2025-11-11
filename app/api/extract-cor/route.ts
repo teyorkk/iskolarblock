@@ -180,12 +180,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send to N8N webhook with timeout
+    // Send to N8N webhook
     let response: Response;
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
       const requestBody = { ocrText };
       console.log("=== N8N COR Webhook Request ===");
       console.log("URL:", webhookUrl);
@@ -199,23 +196,13 @@ export async function POST(request: NextRequest) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(requestBody),
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
 
       console.log("=== N8N COR Webhook Response ===");
       console.log("Status Code:", response.status);
       console.log("Status Text:", response.statusText);
     } catch (fetchError) {
       if (fetchError instanceof Error) {
-        if (fetchError.name === "AbortError") {
-          console.error("COR webhook request timed out after 30 seconds");
-          return NextResponse.json(
-            { error: "Request timed out. Please try again." },
-            { status: 504 }
-          );
-        }
         console.error("COR webhook request failed:", fetchError.message);
         return NextResponse.json(
           {
