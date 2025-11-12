@@ -65,6 +65,21 @@ export async function POST(req: Request) {
               { status: 401 }
             );
           }
+          // Fetch user data from User table after auto-provision
+          if (retry.data.user?.email) {
+            const { data: userData } = await supabase
+              .from("User")
+              .select("id, email, name, role")
+              .eq("email", retry.data.user.email.toLowerCase().trim())
+              .maybeSingle();
+
+            return NextResponse.json({
+              success: true,
+              userId: retry.data.user?.id,
+              user: userData || null,
+              role: userData?.role || "USER",
+            });
+          }
           return NextResponse.json({
             success: true,
             userId: retry.data.user?.id,
@@ -75,6 +90,28 @@ export async function POST(req: Request) {
       }
       return NextResponse.json({ error: message }, { status: 401 });
     }
+
+    // After successful login, fetch user data from User table
+    if (data.user?.email) {
+      const { data: userData, error: userError } = await supabase
+        .from("User")
+        .select("id, email, name, role")
+        .eq("email", data.user.email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (userError) {
+        console.error("Error fetching user data after login:", userError);
+        // Still return success, but log the error
+      }
+
+      return NextResponse.json({
+        success: true,
+        userId: data.user?.id,
+        user: userData || null,
+        role: userData?.role || "USER",
+      });
+    }
+
     return NextResponse.json({ success: true, userId: data.user?.id });
   } catch (e) {
     const error = e as Error;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as faceapi from "face-api.js";
 import { Camera, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -24,6 +25,7 @@ interface FaceScanStepProps<T extends FaceForm>
   extends ApplicationStepProps<T> {
   uploadedIdFile: File | null;
   onVerificationComplete?: (verified: boolean) => void;
+  onFaceScanImageChange?: (image: string) => void;
 }
 
 // Global flag to track if models are loaded (persists across component re-mounts)
@@ -74,6 +76,7 @@ let globalFaceScanResult: FaceScanResult | null = null;
 export function FaceScanStep<T extends FaceForm>({
   uploadedIdFile,
   onVerificationComplete,
+  onFaceScanImageChange,
 }: FaceScanStepProps<T>): React.JSX.Element {
   const [modelsLoaded, setModelsLoaded] = useState(globalModelsLoaded);
   const [idImageUrl, setIdImageUrl] = useState<string | null>(null);
@@ -86,6 +89,23 @@ export function FaceScanStep<T extends FaceForm>({
     distance: number;
     isMatch: boolean;
   } | null>(globalFaceScanResult?.matchResult || null);
+
+  // Notify parent of restored state on mount
+  useEffect(() => {
+    if (globalFaceScanResult) {
+      // Notify parent of captured image
+      if (onFaceScanImageChange && globalFaceScanResult.capturedImage) {
+        onFaceScanImageChange(globalFaceScanResult.capturedImage);
+      }
+
+      // Notify parent of verification result
+      if (onVerificationComplete && globalFaceScanResult.matchResult) {
+        onVerificationComplete(globalFaceScanResult.matchResult.isMatch);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount - state is already initialized from global
+
   const [loading, setLoading] = useState(false);
   const [cameraSupported, setCameraSupported] = useState(true);
 
@@ -93,9 +113,10 @@ export function FaceScanStep<T extends FaceForm>({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Load face-api.js models
+  // Load face-api.js models only if not already loaded
   useEffect(() => {
     const initModels = async () => {
+      // Check global flag first to avoid reloading
       if (globalModelsLoaded) {
         setModelsLoaded(true);
         return;
@@ -116,16 +137,15 @@ export function FaceScanStep<T extends FaceForm>({
       }
     };
 
-    initModels();
+    // Only load if not already loaded globally
+    if (!globalModelsLoaded) {
+      initModels();
+    } else {
+      setModelsLoaded(true);
+    }
+
     checkCameraSupport();
   }, []);
-
-  // Restore verification status if there's a saved result
-  useEffect(() => {
-    if (globalFaceScanResult?.matchResult && onVerificationComplete) {
-      onVerificationComplete(globalFaceScanResult.matchResult.isMatch);
-    }
-  }, [onVerificationComplete]);
 
   // Load ID image when file is uploaded
   useEffect(() => {
@@ -191,8 +211,14 @@ export function FaceScanStep<T extends FaceForm>({
       console.error("Error accessing camera:", error);
       let errorMessage = "Could not access camera. ";
 
-      if (error instanceof DOMException || (error instanceof Error && 'name' in error)) {
-        const errorName = error instanceof DOMException ? error.name : (error as Error & { name: string }).name;
+      if (
+        error instanceof DOMException ||
+        (error instanceof Error && "name" in error)
+      ) {
+        const errorName =
+          error instanceof DOMException
+            ? error.name
+            : (error as Error & { name: string }).name;
         if (errorName === "NotAllowedError") {
           errorMessage += "Please grant camera permission.";
         } else if (errorName === "NotFoundError") {
@@ -200,7 +226,8 @@ export function FaceScanStep<T extends FaceForm>({
         } else if (errorName === "NotReadableError") {
           errorMessage += "Camera is in use by another application.";
         } else {
-          errorMessage += error instanceof Error ? error.message : String(error);
+          errorMessage +=
+            error instanceof Error ? error.message : String(error);
         }
       } else {
         errorMessage += error instanceof Error ? error.message : String(error);
@@ -238,6 +265,7 @@ export function FaceScanStep<T extends FaceForm>({
 
         const imageData = canvas.toDataURL("image/jpeg");
         setCapturedImage(imageData);
+        onFaceScanImageChange?.(imageData);
         stopCamera();
         setCountdown(null);
 
@@ -283,6 +311,26 @@ export function FaceScanStep<T extends FaceForm>({
         .withFaceDescriptor();
 
       if (!detection1 || !detection2) {
+        // Set matchResult to show NOT MATCHED alert
+        const failedResult = {
+          distance: 999,
+          isMatch: false,
+        };
+        setMatchResult(failedResult);
+
+        // Save to global state
+        if (faceImage) {
+          globalFaceScanResult = {
+            capturedImage: faceImage,
+            matchResult: failedResult,
+          };
+        }
+
+        // Notify parent
+        if (onVerificationComplete) {
+          onVerificationComplete(false);
+        }
+
         toast.error("Could not detect faces. Please try again.");
         setLoading(false);
         return;
@@ -301,7 +349,7 @@ export function FaceScanStep<T extends FaceForm>({
       };
 
       setMatchResult(result);
-      
+
       // Save to global state to persist across navigation
       if (faceImage) {
         globalFaceScanResult = {
@@ -318,10 +366,15 @@ export function FaceScanStep<T extends FaceForm>({
       if (isMatch) {
         toast.success("Face verification successful!");
       } else {
-        toast.error("Face does not match ID. Please try again.");
+        toast.error("Not Matched - Face does not match ID. Please try again.");
       }
     } catch (error) {
       console.error("Error matching faces:", error);
+      // Set error result so user sees feedback
+      setMatchResult({
+        distance: 999,
+        isMatch: false,
+      });
       toast.error("Error during face matching. Please try again.");
     } finally {
       setLoading(false);
@@ -389,7 +442,7 @@ export function FaceScanStep<T extends FaceForm>({
           Face Scan Verification
         </CardTitle>
         <CardDescription>
-          Position your face in the oval. Photo will be captured automatically
+          Position your face in the frame. Photo will be captured automatically
           after 5 seconds.
         </CardDescription>
       </CardHeader>
@@ -410,17 +463,6 @@ export function FaceScanStep<T extends FaceForm>({
                 className="w-full h-auto bg-black"
                 style={{ minHeight: "300px" }}
               />
-              {/* Oval Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div
-                  className="border-4 border-white rounded-full shadow-lg"
-                  style={{
-                    width: "250px",
-                    height: "320px",
-                    borderRadius: "50%",
-                  }}
-                />
-              </div>
               {/* Countdown */}
               {countdown !== null && countdown > 0 && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -475,7 +517,7 @@ export function FaceScanStep<T extends FaceForm>({
           )}
         </div>
 
-        {/* Match Result */}
+        {/* Match Result Display */}
         {matchResult && (
           <div
             className={`mt-4 p-4 rounded-lg text-center ${
@@ -495,14 +537,19 @@ export function FaceScanStep<T extends FaceForm>({
                   matchResult.isMatch ? "text-green-800" : "text-red-800"
                 }`}
               >
-                {matchResult.isMatch ? "VERIFIED" : "NOT MATCHED"}
+                {matchResult.isMatch ? "VERIFIED " : "NOT MATCHED"}
               </h3>
             </div>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-700 mt-1 font-medium">
               {matchResult.isMatch
                 ? "Your face matches the ID photo. You can now proceed."
-                : "Face does not match. Please try again with better lighting."}
+                : "Your face does not match the ID photo. Please try again."}
             </p>
+            {!matchResult.isMatch && (
+              <p className="text-xs text-red-700 mt-2">
+                Please retake the photo and try again.
+              </p>
+            )}
           </div>
         )}
 

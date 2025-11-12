@@ -65,14 +65,6 @@ export const userStatsCards: StatsCard[] = [
     color: "bg-green-500",
     trend: "+1 this month",
   },
-  {
-    title: "Profile Completion",
-    value: "85%",
-    description: "Almost complete",
-    icon: FileText,
-    color: "bg-purple-500",
-    trend: "Update profile",
-  },
 ];
 
 export const adminPieData = [

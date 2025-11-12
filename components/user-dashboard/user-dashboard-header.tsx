@@ -6,15 +6,25 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-interface UserDashboardHeaderProps {
-  user: SupabaseUser | null;
+interface UserData {
+  name: string;
+  email: string;
+  phone: string | null;
+  address: string | null;
+  bio: string | null;
 }
 
-export function UserDashboardHeader({ user }: UserDashboardHeaderProps): React.JSX.Element {
+interface UserDashboardHeaderProps {
+  user: SupabaseUser | null;
+  userData?: UserData | null;
+}
+
+export function UserDashboardHeader({
+  user,
+  userData,
+}: UserDashboardHeaderProps): React.JSX.Element {
   const userName =
-    (user?.user_metadata?.name as string) ||
-    user?.email?.split("@")[0] ||
-    "User";
+    userData?.name || user?.email?.split("@")[0] || "User";
 
   return (
     <motion.div

@@ -242,9 +242,6 @@ async function callExtractionWebhook(
   webhookUrl: string,
   token: string
 ): Promise<IDExtractionResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
   const requestBody = { ocrText };
   console.log("=== N8N Webhook Request ===");
   console.log("URL:", webhookUrl);
@@ -261,10 +258,7 @@ async function callExtractionWebhook(
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(requestBody),
-      signal: controller.signal,
     });
-
-    clearTimeout(timeoutId);
 
     console.log("=== N8N Webhook Response ===");
     console.log("Status Code:", response.status);
@@ -275,10 +269,6 @@ async function callExtractionWebhook(
     );
   } catch (fetchError) {
     if (fetchError instanceof Error) {
-      if (fetchError.name === "AbortError") {
-        console.error("Webhook request timed out after 30 seconds");
-        throw new Error("Request timed out. Please try again.");
-      }
       console.error("Webhook request failed:", fetchError.message);
       throw new Error(
         "Failed to connect to extraction service. Please try again."
@@ -409,7 +399,6 @@ export async function POST(request: NextRequest) {
 
       // Determine appropriate status code
       let statusCode = 502;
-      if (errorMessage.includes("timed out")) statusCode = 504;
       if (errorMessage.includes("temporarily unavailable")) statusCode = 503;
       if (errorMessage.includes("Network error")) statusCode = 503;
 

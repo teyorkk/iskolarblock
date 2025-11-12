@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sign } from "jsonwebtoken";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface COGExtractionResponse {
   "Certificate of Grades": boolean;
@@ -33,13 +34,16 @@ interface N8NWebhookResponse {
   semester: N8NFieldResponse;
   course: N8NFieldResponse;
   name: N8NFieldResponse;
-  gwa: N8NFieldResponse;
+  total_gwa: N8NFieldResponse;
   total_units: N8NFieldResponse;
   subjects: N8NFieldResponse; // Array of subjects
 }
 
 interface RequestBody {
   ocrText: string;
+  fileData?: string; // Base64 file data
+  fileName?: string;
+  userId?: string;
 }
 
 /**
@@ -76,7 +80,7 @@ function transformN8NResponse(
     semester: extractValue(dataObject.semester) as string | null,
     course: extractValue(dataObject.course) as string | null,
     name: extractValue(dataObject.name) as string | null,
-    gwa: extractValue(dataObject.gwa) as number | null,
+    gwa: extractValue(dataObject.total_gwa) as number | null,
     total_units: extractValue(dataObject.total_units) as number | null,
     subjects: extractValue(dataObject.subjects) as GradeSubject[] | null,
   };
@@ -118,7 +122,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ocrText } = body;
+    const { ocrText, fileData, fileName, userId } = body;
+
+    // Upload file to Supabase storage if provided
+    let fileUrl: string | null = null;
+    if (fileData && fileName && userId) {
+      try {
+        const supabase = getSupabaseServerClient();
+
+        // Convert base64 to buffer
+        const base64Data = fileData.split(",")[1] || fileData;
+        const buffer = Buffer.from(base64Data, "base64");
+
+        // Generate unique file path
+        const timestamp = Date.now();
+        const filePath = `${userId}/cog/${timestamp}-${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("documents")
+          .upload(filePath, buffer, {
+            contentType: fileName.endsWith(".pdf")
+              ? "application/pdf"
+              : "image/jpeg",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("COG file upload error:", uploadError);
+        } else {
+          fileUrl = uploadData.path;
+          console.log("✅ COG file uploaded to storage:", fileUrl);
+        }
+      } catch (storageError) {
+        console.error("COG storage error:", storageError);
+        // Continue with OCR even if storage fails
+      }
+    }
 
     // Validate OCR text
     if (!ocrText || typeof ocrText !== "string") {
@@ -306,7 +345,10 @@ export async function POST(request: NextRequest) {
     console.log(
       "✅ Successfully extracted and transformed COG data from N8N webhook"
     );
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...data,
+      fileUrl,
+    });
   } catch (error) {
     // Catch-all error handler
     console.error("Unexpected error in extract-cog API:", error);

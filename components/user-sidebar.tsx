@@ -18,8 +18,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useSession } from "./session-provider";
 import { useMobile } from "@/hooks/use-mobile";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const navigation = [
   { name: "Dashboard", href: "/user-dashboard", icon: Home },
@@ -37,9 +39,99 @@ export function UserSidebar(): React.JSX.Element {
     }
     return false;
   });
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    email: string;
+    profilePicture: string | null;
+  } | null>(null);
   const pathname = usePathname();
   const { user } = useSession();
   const isMobile = useMobile();
+
+  // Fetch user profile data from User table
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.email) {
+        // Fallback to auth user data if no email
+        if (user) {
+          setUserProfile({
+            name:
+              (user.user_metadata?.name as string) ||
+              user.email?.split("@")[0] ||
+              "User",
+            email: user.email || "",
+            profilePicture: null,
+          });
+        }
+        return;
+      }
+
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from("User")
+          .select("name, email, profilePicture")
+          .eq("email", user.email.toLowerCase().trim())
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          // Fallback to auth user data on error
+          setUserProfile({
+            name:
+              (user.user_metadata?.name as string) ||
+              user.email?.split("@")[0] ||
+              "User",
+            email: user.email || "",
+            profilePicture: null,
+          });
+          return;
+        }
+
+        if (data) {
+          setUserProfile({
+            name: data.name || user.email.split("@")[0],
+            email: data.email,
+            profilePicture: data.profilePicture || null,
+          });
+        } else {
+          // User not found in User table, use auth data
+          setUserProfile({
+            name:
+              (user.user_metadata?.name as string) ||
+              user.email?.split("@")[0] ||
+              "User",
+            email: user.email || "",
+            profilePicture: null,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        // Fallback to auth user data on error
+        setUserProfile({
+          name:
+            (user.user_metadata?.name as string) ||
+            user.email?.split("@")[0] ||
+            "User",
+          email: user.email || "",
+          profilePicture: null,
+        });
+      }
+    };
+
+    void fetchUserProfile();
+
+    // Listen for profile update events
+    const handleProfileUpdate = () => {
+      void fetchUserProfile();
+    };
+
+    window.addEventListener("userProfileUpdated", handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+    };
+  }, [user?.email, user]);
 
   // Save collapse state to localStorage
   useEffect(() => {
@@ -58,11 +150,14 @@ export function UserSidebar(): React.JSX.Element {
       });
 
       if (!response.ok) {
-        console.error("Logout failed");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Logout failed:", errorData.error || "Unknown error");
       }
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
+      // Always redirect to login, even if logout API call fails
+      // This ensures the user is logged out from the client side
       window.location.href = "/login";
     }
   };
@@ -99,7 +194,17 @@ export function UserSidebar(): React.JSX.Element {
                     className="object-contain"
                   />
                 </div>
-                <span className="font-bold text-lg">ScholarBlock</span>
+                <div>
+                  <div className="flex items-center">
+                    <span className="font-bold text-lg">ScholarBlock</span>
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 bg-orange-100 text-orange-700 text-xs"
+                    >
+                      User
+                    </Badge>
+                  </div>
+                </div>
               </div>
               <Button
                 variant="ghost"
@@ -112,21 +217,22 @@ export function UserSidebar(): React.JSX.Element {
           </div>
 
           <div className="p-4">
-            <div className="flex items-center space-x-3 mb-6">
+            <div className="flex items-center space-x-3 mb-6 p-3 bg-orange-50 rounded-lg">
               <Avatar>
-                <AvatarImage src="" />
+                <AvatarImage src={userProfile?.profilePicture || ""} />
                 <AvatarFallback className="bg-orange-100 text-orange-600">
-                  {(user?.user_metadata?.name as string)?.charAt(0) ||
+                  {userProfile?.name?.charAt(0) ||
                     user?.email?.charAt(0) ||
                     "U"}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-medium text-gray-900">
-                  {(user?.user_metadata?.name as string) ||
-                    user?.email?.split("@")[0]}
+                  {userProfile?.name || user?.email?.split("@")[0]}
                 </p>
-                <p className="text-sm text-gray-500">{user?.email}</p>
+                <p className="text-sm text-gray-500">
+                  {userProfile?.email || user?.email}
+                </p>
               </div>
             </div>
 
@@ -211,7 +317,17 @@ export function UserSidebar(): React.JSX.Element {
                   className="object-contain"
                 />
               </div>
-              <span className="font-bold text-xl">ScholarBlock</span>
+              <div>
+                <div className="flex items-start flex-col">
+                  <span className="font-bold text-xl">ScholarBlock</span>
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 bg-orange-100 text-orange-700 text-xs"
+                  >
+                    User
+                  </Badge>
+                </div>
+              </div>
             </div>
           )}
           {isCollapsed && (
@@ -243,21 +359,22 @@ export function UserSidebar(): React.JSX.Element {
         <div className="p-4 overflow-y-auto h-[calc(100vh-88px)]">
           {/* User Profile */}
           {!isCollapsed && (
-            <div className="flex items-center space-x-3 mb-6 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3 mb-6 p-3 bg-orange-50 rounded-lg">
               <Avatar>
-                <AvatarImage src="" />
+                <AvatarImage src={userProfile?.profilePicture || ""} />
                 <AvatarFallback className="bg-orange-100 text-orange-600">
-                  {(user?.user_metadata?.name as string)?.charAt(0) ||
+                  {userProfile?.name?.charAt(0) ||
                     user?.email?.charAt(0) ||
                     "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="overflow-hidden">
                 <p className="font-medium text-gray-900 truncate">
-                  {(user?.user_metadata?.name as string) ||
-                    user?.email?.split("@")[0]}
+                  {userProfile?.name || user?.email?.split("@")[0]}
                 </p>
-                <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+                <p className="text-sm text-gray-500 truncate">
+                  {userProfile?.email || user?.email}
+                </p>
               </div>
             </div>
           )}
@@ -265,9 +382,9 @@ export function UserSidebar(): React.JSX.Element {
           {isCollapsed && (
             <div className="flex justify-center mb-6">
               <Avatar>
-                <AvatarImage src="" />
+                <AvatarImage src={userProfile?.profilePicture || ""} />
                 <AvatarFallback className="bg-orange-100 text-orange-600">
-                  {(user?.user_metadata?.name as string)?.charAt(0) ||
+                  {userProfile?.name?.charAt(0) ||
                     user?.email?.charAt(0) ||
                     "U"}
                 </AvatarFallback>

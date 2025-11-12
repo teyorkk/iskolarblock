@@ -75,7 +75,7 @@ export function ProfileForm({ userData, onUpdate }: ProfileFormProps) {
           bio: formData.bio || null,
           updatedAt: new Date().toISOString(),
         })
-        .eq("email", userData.email);
+        .eq("email", userData.email.toLowerCase().trim());
 
       if (error) {
         console.error("Error updating profile:", error);
@@ -86,6 +86,9 @@ export function ProfileForm({ userData, onUpdate }: ProfileFormProps) {
       onUpdate(formData);
       toast.success("Profile updated successfully!");
       setIsEditing(false);
+      
+      // Dispatch event to notify sidebar and other components
+      window.dispatchEvent(new CustomEvent("userProfileUpdated"));
     } catch (error) {
       console.error("Unexpected error:", error);
       toast.error("An error occurred while updating profile");

@@ -1,16 +1,27 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { UserSidebar } from "@/components/user-sidebar";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
-import { mockApplications } from "@/lib/mock-data";
-import { StatsCards } from "./components/StatsCards";
-import { FilterTabs } from "./components/FilterTabs";
-import { ApplicationsTable } from "./components/ApplicationsTable";
+import { Download, Loader2, AlertCircle } from "lucide-react";
+import { StatsCards } from "../../../components/user-history/StatsCards";
+import { FilterTabs } from "../../../components/user-history/FilterTabs";
+import { ApplicationsTable } from "../../../components/user-history/ApplicationsTable";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-type Application = (typeof mockApplications)[number];
+interface Application {
+  id: string;
+  date: string;
+  type: string;
+  status: string;
+  remarks: string;
+  details?: Record<string, unknown>;
+  id_image?: string;
+  face_scan_image?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const statusColors = {
   APPROVED: "bg-green-100 text-green-700",
@@ -20,26 +31,54 @@ const statusColors = {
 
 export default function HistoryPage() {
   const [filter, setFilter] = useState<string>("all");
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+
+  const fetchApplications = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/applications/user");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch applications");
+      }
+
+      const data = await response.json();
+      setApplications(data.applications || []);
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load applications"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredApplications = useMemo(
     () =>
-      mockApplications.filter(
+      applications.filter(
         (app: Application) => filter === "all" || app.status === filter
       ),
-    [filter]
+    [applications, filter]
   );
 
   const stats = useMemo(
     () => ({
-      total: mockApplications.length,
-      approved: mockApplications.filter((app) => app.status === "APPROVED")
-        .length,
-      pending: mockApplications.filter((app) => app.status === "PENDING")
-        .length,
-      rejected: mockApplications.filter((app) => app.status === "REJECTED")
-        .length,
+      total: applications.length,
+      approved: applications.filter((app) => app.status === "APPROVED").length,
+      pending: applications.filter((app) => app.status === "PENDING").length,
+      rejected: applications.filter((app) => app.status === "REJECTED").length,
     }),
-    []
+    [applications]
   );
 
   return (
@@ -66,9 +105,18 @@ export default function HistoryPage() {
                 </p>
               </div>
               <div className="flex items-center space-x-2 mt-4 md:mt-0">
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchApplications}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  Refresh
                 </Button>
                 <Button onClick={() => (window.location.href = "/application")}>
                   New Application
@@ -76,31 +124,76 @@ export default function HistoryPage() {
               </div>
             </div>
 
+            {/* Loading State */}
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+                <span className="ml-3 text-gray-600">
+                  Loading applications...
+                </span>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  {error}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchApplications}
+                    className="ml-4"
+                  >
+                    Try Again
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && applications.length === 0 && (
+              <Alert className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No Applications Yet</AlertTitle>
+                <AlertDescription>
+                  You haven&apos;t submitted any scholarship applications yet.
+                  Click &quot;New Application&quot; to get started.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Stats Cards */}
-            <StatsCards
-              total={stats.total}
-              approved={stats.approved}
-              pending={stats.pending}
-            />
+            {!loading && !error && applications.length > 0 && (
+              <>
+                <StatsCards
+                  total={stats.total}
+                  approved={stats.approved}
+                  pending={stats.pending}
+                />
 
-            {/* Filter Tabs */}
-            <FilterTabs
-              filter={filter}
-              onFilterChange={setFilter}
-              counts={{
-                all: stats.total,
-                pending: stats.pending,
-                approved: stats.approved,
-                rejected: stats.rejected,
-              }}
-            />
+                {/* Filter Tabs */}
+                <FilterTabs
+                  filter={filter}
+                  onFilterChange={setFilter}
+                  counts={{
+                    all: stats.total,
+                    pending: stats.pending,
+                    approved: stats.approved,
+                    rejected: stats.rejected,
+                  }}
+                />
 
-            {/* Applications Table */}
-            <ApplicationsTable
-              applications={filteredApplications}
-              statusColors={statusColors}
-              onFilterClear={() => setFilter("all")}
-            />
+                {/* Applications Table */}
+                <ApplicationsTable
+                  applications={filteredApplications}
+                  statusColors={statusColors}
+                  onFilterClear={() => setFilter("all")}
+                />
+              </>
+            )}
           </motion.div>
         </div>
       </div>

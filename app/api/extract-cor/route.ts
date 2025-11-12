@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sign } from "jsonwebtoken";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface CORExtractionResponse {
   "Certificate of Registration": boolean;
@@ -29,6 +30,9 @@ interface N8NWebhookResponse {
 
 interface RequestBody {
   ocrText: string;
+  fileData?: string; // Base64 file data
+  fileName?: string;
+  userId?: string;
 }
 
 /**
@@ -106,7 +110,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ocrText } = body;
+    const { ocrText, fileData, fileName, userId } = body;
+    
+    // Upload file to Supabase storage if provided
+    let fileUrl: string | null = null;
+    if (fileData && fileName && userId) {
+      try {
+        const supabase = getSupabaseServerClient();
+        
+        // Convert base64 to buffer
+        const base64Data = fileData.split(',')[1] || fileData;
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Generate unique file path
+        const timestamp = Date.now();
+        const filePath = `${userId}/cor/${timestamp}-${fileName}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, buffer, {
+            contentType: fileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+            upsert: false,
+          });
+        
+        if (uploadError) {
+          console.error('COR file upload error:', uploadError);
+        } else {
+          fileUrl = uploadData.path;
+          console.log('✅ COR file uploaded to storage:', fileUrl);
+        }
+      } catch (storageError) {
+        console.error('COR storage error:', storageError);
+        // Continue with OCR even if storage fails
+      }
+    }
 
     // Validate OCR text
     if (!ocrText || typeof ocrText !== "string") {
@@ -294,7 +331,10 @@ export async function POST(request: NextRequest) {
     console.log(
       "✅ Successfully extracted and transformed COR data from N8N webhook"
     );
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...data,
+      fileUrl,
+    });
   } catch (error) {
     // Catch-all error handler
     console.error("Unexpected error in extract-cor API:", error);

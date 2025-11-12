@@ -58,15 +58,29 @@ export function ProfileCard({
 
     try {
       const supabase = getSupabaseBrowserClient();
+      
+      // Get user ID from User table first
+      const { data: userRecord, error: userError } = await supabase
+        .from("User")
+        .select("id")
+        .eq("email", userData.email.toLowerCase().trim())
+        .single();
+
+      if (userError || !userRecord) {
+        toast.error("User not found. Please try again.");
+        console.error("User lookup error:", userError);
+        return;
+      }
+
       const fileExt = file.name.split(".").pop();
-      const fileName = `${userData.email}-${Date.now()}.${fileExt}`;
-      const filePath = `profile-pictures/${fileName}`;
+      const fileName = `profile-pictures/${userRecord.id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file, {
+        .from("documents")
+        .upload(fileName, file, {
           cacheControl: "3600",
-          upsert: true,
+          upsert: false,
+          contentType: file.type,
         });
 
       if (uploadError) {
@@ -76,15 +90,18 @@ export function ProfileCard({
       }
 
       const { data: urlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
+        .from("documents")
+        .getPublicUrl(fileName);
 
       const publicUrl = urlData.publicUrl;
 
       const { error: updateError } = await supabase
         .from("User")
-        .update({ profilePicture: publicUrl })
-        .eq("email", userData.email);
+        .update({ 
+          profilePicture: publicUrl,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq("email", userData.email.toLowerCase().trim());
 
       if (updateError) {
         toast.error("Failed to update profile picture");
@@ -92,6 +109,9 @@ export function ProfileCard({
       } else {
         onProfilePictureUpdate(publicUrl);
         toast.success("Profile image updated!");
+        
+        // Dispatch event to notify sidebar and other components
+        window.dispatchEvent(new CustomEvent("userProfileUpdated"));
       }
     } catch (error) {
       toast.error("An error occurred while uploading the image");

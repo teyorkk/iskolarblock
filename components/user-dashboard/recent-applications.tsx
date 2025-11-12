@@ -33,16 +33,16 @@ export function RecentApplications({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {applications.slice(0, 3).map((application, index) => (
+            {applications.slice(0, 8).map((application, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">
                     {application.type} Application
                   </p>
-                  <p className="text-xs text-gray-500">{application.date}</p>
+                  <p className="text-sm text-gray-500 mt-1">{application.date}</p>
                 </div>
                 <Badge
                   variant={
@@ -54,10 +54,10 @@ export function RecentApplications({
                   }
                   className={
                     application.status === "APPROVED"
-                      ? "bg-green-100 text-green-700"
+                      ? "bg-green-100 text-green-700 px-3 py-1"
                       : application.status === "PENDING"
-                      ? "bg-orange-100 text-orange-700"
-                      : "bg-red-100 text-red-700"
+                      ? "bg-orange-100 text-orange-700 px-3 py-1"
+                      : "bg-red-100 text-red-700 px-3 py-1"
                   }
                 >
                   {application.status}
@@ -65,7 +65,7 @@ export function RecentApplications({
               </div>
             ))}
           </div>
-          <div className="mt-4">
+          <div className="mt-6">
             <Link href="/history">
               <Button variant="outline" className="w-full">
                 View All Applications

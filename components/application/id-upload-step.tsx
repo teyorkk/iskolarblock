@@ -37,6 +37,7 @@ interface IdUploadStepProps<T extends IdForm> extends ApplicationStepProps<T> {
   setIsProcessingDone: (done: boolean) => void;
   processedIdFile: string;
   setProcessedIdFile: (filename: string) => void;
+  onOcrTextChange?: (text: string) => void;
 }
 
 export function IdUploadStep<T extends IdForm>({
@@ -51,6 +52,7 @@ export function IdUploadStep<T extends IdForm>({
   setIsProcessingDone,
   processedIdFile,
   setProcessedIdFile,
+  onOcrTextChange,
 }: IdUploadStepProps<T>): React.JSX.Element {
   const [ocrText, setOcrText] = useState<string>("");
   const [ocrError, setOcrError] = useState<string>("");
@@ -146,6 +148,7 @@ export function IdUploadStep<T extends IdForm>({
       }
 
       setOcrText("");
+      onOcrTextChange?.("");
       setOcrError("");
       setProgress(1);
       setIsProcessing(true);
@@ -169,6 +172,7 @@ export function IdUploadStep<T extends IdForm>({
       }
 
       setOcrText(result.text);
+      onOcrTextChange?.(result.text);
       setProgress(80);
 
       // Step 2: Send to webhook for data extraction

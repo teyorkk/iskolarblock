@@ -16,13 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  FileText,
-  Calendar,
-  CheckCircle,
-  Clock,
-  XCircle,
-} from "lucide-react";
+import { FileText, Calendar, CheckCircle, Clock, XCircle } from "lucide-react";
 import { ApplicationDetailsDialog } from "./ApplicationDetailsDialog";
 
 interface Application {
@@ -72,7 +66,6 @@ export function ApplicationsTable({
                 <TableHead>Date</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Remarks</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -94,7 +87,14 @@ export function ApplicationsTable({
                       {application.date}
                     </div>
                   </TableCell>
-                  <TableCell>{application.type}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="border-orange-500 text-orange-700 bg-orange-50"
+                    >
+                      {application.type}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
@@ -109,9 +109,6 @@ export function ApplicationsTable({
                         <span className="ml-1">{application.status}</span>
                       </div>
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-600">
-                    {application.remarks}
                   </TableCell>
                   <TableCell className="text-right">
                     <ApplicationDetailsDialog
@@ -129,11 +126,7 @@ export function ApplicationsTable({
           <div className="text-center py-8">
             <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
             <p className="text-gray-600">No applications found</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={onFilterClear}
-            >
+            <Button variant="outline" className="mt-4" onClick={onFilterClear}>
               Clear Filters
             </Button>
           </div>
@@ -142,4 +135,3 @@ export function ApplicationsTable({
     </Card>
   );
 }
-

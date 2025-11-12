@@ -68,7 +68,7 @@ export const applicationSchema = z.object({
 });
 
 export const newApplicationSchema = z.object({
-  idDocument: z.instanceof(File, { message: "ID document is required" }),
+  // Files are managed separately in state, not in form data
   lastName: z.string().min(2, "Last name is required"),
   firstName: z.string().min(2, "First name is required"),
   middleName: z.string().optional().nullable(),
@@ -86,22 +86,11 @@ export const newApplicationSchema = z.object({
   religion: z.string().min(2, "Religion is required"),
   course: z.string().min(2, "Course/Strand is required"),
   yearLevel: z.enum(["G11", "G12", "1", "2", "3", "4"]),
-  certificateOfGrades: z.instanceof(File, {
-    message: "Certificate of grades is required",
-  }),
-  certificateOfRegistration: z.instanceof(File, {
-    message: "Certificate of registration is required",
-  }),
 });
 
 export const renewalApplicationSchema = z.object({
-  idDocument: z.instanceof(File, { message: "ID document is required" }),
-  certificateOfGrades: z.instanceof(File, {
-    message: "Certificate of grades is required",
-  }),
-  certificateOfRegistration: z.instanceof(File, {
-    message: "Certificate of registration is required",
-  }),
+  // Files are managed in state, not in form
+  // No personal info fields needed - they come from previous application
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

@@ -1,6 +1,7 @@
 "use client";
 
-import { User } from "lucide-react";
+import { User, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -25,6 +26,19 @@ export function PersonalInfoStepPart1({
   errors,
   setValue,
 }: ApplicationStepProps<NewApplicationFormData>): React.JSX.Element {
+  const step1Errors = [
+    "lastName",
+    "firstName",
+    "middleName",
+    "dateOfBirth",
+    "placeOfBirth",
+    "age",
+    "sex",
+  ];
+  const relevantErrors = step1Errors.filter(
+    (field) => errors[field as keyof typeof errors]
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -32,11 +46,18 @@ export function PersonalInfoStepPart1({
           <User className="w-5 h-5 mr-2 text-orange-500" />
           Personal Information (Part 1)
         </CardTitle>
-        <CardDescription>
-          Enter your basic personal details
-        </CardDescription>
+        <CardDescription>Enter your basic personal details</CardDescription>
       </CardHeader>
       <CardContent>
+        {relevantErrors.length > 0 && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please fix {relevantErrors.length} error
+              {relevantErrors.length > 1 ? "s" : ""} before proceeding.
+            </AlertDescription>
+          </Alert>
+        )}
         <form className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
@@ -47,7 +68,9 @@ export function PersonalInfoStepPart1({
                 placeholder="Enter your last name"
               />
               {errors.lastName && (
-                <p className="text-sm text-red-500">{errors.lastName.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.lastName.message}
+                </p>
               )}
             </div>
 
@@ -59,7 +82,9 @@ export function PersonalInfoStepPart1({
                 placeholder="Enter your first name"
               />
               {errors.firstName && (
-                <p className="text-sm text-red-500">{errors.firstName.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.firstName.message}
+                </p>
               )}
             </div>
 
@@ -71,7 +96,9 @@ export function PersonalInfoStepPart1({
                 placeholder="Enter your middle name (optional)"
               />
               {errors.middleName && (
-                <p className="text-sm text-red-500">{errors.middleName.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.middleName.message}
+                </p>
               )}
             </div>
           </div>
@@ -85,7 +112,9 @@ export function PersonalInfoStepPart1({
                 {...register("dateOfBirth")}
               />
               {errors.dateOfBirth && (
-                <p className="text-sm text-red-500">{errors.dateOfBirth.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.dateOfBirth.message}
+                </p>
               )}
             </div>
 
@@ -97,7 +126,9 @@ export function PersonalInfoStepPart1({
                 placeholder="Enter your place of birth"
               />
               {errors.placeOfBirth && (
-                <p className="text-sm text-red-500">{errors.placeOfBirth.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.placeOfBirth.message}
+                </p>
               )}
             </div>
           </div>

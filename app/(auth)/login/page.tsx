@@ -87,18 +87,15 @@ export default function LoginPage() {
         setIsLoading(false);
         return;
       }
+      // Get user role from API response (from User table)
+      const userRole = json.role || "USER";
+      const isAdmin = userRole === "ADMIN" || json.user?.role === "ADMIN";
+
       // Refresh the session on the client side to ensure cookies are synced
       const supabase = getSupabaseBrowserClient();
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData?.session) {
         toast.success("Login successful!");
-        // Check if user is admin and redirect accordingly
-        const user = sessionData.session.user;
-        const isAdmin =
-          user?.email === "admin@admin.com" ||
-          user?.email === "admin@scholarblock.com" ||
-          user?.user_metadata?.role === "admin" ||
-          user?.user_metadata?.isAdmin === true;
         const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
         // Use window.location for a full page reload to ensure session is picked up
         window.location.href = redirectPath;
@@ -108,12 +105,6 @@ export default function LoginPage() {
         const { data: retrySession } = await supabase.auth.getSession();
         if (retrySession?.session) {
           toast.success("Login successful!");
-          // Check if user is admin and redirect accordingly
-          const user = retrySession.session.user;
-          const isAdmin =
-            user?.email === "admin@scholarblock.com" ||
-            user?.user_metadata?.role === "admin" ||
-            user?.user_metadata?.isAdmin === true;
           const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
           window.location.href = redirectPath;
         } else {

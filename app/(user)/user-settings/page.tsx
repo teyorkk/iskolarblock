@@ -42,26 +42,33 @@ export default function SettingsPage() {
     const fetchUserData = async () => {
       if (!authUser?.email) {
         setIsLoading(false);
+        toast.error("User not authenticated");
         return;
       }
 
       try {
+        setIsLoading(true);
         const supabase = getSupabaseBrowserClient();
         const { data, error } = await supabase
           .from("User")
           .select("*")
-          .eq("email", authUser.email)
-          .single();
+          .eq("email", authUser.email.toLowerCase().trim())
+          .maybeSingle();
 
         if (error) {
           console.error("Error fetching user data:", error);
           toast.error("Failed to load profile data");
+          setIsLoading(false);
           return;
         }
 
         if (data) {
           setUserData(data);
           setProfilePicture(data.profilePicture || null);
+        } else {
+          // User not found in User table
+          toast.error("User profile not found in database");
+          console.error("User not found in User table for email:", authUser.email);
         }
       } catch (error) {
         console.error("Unexpected error:", error);

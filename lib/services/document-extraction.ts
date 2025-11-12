@@ -14,6 +14,7 @@ export interface COGExtractionResponse {
   gwa: number | null;
   total_units: number | null;
   subjects: GradeSubject[] | null;
+  fileUrl?: string | null;
 }
 
 export interface GradeSubject {
@@ -31,6 +32,7 @@ export interface CORExtractionResponse {
   course: string | null;
   name: string | null;
   total_units: number | null;
+  fileUrl?: string | null;
 }
 
 export interface DocumentExtractionError {
@@ -44,7 +46,9 @@ export interface DocumentExtractionError {
  * Returns structured COG data or throws an error
  */
 export async function extractCOGData(
-  ocrText: string
+  ocrText: string,
+  file?: File,
+  userId?: string
 ): Promise<COGExtractionResponse | null> {
   // Validate input
   if (!ocrText || typeof ocrText !== "string") {
@@ -58,6 +62,20 @@ export async function extractCOGData(
   }
 
   try {
+    // Convert file to base64 if provided
+    let fileData: string | undefined;
+    let fileName: string | undefined;
+
+    if (file && userId) {
+      fileData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      fileName = file.name;
+    }
+
     // Call our API route which handles JWT signing and webhook communication
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
@@ -69,7 +87,12 @@ export async function extractCOGData(
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ocrText }),
+        body: JSON.stringify({
+          ocrText,
+          fileData,
+          fileName,
+          userId,
+        }),
         signal: controller.signal,
       });
 
@@ -194,7 +217,9 @@ export async function extractCOGData(
  * Returns structured COR data or throws an error
  */
 export async function extractCORData(
-  ocrText: string
+  ocrText: string,
+  file?: File,
+  userId?: string
 ): Promise<CORExtractionResponse | null> {
   // Validate input
   if (!ocrText || typeof ocrText !== "string") {
@@ -208,6 +233,20 @@ export async function extractCORData(
   }
 
   try {
+    // Convert file to base64 if provided
+    let fileData: string | undefined;
+    let fileName: string | undefined;
+
+    if (file && userId) {
+      fileData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      fileName = file.name;
+    }
+
     // Call our API route which handles JWT signing and webhook communication
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
@@ -219,7 +258,12 @@ export async function extractCORData(
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ocrText }),
+        body: JSON.stringify({
+          ocrText,
+          fileData,
+          fileName,
+          userId,
+        }),
         signal: controller.signal,
       });
 

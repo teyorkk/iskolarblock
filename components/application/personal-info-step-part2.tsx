@@ -1,6 +1,7 @@
 "use client";
 
-import { Home, GraduationCap } from "lucide-react";
+import { Home, GraduationCap, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -25,6 +26,9 @@ export function PersonalInfoStepPart2({
   errors,
   setValue,
 }: ApplicationStepProps<NewApplicationFormData>): React.JSX.Element {
+  const step2Errors = ["houseNumber", "purok", "barangay", "municipality", "province", "citizenship", "contactNumber", "religion", "course", "yearLevel"];
+  const relevantErrors = step2Errors.filter(field => errors[field as keyof typeof errors]);
+  
   return (
     <Card>
       <CardHeader>
@@ -37,6 +41,14 @@ export function PersonalInfoStepPart2({
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {relevantErrors.length > 0 && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please fix {relevantErrors.length} error{relevantErrors.length > 1 ? 's' : ''} before proceeding.
+            </AlertDescription>
+          </Alert>
+        )}
         <form className="space-y-6">
           <div>
             <h3 className="text-lg font-medium mb-4 flex items-center">

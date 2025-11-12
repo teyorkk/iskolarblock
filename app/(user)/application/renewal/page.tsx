@@ -23,6 +23,10 @@ import { ApplicationSuccess } from "@/components/application/application-success
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useSession } from "@/components/session-provider";
 import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
+import type {
+  COGExtractionResponse,
+  CORExtractionResponse,
+} from "@/lib/services/document-extraction";
 
 export default function RenewalApplicationPage() {
   const router = useRouter();
@@ -43,6 +47,22 @@ export default function RenewalApplicationPage() {
   const [isCorProcessingDone, setIsCorProcessingDone] =
     useState<boolean>(false);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedApplicationId, setSubmittedApplicationId] = useState<
+    string | null
+  >(null);
+
+  // Track OCR data and images for submission
+  const [idOcrText, setIdOcrText] = useState<string>("");
+  const [faceScanImage, setFaceScanImage] = useState<string>("");
+  const [cogOcrText, setCogOcrText] = useState<string>("");
+  const [cogExtractedData, setCogExtractedData] =
+    useState<COGExtractionResponse | null>(null);
+  const [cogFileUrl, setCogFileUrl] = useState<string>("");
+  const [corOcrText, setCorOcrText] = useState<string>("");
+  const [corExtractedData, setCorExtractedData] =
+    useState<CORExtractionResponse | null>(null);
+  const [corFileUrl, setCorFileUrl] = useState<string>("");
 
   // Track processed files to prevent reprocessing
   const [processedCogFile, setProcessedCogFile] = useState<string>("");
@@ -81,14 +101,13 @@ export default function RenewalApplicationPage() {
           .from("Application")
           .select("id, status")
           .eq("userId", user.id)
-          .eq("status", "APPROVED")
           .limit(1);
 
         if (error) {
           console.error("Error checking renewal eligibility:", error);
           console.error("Error details:", JSON.stringify(error, null, 2));
 
-          // Fail gracefully - redirect to application page without approved status
+          // Fail gracefully - redirect to application page
           toast.warning(
             "Unable to verify eligibility. Redirecting to application selection.",
             { duration: 5000 }
@@ -97,7 +116,7 @@ export default function RenewalApplicationPage() {
           return;
         }
 
-        // User must have at least one approved application
+        // User must have at least one past application
         if (!data || data.length === 0) {
           toast.error(
             "You need an approved scholarship before applying for renewal",
@@ -148,21 +167,18 @@ export default function RenewalApplicationPage() {
   const handleConfirmUpload = (): void => {
     if (pendingIdFile) {
       setUploadedFile(pendingIdFile);
-      setValue("idDocument", pendingIdFile);
       // Reset processing state for new file
       setIsIdProcessingDone(false);
       setProcessedIdFile("");
       setPendingIdFile(null);
     } else if (pendingCogFile) {
       setCertificateOfGrades(pendingCogFile);
-      setValue("certificateOfGrades", pendingCogFile);
       // Reset processing state for new file
       setIsCogProcessingDone(false);
       setProcessedCogFile("");
       setPendingCogFile(null);
     } else if (pendingCorFile) {
       setCertificateOfRegistration(pendingCorFile);
-      setValue("certificateOfRegistration", pendingCorFile);
       // Reset processing state for new file
       setIsCorProcessingDone(false);
       setProcessedCorFile("");
@@ -182,21 +198,18 @@ export default function RenewalApplicationPage() {
     setUploadedFile(null);
     setIsIdProcessingDone(false);
     setProcessedIdFile("");
-    setValue("idDocument", undefined as never);
   };
 
   const handleRemoveGradesFile = (): void => {
     setCertificateOfGrades(null);
     setIsCogProcessingDone(false);
     setProcessedCogFile("");
-    setValue("certificateOfGrades", undefined as never);
   };
 
   const handleRemoveRegistrationFile = (): void => {
     setCertificateOfRegistration(null);
     setIsCorProcessingDone(false);
     setProcessedCorFile("");
-    setValue("certificateOfRegistration", undefined as never);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -234,9 +247,68 @@ export default function RenewalApplicationPage() {
     maxFiles: 1,
   });
 
-  const onSubmit = (): void => {
-    setIsSubmitted(true);
-    toast.success("Application submitted successfully!");
+  const onSubmit = async (): Promise<void> => {
+    console.log("🚀 Renewal submission called");
+    try {
+      setIsSubmitting(true);
+
+      // Convert ID file to base64
+      let idImageBase64 = "";
+      if (uploadedFile) {
+        idImageBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadedFile);
+        });
+      }
+
+      // Prepare submission data
+      const submissionData = {
+        idImage: idImageBase64,
+        faceScanImage: faceScanImage,
+        idOcr: {
+          rawText: idOcrText,
+        },
+        cogOcr: {
+          rawText: cogOcrText || "",
+          extractedData: cogExtractedData || null,
+          fileUrl: cogFileUrl || undefined,
+        },
+        corOcr: {
+          rawText: corOcrText || "",
+          extractedData: corExtractedData || null,
+          fileUrl: corFileUrl || undefined,
+        },
+      };
+
+      const response = await fetch("/api/applications/renew", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to submit renewal application");
+      }
+
+      const result = await response.json();
+      setSubmittedApplicationId(result.applicationId || `SCH-${Date.now()}`);
+      setIsSubmitted(true);
+      setIsSubmitting(false);
+      toast.success("Renewal application submitted successfully!");
+    } catch (error) {
+      setIsSubmitting(false);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to submit renewal application";
+      toast.error(errorMessage);
+      console.error("Renewal submission error:", error);
+    }
   };
 
   const nextStep = (): void => {
@@ -268,13 +340,13 @@ export default function RenewalApplicationPage() {
     );
   }
 
-  if (isSubmitted) {
+  if (isSubmitted && submittedApplicationId) {
     return (
       <div className="min-h-screen bg-gray-50">
         <UserSidebar />
         <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
           <div className="p-4 md:p-6">
-            <ApplicationSuccess applicationId={`SCH-${Date.now()}`} />
+            <ApplicationSuccess applicationId={submittedApplicationId} />
           </div>
         </div>
       </div>
@@ -321,6 +393,7 @@ export default function RenewalApplicationPage() {
                   setIsProcessingDone={setIsIdProcessingDone}
                   processedIdFile={processedIdFile}
                   setProcessedIdFile={setProcessedIdFile}
+                  onOcrTextChange={setIdOcrText}
                 />
               )}
 
@@ -332,6 +405,7 @@ export default function RenewalApplicationPage() {
                   watch={watch}
                   uploadedIdFile={uploadedFile}
                   onVerificationComplete={setIsFaceVerified}
+                  onFaceScanImageChange={setFaceScanImage}
                 />
               )}
 
@@ -359,6 +433,16 @@ export default function RenewalApplicationPage() {
                   setProcessedCogFile={setProcessedCogFile}
                   processedCorFile={processedCorFile}
                   setProcessedCorFile={setProcessedCorFile}
+                  onCogOcrChange={(text, data, fileUrl) => {
+                    setCogOcrText(text);
+                    setCogExtractedData(data);
+                    setCogFileUrl(fileUrl || "");
+                  }}
+                  onCorOcrChange={(text, data, fileUrl) => {
+                    setCorOcrText(text);
+                    setCorExtractedData(data);
+                    setCorFileUrl(fileUrl || "");
+                  }}
                 />
               )}
             </motion.div>
@@ -382,14 +466,28 @@ export default function RenewalApplicationPage() {
               <Button
                 onClick={currentStep === 3 ? handleSubmit(onSubmit) : nextStep}
                 disabled={
-                  (currentStep === 1 && (!uploadedFile || !isIdProcessingDone)) ||
+                  isSubmitting ||
+                  (currentStep === 1 &&
+                    (!uploadedFile || !isIdProcessingDone)) ||
                   (currentStep === 2 && !isFaceVerified) ||
                   (currentStep === 3 &&
-                    (!certificateOfGrades || !certificateOfRegistration))
+                    (!certificateOfGrades ||
+                      !certificateOfRegistration ||
+                      !isCogProcessingDone ||
+                      !isCorProcessingDone))
                 }
               >
-                {currentStep === 3 ? "Submit Application" : "Next"}
-                <ArrowRight className="w-4 h-4 ml-2" />
+                {isSubmitting && currentStep === 3 ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    {currentStep === 3 ? "Submit Application" : "Next"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
               </Button>
             </div>
           </motion.div>

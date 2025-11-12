@@ -1,6 +1,7 @@
 "use client";
 
-import { Upload, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -25,6 +26,7 @@ import {
   type CORExtractionResponse,
 } from "@/lib/services/document-extraction";
 import { toast } from "sonner";
+import { useSession } from "@/components/session-provider";
 
 interface DocumentsUploadStepProps<
   T extends NewApplicationFormData | RenewalApplicationFormData
@@ -47,6 +49,16 @@ interface DocumentsUploadStepProps<
   setProcessedCogFile: (filename: string) => void;
   processedCorFile: string;
   setProcessedCorFile: (filename: string) => void;
+  onCogOcrChange?: (
+    text: string,
+    data: COGExtractionResponse | null,
+    fileUrl?: string
+  ) => void;
+  onCorOcrChange?: (
+    text: string,
+    data: CORExtractionResponse | null,
+    fileUrl?: string
+  ) => void;
 }
 
 export function DocumentsUploadStep<
@@ -71,7 +83,10 @@ export function DocumentsUploadStep<
   setProcessedCogFile,
   processedCorFile,
   setProcessedCorFile,
+  onCogOcrChange,
+  onCorOcrChange,
 }: DocumentsUploadStepProps<T>): React.JSX.Element {
+  const { user } = useSession();
   // Certificate of Grades state
   const [_cogOcrText, setCogOcrText] = useState<string>("");
   const [cogOcrError, setCogOcrError] = useState<string>("");
@@ -102,6 +117,10 @@ export function DocumentsUploadStep<
   const registrationErrorText =
     typeof registrationMessage === "string" ? registrationMessage : undefined;
 
+  const hasErrors = cogOcrError || corOcrError;
+  const bothFilesUploaded = certificateOfGrades && certificateOfRegistration;
+  const bothProcessingDone = isCogProcessingDone && isCorProcessingDone;
+
   // Process Certificate of Grades
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +128,7 @@ export function DocumentsUploadStep<
     async function runCOGOCR() {
       if (!certificateOfGrades) {
         setCogOcrText("");
+        onCogOcrChange?.("", null);
         setCogOcrError("");
         setCogProgress(0);
         setCogStatusMessage("");
@@ -128,6 +148,7 @@ export function DocumentsUploadStep<
       }
 
       setCogOcrText("");
+      onCogOcrChange?.("", null);
       setCogOcrError("");
       setCogProgress(1);
       setIsCogProcessing(true);
@@ -154,18 +175,28 @@ export function DocumentsUploadStep<
       }
 
       setCogOcrText(result.text);
+      onCogOcrChange?.(result.text, null);
       setCogProgress(80);
 
-      // Step 2: Send to webhook for data extraction
+      // Step 2: Send to webhook for data extraction (and upload to Supabase)
       if (result.text && result.text.trim().length > 0) {
         setCogStatusMessage("Extracting data from document...");
         try {
-          const extractedData = await extractCOGData(result.text);
+          const extractedData = await extractCOGData(
+            result.text,
+            certificateOfGrades,
+            user?.id
+          );
 
           if (cancelled) return;
 
           if (extractedData) {
             setCogExtractedData(extractedData);
+            onCogOcrChange?.(
+              result.text,
+              extractedData,
+              extractedData.fileUrl || undefined
+            );
             setCogProgress(100);
             setCogStatusMessage("Extraction complete!");
             setProcessedCogFile(certificateOfGrades.name); // Mark as processed in parent
@@ -207,7 +238,13 @@ export function DocumentsUploadStep<
     return () => {
       cancelled = true;
     };
-  }, [certificateOfGrades, processedCogFile, isCogProcessingDone, setIsCogProcessingDone, setProcessedCogFile]);
+  }, [
+    certificateOfGrades,
+    processedCogFile,
+    isCogProcessingDone,
+    setIsCogProcessingDone,
+    setProcessedCogFile,
+  ]);
 
   // Process Certificate of Registration
   useEffect(() => {
@@ -216,6 +253,7 @@ export function DocumentsUploadStep<
     async function runCOROCR() {
       if (!certificateOfRegistration) {
         setCorOcrText("");
+        onCorOcrChange?.("", null);
         setCorOcrError("");
         setCorProgress(0);
         setCorStatusMessage("");
@@ -235,6 +273,7 @@ export function DocumentsUploadStep<
       }
 
       setCorOcrText("");
+      onCorOcrChange?.("", null);
       setCorOcrError("");
       setCorProgress(1);
       setIsCorProcessing(true);
@@ -264,18 +303,28 @@ export function DocumentsUploadStep<
       }
 
       setCorOcrText(result.text);
+      onCorOcrChange?.(result.text, null);
       setCorProgress(80);
 
-      // Step 2: Send to webhook for data extraction
+      // Step 2: Send to webhook for data extraction (and upload to Supabase)
       if (result.text && result.text.trim().length > 0) {
         setCorStatusMessage("Extracting data from document...");
         try {
-          const extractedData = await extractCORData(result.text);
+          const extractedData = await extractCORData(
+            result.text,
+            certificateOfRegistration,
+            user?.id
+          );
 
           if (cancelled) return;
 
           if (extractedData) {
             setCorExtractedData(extractedData);
+            onCorOcrChange?.(
+              result.text,
+              extractedData,
+              extractedData.fileUrl || undefined
+            );
             setCorProgress(100);
             setCorStatusMessage("Extraction complete!");
             setProcessedCorFile(certificateOfRegistration.name); // Mark as processed in parent
@@ -327,7 +376,13 @@ export function DocumentsUploadStep<
     return () => {
       cancelled = true;
     };
-  }, [certificateOfRegistration, processedCorFile, isCorProcessingDone, setIsCorProcessingDone, setProcessedCorFile]);
+  }, [
+    certificateOfRegistration,
+    processedCorFile,
+    isCorProcessingDone,
+    setIsCorProcessingDone,
+    setProcessedCorFile,
+  ]);
 
   return (
     <Card>
@@ -341,6 +396,38 @@ export function DocumentsUploadStep<
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Overall Status Alert */}
+        {bothFilesUploaded && !bothProcessingDone && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Processing Documents</AlertTitle>
+            <AlertDescription>
+              Please wait while we extract and verify your documents...
+            </AlertDescription>
+          </Alert>
+        )}
+        {bothFilesUploaded && bothProcessingDone && !hasErrors && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-600">
+              Documents Verified
+            </AlertTitle>
+            <AlertDescription className="text-green-600">
+              Both documents have been successfully processed.
+            </AlertDescription>
+          </Alert>
+        )}
+        {hasErrors && (
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertTitle>Processing Errors</AlertTitle>
+            <AlertDescription>
+              Some documents encountered errors during processing. You can still
+              proceed, but please verify your information.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Certificate of Grades Upload */}
         <div className="space-y-3">
           <FileUploadZone

@@ -23,11 +23,17 @@ import { PersonalInfoStepPart2 } from "@/components/application/personal-info-st
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
 import { ApplicationSuccess } from "@/components/application/application-success";
 import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
+import { StepErrorBoundary } from "@/components/application/error-boundary";
+import type {
+  COGExtractionResponse,
+  CORExtractionResponse,
+} from "@/lib/services/document-extraction";
 
 export default function NewApplicationPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
@@ -35,10 +41,12 @@ export default function NewApplicationPage() {
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
-  const [isCogProcessingDone, setIsCogProcessingDone] = useState<boolean>(false);
+  const [isCogProcessingDone, setIsCogProcessingDone] =
+    useState<boolean>(false);
   const [certificateOfRegistration, setCertificateOfRegistration] =
     useState<File | null>(null);
-  const [isCorProcessingDone, setIsCorProcessingDone] = useState<boolean>(false);
+  const [isCorProcessingDone, setIsCorProcessingDone] =
+    useState<boolean>(false);
 
   // Track processed files to prevent reprocessing
   const [processedCogFile, setProcessedCogFile] = useState<string>("");
@@ -52,6 +60,21 @@ export default function NewApplicationPage() {
   const [currentFileType, setCurrentFileType] = useState<
     "ID Document" | "Certificate of Grades" | "Certificate of Registration"
   >("ID Document");
+
+  // Track OCR data and images for submission
+  const [idOcrText, setIdOcrText] = useState<string>("");
+  const [faceScanImage, setFaceScanImage] = useState<string>("");
+  const [cogOcrText, setCogOcrText] = useState<string>("");
+  const [cogExtractedData, setCogExtractedData] =
+    useState<COGExtractionResponse | null>(null);
+  const [cogFileUrl, setCogFileUrl] = useState<string>("");
+  const [corOcrText, setCorOcrText] = useState<string>("");
+  const [corExtractedData, setCorExtractedData] =
+    useState<CORExtractionResponse | null>(null);
+  const [corFileUrl, setCorFileUrl] = useState<string>("");
+  const [submittedApplicationId, setSubmittedApplicationId] = useState<
+    string | null
+  >(null);
 
   const {
     register,
@@ -94,21 +117,21 @@ export default function NewApplicationPage() {
   const handleConfirmUpload = (): void => {
     if (pendingIdFile) {
       setUploadedFile(pendingIdFile);
-      setValue("idDocument", pendingIdFile);
+      // File is managed in state, not in form
       // Reset processing state for new file
       setIsIdProcessingDone(false);
       setProcessedIdFile("");
       setPendingIdFile(null);
     } else if (pendingCogFile) {
       setCertificateOfGrades(pendingCogFile);
-      setValue("certificateOfGrades", pendingCogFile);
+      // File is managed in state, not in form
       // Reset processing state for new file
       setIsCogProcessingDone(false);
       setProcessedCogFile("");
       setPendingCogFile(null);
     } else if (pendingCorFile) {
       setCertificateOfRegistration(pendingCorFile);
-      setValue("certificateOfRegistration", pendingCorFile);
+      // File is managed in state, not in form
       // Reset processing state for new file
       setIsCorProcessingDone(false);
       setProcessedCorFile("");
@@ -128,21 +151,21 @@ export default function NewApplicationPage() {
     setUploadedFile(null);
     setIsIdProcessingDone(false);
     setProcessedIdFile("");
-    setValue("idDocument", undefined as never);
+    // File is managed in state, not in form
   };
 
   const handleRemoveGradesFile = (): void => {
     setCertificateOfGrades(null);
     setIsCogProcessingDone(false);
     setProcessedCogFile("");
-    setValue("certificateOfGrades", undefined as never);
+    // File is managed in state, not in form
   };
 
   const handleRemoveRegistrationFile = (): void => {
     setCertificateOfRegistration(null);
     setIsCorProcessingDone(false);
     setProcessedCorFile("");
-    setValue("certificateOfRegistration", undefined as never);
+    // File is managed in state, not in form
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -180,9 +203,86 @@ export default function NewApplicationPage() {
     maxFiles: 1,
   });
 
-  const onSubmit = (): void => {
-    setIsSubmitted(true);
-    toast.success("Application submitted successfully!");
+  const onSubmit = async (data: NewApplicationFormData): Promise<void> => {
+    console.log("🚀 onSubmit called with data:", data);
+    try {
+      setIsSubmitting(true);
+      console.log("📝 Starting submission process...");
+
+      // Convert ID file to base64
+      let idImageBase64 = "";
+      if (uploadedFile) {
+        idImageBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadedFile);
+        });
+      }
+
+      // Prepare submission data
+      const submissionData = {
+        formData: {
+          lastName: data.lastName,
+          firstName: data.firstName,
+          middleName: data.middleName,
+          dateOfBirth: data.dateOfBirth,
+          placeOfBirth: data.placeOfBirth,
+          age: data.age,
+          sex: data.sex,
+          houseNumber: data.houseNumber,
+          purok: data.purok,
+          barangay: data.barangay,
+          municipality: data.municipality,
+          province: data.province,
+          citizenship: data.citizenship,
+          contactNumber: data.contactNumber,
+          religion: data.religion,
+          course: data.course,
+          yearLevel: data.yearLevel,
+        },
+        idImage: idImageBase64,
+        faceScanImage: faceScanImage,
+        idOcr: {
+          rawText: idOcrText,
+        },
+        cogOcr: {
+          rawText: cogOcrText || "",
+          extractedData: cogExtractedData || null,
+          fileUrl: cogFileUrl || undefined,
+        },
+        corOcr: {
+          rawText: corOcrText || "",
+          extractedData: corExtractedData || null,
+          fileUrl: corFileUrl || undefined,
+        },
+      };
+
+      const response = await fetch("/api/applications/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to submit application");
+      }
+
+      const result = await response.json();
+      setSubmittedApplicationId(result.applicationId || `SCH-${Date.now()}`);
+      setIsSubmitted(true);
+      setIsSubmitting(false);
+      toast.success("Application submitted successfully!");
+    } catch (error) {
+      setIsSubmitting(false);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to submit application";
+      toast.error(errorMessage);
+      console.error("Submission error:", error);
+    }
   };
 
   const nextStep = (): void => {
@@ -203,7 +303,9 @@ export default function NewApplicationPage() {
         <UserSidebar />
         <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
           <div className="p-4 md:p-6">
-            <ApplicationSuccess applicationId={`SCH-${Date.now()}`} />
+            <ApplicationSuccess
+              applicationId={submittedApplicationId || undefined}
+            />
           </div>
         </div>
       </div>
@@ -236,77 +338,99 @@ export default function NewApplicationPage() {
               transition={{ duration: 0.3 }}
             >
               {currentStep === 1 && (
-                <IdUploadStep
-                  register={register}
-                  errors={errors}
-                  setValue={setValue}
-                  watch={watch}
-                  uploadedFile={uploadedFile}
-                  getRootProps={getRootProps}
-                  getInputProps={getInputProps}
-                  isDragActive={isDragActive}
-                  onRemoveFile={handleRemoveIdFile}
-                  isProcessingDone={isIdProcessingDone}
-                  setIsProcessingDone={setIsIdProcessingDone}
-                  processedIdFile={processedIdFile}
-                  setProcessedIdFile={setProcessedIdFile}
-                />
+                <StepErrorBoundary stepName="ID Upload Step">
+                  <IdUploadStep
+                    register={register}
+                    errors={errors}
+                    setValue={setValue}
+                    watch={watch}
+                    uploadedFile={uploadedFile}
+                    getRootProps={getRootProps}
+                    getInputProps={getInputProps}
+                    isDragActive={isDragActive}
+                    onRemoveFile={handleRemoveIdFile}
+                    isProcessingDone={isIdProcessingDone}
+                    setIsProcessingDone={setIsIdProcessingDone}
+                    processedIdFile={processedIdFile}
+                    setProcessedIdFile={setProcessedIdFile}
+                    onOcrTextChange={setIdOcrText}
+                  />
+                </StepErrorBoundary>
               )}
 
               {currentStep === 2 && (
-                <FaceScanStep<NewApplicationFormData>
-                  register={register}
-                  errors={errors}
-                  setValue={setValue}
-                  watch={watch}
-                  uploadedIdFile={uploadedFile}
-                  onVerificationComplete={setIsFaceVerified}
-                />
+                <StepErrorBoundary stepName="Face Scan Step">
+                  <FaceScanStep<NewApplicationFormData>
+                    register={register}
+                    errors={errors}
+                    setValue={setValue}
+                    watch={watch}
+                    uploadedIdFile={uploadedFile}
+                    onVerificationComplete={setIsFaceVerified}
+                    onFaceScanImageChange={setFaceScanImage}
+                  />
+                </StepErrorBoundary>
               )}
 
               {currentStep === 3 && (
-                <PersonalInfoStepPart1
-                  register={register}
-                  errors={errors}
-                  setValue={setValue}
-                  watch={watch}
-                />
+                <StepErrorBoundary stepName="Personal Information Step 1">
+                  <PersonalInfoStepPart1
+                    register={register}
+                    errors={errors}
+                    setValue={setValue}
+                    watch={watch}
+                  />
+                </StepErrorBoundary>
               )}
 
               {currentStep === 4 && (
-                <PersonalInfoStepPart2
-                  register={register}
-                  errors={errors}
-                  setValue={setValue}
-                  watch={watch}
-                />
+                <StepErrorBoundary stepName="Personal Information Step 2">
+                  <PersonalInfoStepPart2
+                    register={register}
+                    errors={errors}
+                    setValue={setValue}
+                    watch={watch}
+                  />
+                </StepErrorBoundary>
               )}
 
               {currentStep === 5 && (
-                <DocumentsUploadStep<NewApplicationFormData>
-                  register={register}
-                  errors={errors}
-                  setValue={setValue}
-                  watch={watch}
-                  certificateOfGrades={certificateOfGrades}
-                  certificateOfRegistration={certificateOfRegistration}
-                  getRootPropsGrades={getRootPropsGrades}
-                  getInputPropsGrades={getInputPropsGrades}
-                  isDragActiveGrades={isDragActiveGrades}
-                  getRootPropsRegistration={getRootPropsRegistration}
-                  getInputPropsRegistration={getInputPropsRegistration}
-                  isDragActiveRegistration={isDragActiveRegistration}
-                  onRemoveGradesFile={handleRemoveGradesFile}
-                  onRemoveRegistrationFile={handleRemoveRegistrationFile}
-                  isCogProcessingDone={isCogProcessingDone}
-                  setIsCogProcessingDone={setIsCogProcessingDone}
-                  isCorProcessingDone={isCorProcessingDone}
-                  setIsCorProcessingDone={setIsCorProcessingDone}
-                  processedCogFile={processedCogFile}
-                  setProcessedCogFile={setProcessedCogFile}
-                  processedCorFile={processedCorFile}
-                  setProcessedCorFile={setProcessedCorFile}
-                />
+                <StepErrorBoundary stepName="Documents Upload Step">
+                  <DocumentsUploadStep<NewApplicationFormData>
+                    register={register}
+                    errors={errors}
+                    setValue={setValue}
+                    watch={watch}
+                    certificateOfGrades={certificateOfGrades}
+                    certificateOfRegistration={certificateOfRegistration}
+                    getRootPropsGrades={getRootPropsGrades}
+                    getInputPropsGrades={getInputPropsGrades}
+                    isDragActiveGrades={isDragActiveGrades}
+                    getRootPropsRegistration={getRootPropsRegistration}
+                    getInputPropsRegistration={getInputPropsRegistration}
+                    isDragActiveRegistration={isDragActiveRegistration}
+                    onRemoveGradesFile={handleRemoveGradesFile}
+                    onRemoveRegistrationFile={handleRemoveRegistrationFile}
+                    isCogProcessingDone={isCogProcessingDone}
+                    setIsCogProcessingDone={setIsCogProcessingDone}
+                    isCorProcessingDone={isCorProcessingDone}
+                    setIsCorProcessingDone={setIsCorProcessingDone}
+                    processedCogFile={processedCogFile}
+                    setProcessedCogFile={setProcessedCogFile}
+                    processedCorFile={processedCorFile}
+                    setProcessedCorFile={setProcessedCorFile}
+                    onCogOcrChange={(text, data, fileUrl) => {
+                      setCogOcrText(text);
+                      setCogExtractedData(data);
+                      setCogFileUrl(fileUrl || "");
+                    }}
+                    onCorOcrChange={(text, data, fileUrl) => {
+                      setCorOcrText(text);
+                      setCorExtractedData(data);
+                      setCorFileUrl(fileUrl || "");
+                    }}
+                  />
+                </StepErrorBoundary>
               )}
             </motion.div>
 
@@ -327,13 +451,24 @@ export default function NewApplicationPage() {
               </Button>
 
               <Button
-                onClick={
-                  currentStep === newApplicationSteps.length
-                    ? handleSubmit(onSubmit)
-                    : nextStep
-                }
+                onClick={async (e) => {
+                  console.log("🔘 Button clicked, step:", currentStep);
+                  if (currentStep === newApplicationSteps.length) {
+                    console.log("📤 Submitting form...");
+                    console.log("Form errors:", errors);
+                    console.log("Form values:", watch());
+                    await handleSubmit(onSubmit, (errors) => {
+                      console.log("❌ Form validation errors:", errors);
+                      toast.error("Please fill in all required fields");
+                    })(e);
+                  } else {
+                    nextStep();
+                  }
+                }}
                 disabled={
-                  (currentStep === 1 && (!uploadedFile || !isIdProcessingDone)) ||
+                  isSubmitting ||
+                  (currentStep === 1 &&
+                    (!uploadedFile || !isIdProcessingDone)) ||
                   (currentStep === 2 && !isFaceVerified) ||
                   (currentStep === 3 &&
                     (!watch("lastName") ||
@@ -352,13 +487,23 @@ export default function NewApplicationPage() {
                       !watch("course") ||
                       !watch("yearLevel"))) ||
                   (currentStep === 5 &&
-                    (!certificateOfGrades || !certificateOfRegistration))
+                    (!certificateOfGrades ||
+                      !certificateOfRegistration ||
+                      !isCogProcessingDone ||
+                      !isCorProcessingDone))
                 }
               >
-                {currentStep === newApplicationSteps.length
-                  ? "Submit Application"
-                  : "Next"}
-                <ArrowRight className="w-4 h-4 ml-2" />
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Submitting...
+                  </>
+                ) : currentStep === newApplicationSteps.length ? (
+                  "Submit Application"
+                ) : (
+                  "Next"
+                )}
+                {!isSubmitting && <ArrowRight className="w-4 h-4 ml-2" />}
               </Button>
             </div>
           </motion.div>
