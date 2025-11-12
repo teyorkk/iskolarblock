@@ -89,7 +89,7 @@ export async function extractIDData(
 
       try {
         errorData = await response.json();
-      } catch (parseError) {
+      } catch {
         console.error("extractIDData: Could not parse error response");
       }
 

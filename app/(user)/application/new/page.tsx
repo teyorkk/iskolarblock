@@ -31,7 +31,7 @@ export default function NewApplicationPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
-  const [isScanning, setIsScanning] = useState(false);
+  const [isFaceVerified, setIsFaceVerified] = useState<boolean>(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
@@ -197,14 +197,6 @@ export default function NewApplicationPage() {
     }
   };
 
-  const handleFaceScan = (): void => {
-    setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      nextStep();
-    }, 2000);
-  };
-
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -267,8 +259,8 @@ export default function NewApplicationPage() {
                   errors={errors}
                   setValue={setValue}
                   watch={watch}
-                  isScanning={isScanning}
-                  onStartScan={handleFaceScan}
+                  uploadedIdFile={uploadedFile}
+                  onVerificationComplete={setIsFaceVerified}
                 />
               )}
 
@@ -341,7 +333,8 @@ export default function NewApplicationPage() {
                     : nextStep
                 }
                 disabled={
-                  (currentStep === 1 && !uploadedFile) ||
+                  (currentStep === 1 && (!uploadedFile || !isIdProcessingDone)) ||
+                  (currentStep === 2 && !isFaceVerified) ||
                   (currentStep === 3 &&
                     (!watch("lastName") ||
                       !watch("firstName") ||

@@ -187,9 +187,164 @@ function transformN8NResponse(
   return transformed;
 }
 
+/**
+ * Validate request body and OCR text
+ */
+function validateRequest(body: RequestBody) {
+  const { ocrText } = body;
+
+  if (!ocrText || typeof ocrText !== "string") {
+    throw new Error("OCR text is required and must be a string");
+  }
+
+  if (ocrText.trim().length === 0) {
+    throw new Error("OCR text cannot be empty");
+  }
+
+  if (ocrText.length > 50000) {
+    throw new Error("OCR text is too long (max 50,000 characters)");
+  }
+}
+
+/**
+ * Validate environment configuration
+ */
+function validateEnvironment() {
+  const webhookUrl = process.env.N8N_WEBHOOK_URL;
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!webhookUrl) {
+    console.error("N8N_WEBHOOK_URL environment variable is not configured");
+    throw new Error("ID extraction service not configured");
+  }
+
+  if (!jwtSecret) {
+    console.error("JWT_SECRET environment variable is not configured");
+    throw new Error("Authentication service not configured");
+  }
+
+  // Validate webhook URL format
+  try {
+    new URL(webhookUrl);
+  } catch {
+    console.error("Invalid N8N_WEBHOOK_URL:", webhookUrl);
+    throw new Error("Invalid webhook URL configuration");
+  }
+
+  return { webhookUrl, jwtSecret };
+}
+
+/**
+ * Send OCR text to N8N webhook and get extraction results
+ */
+async function callExtractionWebhook(
+  ocrText: string,
+  webhookUrl: string,
+  token: string
+): Promise<IDExtractionResponse> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+  const requestBody = { ocrText };
+  console.log("=== N8N Webhook Request ===");
+  console.log("URL:", webhookUrl);
+  console.log("OCR Text Length:", ocrText.length);
+  console.log("OCR Text Preview:", ocrText.substring(0, 200));
+  console.log("Request Body:", JSON.stringify(requestBody).substring(0, 300));
+
+  let response: Response;
+  try {
+    response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("=== N8N Webhook Response ===");
+    console.log("Status Code:", response.status);
+    console.log("Status Text:", response.statusText);
+    console.log(
+      "Headers:",
+      JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)
+    );
+  } catch (fetchError) {
+    if (fetchError instanceof Error) {
+      if (fetchError.name === "AbortError") {
+        console.error("Webhook request timed out after 30 seconds");
+        throw new Error("Request timed out. Please try again.");
+      }
+      console.error("Webhook request failed:", fetchError.message);
+      throw new Error(
+        "Failed to connect to extraction service. Please try again."
+      );
+    }
+    console.error("Unknown webhook error:", fetchError);
+    throw new Error("Network error occurred");
+  }
+
+  // Check response status
+  if (!response.ok) {
+    const statusCode = response.status;
+
+    try {
+      const errorData = await response.text();
+      console.error(
+        `Webhook error response (${statusCode}):`,
+        errorData.substring(0, 500)
+      );
+    } catch {
+      console.error("Could not read error response body");
+    }
+
+    // Return appropriate error based on status code
+    if (statusCode === 401 || statusCode === 403) {
+      throw new Error("Authentication failed with extraction service");
+    } else if (statusCode === 404) {
+      throw new Error("Extraction service endpoint not found");
+    } else if (statusCode >= 500) {
+      throw new Error("Extraction service is temporarily unavailable");
+    }
+
+    throw new Error("Failed to extract data from document");
+  }
+
+  // Parse response data
+  const responseText = await response.text();
+  console.log("=== N8N Webhook Response Body ===");
+  console.log("Raw Response:", responseText.substring(0, 1000));
+
+  const rawData = JSON.parse(responseText) as
+    | N8NWebhookResponse
+    | N8NWebhookResponse[];
+  console.log("Parsed Raw Data:", JSON.stringify(rawData, null, 2));
+
+  // Transform N8N format to our expected format
+  const data = transformN8NResponse(rawData);
+  console.log("=== Transformed Response Data ===");
+  console.log(JSON.stringify(data, null, 2));
+
+  // Log extracted fields
+  const extractedFields = Object.entries(data).filter(
+    ([, value]) => value !== null && value !== undefined && value !== ""
+  );
+  console.log("=== Final Extracted Fields ===");
+  console.log(`Total fields extracted: ${extractedFields.length}`);
+  extractedFields.forEach(([key, value]) => {
+    console.log(`  ${key}: ${value}`);
+  });
+
+  return data;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Parse request body with error handling
+    // Parse request body
     let body: RequestBody;
     try {
       body = (await request.json()) as RequestBody;
@@ -201,72 +356,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ocrText } = body;
-
-    // Validate OCR text
-    if (!ocrText || typeof ocrText !== "string") {
-      return NextResponse.json(
-        { error: "OCR text is required and must be a string" },
-        { status: 400 }
-      );
-    }
-
-    if (ocrText.trim().length === 0) {
-      return NextResponse.json(
-        { error: "OCR text cannot be empty" },
-        { status: 400 }
-      );
-    }
-
-    if (ocrText.length > 50000) {
-      return NextResponse.json(
-        { error: "OCR text is too long (max 50,000 characters)" },
-        { status: 400 }
-      );
-    }
-
-    // Check environment variables
-    const webhookUrl = process.env.N8N_WEBHOOK_URL;
-    const jwtSecret = process.env.JWT_SECRET;
-
-    if (!webhookUrl) {
-      console.error("N8N_WEBHOOK_URL environment variable is not configured");
-      return NextResponse.json(
-        { error: "ID extraction service not configured" },
-        { status: 503 }
-      );
-    }
-
-    if (!jwtSecret) {
-      console.error("JWT_SECRET environment variable is not configured");
-      return NextResponse.json(
-        { error: "Authentication service not configured" },
-        { status: 503 }
-      );
-    }
-
-    // Validate webhook URL format
+    // Validate request
     try {
-      new URL(webhookUrl);
-    } catch (urlError) {
-      console.error("Invalid N8N_WEBHOOK_URL:", webhookUrl);
-      return NextResponse.json(
-        { error: "Invalid webhook URL configuration" },
-        { status: 500 }
-      );
+      validateRequest(body);
+    } catch (validationError) {
+      const errorMessage =
+        validationError instanceof Error
+          ? validationError.message
+          : "Validation failed";
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
-    // Create JWT token with OCR text payload
+    // Validate environment configuration
+    let webhookUrl: string;
+    let jwtSecret: string;
+    try {
+      const env = validateEnvironment();
+      webhookUrl = env.webhookUrl;
+      jwtSecret = env.jwtSecret;
+    } catch (envError) {
+      const errorMessage =
+        envError instanceof Error ? envError.message : "Configuration error";
+      const statusCode = errorMessage.includes("not configured") ? 503 : 500;
+      return NextResponse.json({ error: errorMessage }, { status: statusCode });
+    }
+
+    // Create JWT token
     let token: string;
     try {
       const payload = {
-        ocrText,
+        ocrText: body.ocrText,
         timestamp: Date.now(),
       };
-
-      token = sign(payload, jwtSecret, {
-        expiresIn: "5m",
-      });
+      token = sign(payload, jwtSecret, { expiresIn: "5m" });
     } catch (jwtError) {
       console.error("Failed to create JWT token:", jwtError);
       return NextResponse.json(
@@ -275,149 +397,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send to N8N webhook with timeout
-    let response: Response;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-      const requestBody = { ocrText };
-      console.log("=== N8N Webhook Request ===");
-      console.log("URL:", webhookUrl);
-      console.log("OCR Text Length:", ocrText.length);
-      console.log("OCR Text Preview:", ocrText.substring(0, 200));
-      console.log(
-        "Request Body:",
-        JSON.stringify(requestBody).substring(0, 300)
-      );
-
-      response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log("=== N8N Webhook Response ===");
-      console.log("Status Code:", response.status);
-      console.log("Status Text:", response.statusText);
-      console.log(
-        "Headers:",
-        JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)
-      );
-    } catch (fetchError) {
-      if (fetchError instanceof Error) {
-        if (fetchError.name === "AbortError") {
-          console.error("Webhook request timed out after 30 seconds");
-          return NextResponse.json(
-            { error: "Request timed out. Please try again." },
-            { status: 504 }
-          );
-        }
-        console.error("Webhook request failed:", fetchError.message);
-        return NextResponse.json(
-          {
-            error: "Failed to connect to extraction service. Please try again.",
-          },
-          { status: 503 }
-        );
-      }
-      console.error("Unknown webhook error:", fetchError);
-      return NextResponse.json(
-        { error: "Network error occurred" },
-        { status: 503 }
-      );
-    }
-
-    // Check response status
-    if (!response.ok) {
-      const statusCode = response.status;
-      let errorMessage = `Webhook returned status ${statusCode}`;
-
-      try {
-        const errorData = await response.text();
-        console.error(
-          `Webhook error response (${statusCode}):`,
-          errorData.substring(0, 500)
-        );
-        errorMessage += `: ${errorData.substring(0, 100)}`;
-      } catch (textError) {
-        console.error("Could not read error response body");
-      }
-
-      // Return appropriate error based on status code
-      if (statusCode === 401 || statusCode === 403) {
-        return NextResponse.json(
-          { error: "Authentication failed with extraction service" },
-          { status: 502 }
-        );
-      } else if (statusCode === 404) {
-        return NextResponse.json(
-          { error: "Extraction service endpoint not found" },
-          { status: 502 }
-        );
-      } else if (statusCode >= 500) {
-        return NextResponse.json(
-          { error: "Extraction service is temporarily unavailable" },
-          { status: 503 }
-        );
-      }
-
-      return NextResponse.json(
-        { error: "Failed to extract data from document" },
-        { status: 502 }
-      );
-    }
-
-    // Parse response data
+    // Call extraction webhook
     let data: IDExtractionResponse;
     try {
-      const responseText = await response.text();
-      console.log("=== N8N Webhook Response Body ===");
-      console.log("Raw Response:", responseText.substring(0, 1000));
-
-      const rawData = JSON.parse(responseText) as
-        | N8NWebhookResponse
-        | N8NWebhookResponse[];
-      console.log("Parsed Raw Data:", JSON.stringify(rawData, null, 2));
-
-      // Transform N8N format to our expected format
-      data = transformN8NResponse(rawData);
-      console.log("=== Transformed Response Data ===");
-      console.log(JSON.stringify(data, null, 2));
-    } catch (jsonError) {
-      console.error("Failed to parse webhook response:", jsonError);
+      data = await callExtractionWebhook(body.ocrText, webhookUrl, token);
+    } catch (webhookError) {
       const errorMessage =
-        jsonError instanceof Error ? jsonError.message : "Unknown error";
-      return NextResponse.json(
-        { error: `Invalid response from extraction service: ${errorMessage}` },
-        { status: 502 }
-      );
-    }
+        webhookError instanceof Error
+          ? webhookError.message
+          : "Webhook call failed";
 
-    // Validate response structure
-    if (!data || typeof data !== "object") {
-      console.error("Webhook returned invalid data structure:", data);
-      return NextResponse.json(
-        { error: "Invalid data format from extraction service" },
-        { status: 502 }
-      );
-    }
+      // Determine appropriate status code
+      let statusCode = 502;
+      if (errorMessage.includes("timed out")) statusCode = 504;
+      if (errorMessage.includes("temporarily unavailable")) statusCode = 503;
+      if (errorMessage.includes("Network error")) statusCode = 503;
 
-    // Log extracted fields
-    const extractedFields = Object.entries(data).filter(
-      ([, value]) => value !== null && value !== undefined && value !== ""
-    );
-    console.log("=== Final Extracted Fields ===");
-    console.log(`Total fields extracted: ${extractedFields.length}`);
-    extractedFields.forEach(([key, value]) => {
-      console.log(`  ${key}: ${value}`);
-    });
+      return NextResponse.json({ error: errorMessage }, { status: statusCode });
+    }
 
     console.log(
       "✅ Successfully extracted and transformed ID data from N8N webhook"

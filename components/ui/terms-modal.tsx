@@ -8,26 +8,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface TermsModalProps {
   isOpen: boolean;
-  onAccept: () => void;
+  onAccept?: () => void;
   onDecline: () => void;
 }
 
-export function TermsModal({ isOpen, onAccept, onDecline }: TermsModalProps) {
-  const [isChecked, setIsChecked] = React.useState(false);
-
-  const handleAccept = () => {
-    if (isChecked) {
-      onAccept();
-    }
-  };
-
+export function TermsModal({ isOpen, onDecline }: TermsModalProps) {
   const handleClose = () => {
-    setIsChecked(false);
     onDecline();
   };
 

@@ -32,7 +32,7 @@ export default function RenewalApplicationPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
-  const [isScanning, setIsScanning] = useState(false);
+  const [isFaceVerified, setIsFaceVerified] = useState<boolean>(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
@@ -251,14 +251,6 @@ export default function RenewalApplicationPage() {
     }
   };
 
-  const handleFaceScan = (): void => {
-    setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      nextStep();
-    }, 2000);
-  };
-
   // Show loading while checking eligibility
   if (isCheckingEligibility) {
     return (
@@ -338,8 +330,8 @@ export default function RenewalApplicationPage() {
                   errors={errors}
                   setValue={setValue}
                   watch={watch}
-                  isScanning={isScanning}
-                  onStartScan={handleFaceScan}
+                  uploadedIdFile={uploadedFile}
+                  onVerificationComplete={setIsFaceVerified}
                 />
               )}
 
@@ -390,7 +382,8 @@ export default function RenewalApplicationPage() {
               <Button
                 onClick={currentStep === 3 ? handleSubmit(onSubmit) : nextStep}
                 disabled={
-                  (currentStep === 1 && !uploadedFile) ||
+                  (currentStep === 1 && (!uploadedFile || !isIdProcessingDone)) ||
+                  (currentStep === 2 && !isFaceVerified) ||
                   (currentStep === 3 &&
                     (!certificateOfGrades || !certificateOfRegistration))
                 }

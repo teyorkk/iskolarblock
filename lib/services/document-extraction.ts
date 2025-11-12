@@ -103,7 +103,7 @@ export async function extractCOGData(
 
       try {
         errorData = await response.json();
-      } catch (parseError) {
+      } catch {
         console.error("extractCOGData: Could not parse error response");
       }
 
@@ -253,7 +253,7 @@ export async function extractCORData(
 
       try {
         errorData = await response.json();
-      } catch (parseError) {
+      } catch {
         console.error("extractCORData: Could not parse error response");
       }
 

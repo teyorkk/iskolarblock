@@ -69,7 +69,6 @@ export function IdUploadStep<T extends IdForm>({
     let filledCount = 0;
 
     // Helper to safely set value
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const safeSetValue = (field: string, value: string): void => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
