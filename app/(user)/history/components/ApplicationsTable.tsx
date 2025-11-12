@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -51,9 +50,6 @@ export function ApplicationsTable({
   statusColors,
   onFilterClear,
 }: ApplicationsTableProps) {
-  const [selectedApplication, setSelectedApplication] =
-    useState<Application | null>(null);
-
   const getStatusIcon = (status: string) => {
     const Icon = statusIcons[status as keyof typeof statusIcons];
     return Icon ? <Icon className="w-4 h-4" /> : null;
@@ -121,11 +117,6 @@ export function ApplicationsTable({
                     <ApplicationDetailsDialog
                       application={application}
                       statusColors={statusColors}
-                      onOpenChange={(open) => {
-                        if (open) {
-                          setSelectedApplication(application);
-                        }
-                      }}
                     />
                   </TableCell>
                 </motion.tr>

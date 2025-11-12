@@ -73,7 +73,7 @@ export function DocumentsUploadStep<
   setProcessedCorFile,
 }: DocumentsUploadStepProps<T>): React.JSX.Element {
   // Certificate of Grades state
-  const [cogOcrText, setCogOcrText] = useState<string>("");
+  const [_cogOcrText, setCogOcrText] = useState<string>("");
   const [cogOcrError, setCogOcrError] = useState<string>("");
   const [isCogProcessing, setIsCogProcessing] = useState<boolean>(false);
   const [cogProgress, setCogProgress] = useState<number>(0);
@@ -82,7 +82,7 @@ export function DocumentsUploadStep<
     useState<COGExtractionResponse | null>(null);
 
   // Certificate of Registration state
-  const [corOcrText, setCorOcrText] = useState<string>("");
+  const [_corOcrText, setCorOcrText] = useState<string>("");
   const [corOcrError, setCorOcrError] = useState<string>("");
   const [isCorProcessing, setIsCorProcessing] = useState<boolean>(false);
   const [corProgress, setCorProgress] = useState<number>(0);

@@ -14,7 +14,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useSession } from "@/components/session-provider";
-import { toast } from "sonner";
 
 export default function ApplicationPage() {
   const { user } = useSession();

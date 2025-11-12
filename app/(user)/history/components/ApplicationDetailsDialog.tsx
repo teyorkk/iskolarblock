@@ -21,16 +21,14 @@ interface Application {
 interface ApplicationDetailsDialogProps {
   application: Application;
   statusColors: Record<string, string>;
-  onOpenChange?: (open: boolean) => void;
 }
 
 export function ApplicationDetailsDialog({
   application,
   statusColors,
-  onOpenChange,
 }: ApplicationDetailsDialogProps) {
   return (
-    <Dialog onOpenChange={onOpenChange}>
+    <Dialog>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm">
           <Eye className="w-4 h-4" />
@@ -94,4 +92,3 @@ export function ApplicationDetailsDialog({
     </Dialog>
   );
 }
-

@@ -226,7 +226,7 @@ function validateEnvironment() {
   // Validate webhook URL format
   try {
     new URL(webhookUrl);
-  } catch (urlError) {
+  } catch {
     console.error("Invalid N8N_WEBHOOK_URL:", webhookUrl);
     throw new Error("Invalid webhook URL configuration");
   }
@@ -291,7 +291,6 @@ async function callExtractionWebhook(
   // Check response status
   if (!response.ok) {
     const statusCode = response.status;
-    let errorMessage = `Webhook returned status ${statusCode}`;
 
     try {
       const errorData = await response.text();
@@ -299,8 +298,7 @@ async function callExtractionWebhook(
         `Webhook error response (${statusCode}):`,
         errorData.substring(0, 500)
       );
-      errorMessage += `: ${errorData.substring(0, 100)}`;
-    } catch (textError) {
+    } catch {
       console.error("Could not read error response body");
     }
 

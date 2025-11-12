@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     // Validate webhook URL format
     try {
       new URL(webhookUrl);
-    } catch (urlError) {
+    } catch {
       console.error("Invalid N8N_WEBHOOK_URL2:", webhookUrl);
       return NextResponse.json(
         { error: "Invalid webhook URL configuration" },
@@ -233,7 +233,6 @@ export async function POST(request: NextRequest) {
     // Check response status
     if (!response.ok) {
       const statusCode = response.status;
-      let errorMessage = `Webhook returned status ${statusCode}`;
 
       try {
         const errorData = await response.text();
@@ -241,8 +240,7 @@ export async function POST(request: NextRequest) {
           `COG Webhook error response (${statusCode}):`,
           errorData.substring(0, 500)
         );
-        errorMessage += `: ${errorData.substring(0, 100)}`;
-      } catch (textError) {
+      } catch {
         console.error("Could not read error response body");
       }
 

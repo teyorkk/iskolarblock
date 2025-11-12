@@ -104,7 +104,7 @@ export function FaceScanStep<T extends FaceForm>({
       try {
         await loadFaceApiModels();
         setModelsLoaded(true);
-      } catch (error) {
+      } catch {
         toast.error("Failed to load face detection models");
       }
     };
@@ -187,18 +187,23 @@ export function FaceScanStep<T extends FaceForm>({
       streamRef.current = stream;
       setCameraActive(true);
       setMatchResult(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error accessing camera:", error);
       let errorMessage = "Could not access camera. ";
 
-      if (error.name === "NotAllowedError") {
-        errorMessage += "Please grant camera permission.";
-      } else if (error.name === "NotFoundError") {
-        errorMessage += "No camera found.";
-      } else if (error.name === "NotReadableError") {
-        errorMessage += "Camera is in use by another application.";
+      if (error instanceof DOMException || (error instanceof Error && 'name' in error)) {
+        const errorName = error instanceof DOMException ? error.name : (error as Error & { name: string }).name;
+        if (errorName === "NotAllowedError") {
+          errorMessage += "Please grant camera permission.";
+        } else if (errorName === "NotFoundError") {
+          errorMessage += "No camera found.";
+        } else if (errorName === "NotReadableError") {
+          errorMessage += "Camera is in use by another application.";
+        } else {
+          errorMessage += error instanceof Error ? error.message : String(error);
+        }
       } else {
-        errorMessage += error.message;
+        errorMessage += error instanceof Error ? error.message : String(error);
       }
 
       toast.error(errorMessage);

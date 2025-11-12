@@ -31,7 +31,6 @@ export default function NewApplicationPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
-  const [isScanning, setIsScanning] = useState(false);
   const [isFaceVerified, setIsFaceVerified] = useState<boolean>(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
@@ -196,14 +195,6 @@ export default function NewApplicationPage() {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  };
-
-  const handleFaceScan = (): void => {
-    setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      nextStep();
-    }, 2000);
   };
 
   if (isSubmitted) {
