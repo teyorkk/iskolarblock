@@ -280,7 +280,14 @@ export function IdUploadStep<T extends IdForm>({
     return () => {
       cancelled = true;
     };
-  }, [uploadedFile, setValue, processedIdFile, isProcessingDone, setIsProcessingDone, setProcessedIdFile]);
+  }, [
+    uploadedFile,
+    setValue,
+    processedIdFile,
+    isProcessingDone,
+    setIsProcessingDone,
+    setProcessedIdFile,
+  ]);
 
   return (
     <Card>

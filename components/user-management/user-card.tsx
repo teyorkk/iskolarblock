@@ -5,14 +5,15 @@ import { Mail, Phone, Calendar, Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils/date-formatting";
 import type { UserCardProps } from "@/types/components";
 
-export function UserCard({ user, onViewProfile, onDelete }: UserCardProps): React.JSX.Element {
+export function UserCard({
+  user,
+  onViewProfile,
+  onDelete,
+}: UserCardProps): React.JSX.Element {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -24,7 +25,13 @@ export function UserCard({ user, onViewProfile, onDelete }: UserCardProps): Reac
           <div className="flex items-start space-x-4">
             <Avatar className="w-16 h-16">
               <AvatarImage src={user.profilePicture || ""} />
-              <AvatarFallback className="bg-red-100 text-red-600 text-lg">
+              <AvatarFallback
+                className={`${
+                  user.role === "ADMIN"
+                    ? "bg-red-100 text-red-600"
+                    : "bg-orange-100 text-orange-600"
+                } text-lg`}
+              >
                 {user.name?.charAt(0) || user.email?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
@@ -38,7 +45,7 @@ export function UserCard({ user, onViewProfile, onDelete }: UserCardProps): Reac
                   className={
                     user.role === "ADMIN"
                       ? "bg-red-100 text-red-700"
-                      : "bg-blue-100 text-blue-700"
+                      : "bg-orange-100 text-orange-700"
                   }
                 >
                   {user.role || "USER"}
@@ -85,4 +92,3 @@ export function UserCard({ user, onViewProfile, onDelete }: UserCardProps): Reac
     </motion.div>
   );
 }
-

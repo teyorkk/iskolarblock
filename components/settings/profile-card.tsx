@@ -113,12 +113,12 @@ export function ProfileCard({
         <div className="relative mx-auto">
           <Avatar className="w-24 h-24 mx-auto">
             <AvatarImage src={profilePicture || ""} />
-            <AvatarFallback className="bg-orange-100 text-orange-600 text-2xl">
+            <AvatarFallback className="bg-red-100 text-red-600 text-2xl">
               {getInitial()}
             </AvatarFallback>
           </Avatar>
           <label
-            className={`absolute bottom-0 right-0 bg-orange-500 rounded-full p-2 cursor-pointer hover:bg-orange-600 transition-colors ${
+            className={`absolute bottom-0 right-0 bg-red-500 rounded-full p-2 cursor-pointer hover:bg-red-600 transition-colors ${
               isUploading ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
@@ -146,8 +146,8 @@ export function ProfileCard({
             variant="secondary"
             className={
               isAdmin
-                ? "bg-purple-100 text-purple-700"
-                : "bg-blue-100 text-blue-700"
+                ? "bg-red-100 text-red-700"
+                : "bg-orange-100 text-orange-700"
             }
           >
             {isAdmin ? "Admin" : "User"}
@@ -183,4 +183,3 @@ export function ProfileCard({
     </Card>
   );
 }
-
