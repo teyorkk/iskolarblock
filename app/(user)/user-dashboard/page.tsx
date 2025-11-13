@@ -11,6 +11,7 @@ import { useSession } from "@/components/session-provider";
 import { userStatsCards } from "@/lib/constants/dashboard-stats";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { ApplicationPeriodBanner } from "@/components/admin-dashboard/application-period-banner";
 
 interface Application {
   id: string;
@@ -198,6 +199,8 @@ export default function UserDashboard() {
       <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
         <div className="p-4 md:p-6">
           <UserDashboardHeader user={user} userData={userData} />
+
+          <ApplicationPeriodBanner variant="user" />
 
           <StatsGrid stats={stats} />
 

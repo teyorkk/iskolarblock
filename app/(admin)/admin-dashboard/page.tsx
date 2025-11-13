@@ -6,6 +6,7 @@ import { StatsGrid } from "@/components/common/stats-grid";
 import { LineChart } from "@/components/common/line-chart";
 import { PieChart } from "@/components/common/pie-chart";
 import { AdminDashboardHeader } from "@/components/admin-dashboard/admin-dashboard-header";
+import { ApplicationPeriodBanner } from "@/components/admin-dashboard/application-period-banner";
 import { RecentApplicants } from "@/components/admin-dashboard/recent-applicants";
 import { QuickActions } from "@/components/admin-dashboard/quick-actions";
 import { mockChartData, mockApplicants } from "@/lib/mock-data";
@@ -31,6 +32,8 @@ export default function AdminDashboard() {
               title="Admin Dashboard"
               description="Manage scholarship applications, budget allocation, and blockchain records for Barangay San Miguel."
             />
+
+            <ApplicationPeriodBanner />
 
             <StatsGrid stats={adminStatsCards} />
 

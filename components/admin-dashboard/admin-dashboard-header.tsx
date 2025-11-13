@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApplicationPeriodDialog } from "./application-period-dialog";
 import type { DashboardHeaderProps } from "@/types/components";
@@ -18,13 +18,6 @@ export function AdminDashboardHeader({
         <div className="flex flex-wrap gap-3">
           {actions || (
             <>
-              <Button
-                variant="secondary"
-                className="bg-white text-red-600 hover:bg-gray-100"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Budget
-              </Button>
               <ApplicationPeriodDialog />
               <Button
                 variant="outline"
@@ -40,4 +33,3 @@ export function AdminDashboardHeader({
     </div>
   );
 }
-

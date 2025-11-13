@@ -7,6 +7,16 @@ const nextConfig: NextConfig = {
     config.resolve.alias.encoding = false;
     return config;
   },
+  // Allow images from Supabase storage
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "fuecadlwggbsrwkvwqkd.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

@@ -19,6 +19,7 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [budget, setBudget] = useState<string>("");
 
   const handleSave = async (): Promise<void> => {
     setIsLoading(true);
@@ -37,15 +38,15 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           className="border-white text-red-600 hover:bg-gray-100"
         >
           <Settings className="w-4 h-4 mr-2" />
-          Set Application Period
+          Set Application Period and Budget
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Set Application Period</DialogTitle>
+          <DialogTitle>Set Application Period and Budget</DialogTitle>
           <DialogDescription>
-            Define the start and end dates for the scholarship application
-            period.
+            Define the start, end dates and the budget allocation for the
+            scholarship application period.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -72,6 +73,29 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
               onChange={(e) => setEndDate(e.target.value)}
               className="col-span-3"
             />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="budget" className="text-right">
+              Budget
+            </Label>
+            <div className="relative col-span-3">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-500">
+                ₱
+              </span>
+              <Input
+                id="budget"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={budget}
+                placeholder="Enter budget amount"
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/[^0-9]/g, "");
+                  setBudget(numericValue);
+                }}
+                className="pl-7"
+              />
+            </div>
           </div>
         </div>
         <DialogFooter>
