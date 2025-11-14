@@ -31,6 +31,9 @@ import {
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ApplicationDetailsDialog } from "@/components/admin/application-details-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface Application {
   id: string;
@@ -45,6 +48,14 @@ interface Application {
   };
 }
 
+interface ApplicationPeriod {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+}
+
 export default function ScreeningPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,15 +66,48 @@ export default function ScreeningPage() {
   const [selectedApplications, setSelectedApplications] = useState<Set<string>>(
     new Set()
   );
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+  const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
+  const [latestPeriodId, setLatestPeriodId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPeriods = async () => {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data: periodsData, error: periodsError } = await supabase
+          .from("ApplicationPeriod")
+          .select("id, title, startDate, endDate, createdAt")
+          .order("createdAt", { ascending: false });
+
+        if (periodsError) {
+          console.error("Error fetching periods:", periodsError);
+        } else if (periodsData) {
+          setPeriods(periodsData);
+          // Set the first (latest) period as default
+          if (periodsData.length > 0) {
+            setLatestPeriodId(periodsData[0].id);
+            setSelectedPeriodId((prev) => prev || periodsData[0].id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching periods:", error);
+      }
+    };
+
+    void fetchPeriods();
+  }, []);
 
   useEffect(() => {
     void fetchApplications();
-  }, []);
+  }, [selectedPeriodId]);
 
   const fetchApplications = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/applications");
+      const url = selectedPeriodId
+        ? `/api/admin/applications?periodId=${selectedPeriodId}`
+        : "/api/admin/applications";
+      const response = await fetch(url);
       const data = await response.json();
 
       if (!response.ok) {
@@ -182,6 +226,45 @@ export default function ScreeningPage() {
                 </p>
               </div>
             </div>
+
+            {/* Application Period Selector */}
+            {periods.length > 0 && (
+              <div className="mb-6 flex items-center gap-4">
+                <Label htmlFor="period-select" className="text-sm font-medium">
+                  View Period:
+                </Label>
+                <Select
+                  value={selectedPeriodId || undefined}
+                  onValueChange={(value) => setSelectedPeriodId(value)}
+                >
+                  <SelectTrigger id="period-select" className="w-[300px]">
+                    <SelectValue placeholder="Select application period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {periods.map((period) => (
+                      <SelectItem key={period.id} value={period.id}>
+                        {period.title} (
+                        {new Date(period.startDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          year: "numeric",
+                        })}{" "}
+                        -{" "}
+                        {new Date(period.endDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          year: "numeric",
+                        })}
+                        )
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedPeriodId && selectedPeriodId !== latestPeriodId && (
+                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                    View Only - Past Period
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {/* Stats Cards */}
             {isLoading ? (
@@ -358,38 +441,39 @@ export default function ScreeningPage() {
                                 >
                                   <Eye className="w-4 h-4" />
                                 </Button>
-                                {application.status === "PENDING" && (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                      onClick={() =>
-                                        handleStatusUpdate(
-                                          application.id,
-                                          "APPROVED"
-                                        )
-                                      }
-                                      title="Approve"
-                                    >
-                                      <CheckCircle className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      onClick={() =>
-                                        handleStatusUpdate(
-                                          application.id,
-                                          "REJECTED"
-                                        )
-                                      }
-                                      title="Reject"
-                                    >
-                                      <XCircle className="w-4 h-4" />
-                                    </Button>
-                                  </>
-                                )}
+                                {application.status === "PENDING" &&
+                                  selectedPeriodId === latestPeriodId && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                        onClick={() =>
+                                          handleStatusUpdate(
+                                            application.id,
+                                            "APPROVED"
+                                          )
+                                        }
+                                        title="Approve"
+                                      >
+                                        <CheckCircle className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() =>
+                                          handleStatusUpdate(
+                                            application.id,
+                                            "REJECTED"
+                                          )
+                                        }
+                                        title="Reject"
+                                      >
+                                        <XCircle className="w-4 h-4" />
+                                      </Button>
+                                    </>
+                                  )}
                               </div>
                             </TableCell>
                           </TableRow>

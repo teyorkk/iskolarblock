@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await getSupabaseServerClient();
 
@@ -26,8 +26,12 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Fetch all applications with user data
-    const { data: applications, error: appsError } = await supabase
+    // Get periodId from query parameters
+    const { searchParams } = new URL(request.url);
+    const periodId = searchParams.get("periodId");
+
+    // Fetch applications with user data
+    let query = supabase
       .from("Application")
       .select(
         `
@@ -38,14 +42,24 @@ export async function GET() {
         createdAt,
         updatedAt,
         applicationDetails,
+        applicationPeriodId,
         User!Application_userId_fkey (
           id,
           name,
           email
         )
       `
-      )
-      .order("createdAt", { ascending: false });
+      );
+
+    // Filter by period if provided
+    if (periodId) {
+      query = query.eq("applicationPeriodId", periodId);
+    }
+
+    const { data: applications, error: appsError } = await query.order(
+      "createdAt",
+      { ascending: false }
+    );
 
     if (appsError) {
       console.error("Error fetching applications:", appsError);
