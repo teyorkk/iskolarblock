@@ -11,7 +11,7 @@ import { useSession } from "@/components/session-provider";
 import { userStatsCards } from "@/lib/constants/dashboard-stats";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { ApplicationPeriodBanner } from "@/components/admin-dashboard/application-period-banner";
+import { ApplicationPeriodBanner } from "@/components/common/application-period-banner";
 
 interface Application {
   id: string;

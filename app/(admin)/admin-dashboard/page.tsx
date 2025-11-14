@@ -7,7 +7,7 @@ import { StatsGrid } from "@/components/common/stats-grid";
 import { LineChart } from "@/components/common/line-chart";
 import { PieChart } from "@/components/common/pie-chart";
 import { AdminDashboardHeader } from "@/components/admin-dashboard/admin-dashboard-header";
-import { ApplicationPeriodBanner } from "@/components/admin-dashboard/application-period-banner";
+import { ApplicationPeriodBanner } from "@/components/common/application-period-banner";
 import { RecentApplicants } from "@/components/admin-dashboard/recent-applicants";
 import { QuickActions } from "@/components/admin-dashboard/quick-actions";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
