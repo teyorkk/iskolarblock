@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sign } from "jsonwebtoken";
+import { validateJwtSecret } from "@/lib/utils/jwt-validation";
 
 export interface IDExtractionResponse {
   last_name: string | null;
@@ -218,9 +219,13 @@ function validateEnvironment() {
     throw new Error("ID extraction service not configured");
   }
 
-  if (!jwtSecret) {
-    console.error("JWT_SECRET environment variable is not configured");
-    throw new Error("Authentication service not configured");
+  // Validate JWT secret with security requirements
+  const jwtValidation = validateJwtSecret(jwtSecret);
+  if (!jwtValidation.isValid) {
+    console.error("JWT_SECRET validation failed:", jwtValidation.error);
+    throw new Error(
+      jwtValidation.error || "Authentication service not configured"
+    );
   }
 
   // Validate webhook URL format
@@ -231,7 +236,7 @@ function validateEnvironment() {
     throw new Error("Invalid webhook URL configuration");
   }
 
-  return { webhookUrl, jwtSecret };
+  return { webhookUrl, jwtSecret: jwtSecret as string };
 }
 
 /**

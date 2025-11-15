@@ -29,6 +29,8 @@ export default function NotFound() {
               fill
               className="object-contain"
               priority
+              quality={90}
+              sizes="96px"
             />
           </div>
         </motion.div>

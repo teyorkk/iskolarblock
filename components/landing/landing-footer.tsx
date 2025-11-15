@@ -16,6 +16,9 @@ export function LandingFooter({}: LandingFooterProps): React.JSX.Element {
                   alt="ScholarBlock Logo"
                   fill
                   className="object-contain"
+                  quality={90}
+                  sizes="32px"
+                  loading="lazy"
                 />
               </div>
               <span className="font-bold text-lg">ScholarBlock</span>

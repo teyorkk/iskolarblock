@@ -5,7 +5,6 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/session-provider"
 import { Loading } from "@/components/loading"
-import { isAdmin } from "@/lib/utils/auth"
 
 export default function AdminLayout({
   children,
@@ -13,27 +12,27 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { ready, user } = useSession()
+  const { ready, user, isAdmin, loadingRole } = useSession()
   const hydrated = ready && typeof window !== 'undefined'
 
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || loadingRole) return
     if (!user) {
       router.push('/login')
       return
     }
     // If user is not admin, redirect to user dashboard
-    if (!isAdmin(user)) {
+    if (!isAdmin) {
       router.push('/user-dashboard')
     }
-  }, [hydrated, user, router])
+  }, [hydrated, user, isAdmin, loadingRole, router])
 
-  if (!hydrated || !user) {
+  if (!hydrated || !user || loadingRole) {
     return <Loading />
   }
 
   // If user is not admin, show loading while redirecting
-  if (!isAdmin(user)) {
+  if (!isAdmin) {
     return <Loading />
   }
 

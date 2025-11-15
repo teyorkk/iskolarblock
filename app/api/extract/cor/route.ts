@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sign } from "jsonwebtoken";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { validateJwtSecret } from "@/lib/utils/jwt-validation";
 
-export interface COGExtractionResponse {
-  "Certificate of Grades": boolean;
+export interface CORExtractionResponse {
+  "Certificate of Registration": boolean;
   school: string | null;
   school_year: string | null;
   semester: string | null;
   course: string | null;
   name: string | null;
-  gwa: number | null;
   total_units: number | null;
-  subjects: GradeSubject[] | null;
-}
-
-export interface GradeSubject {
-  code: string;
-  description: string;
-  units: number;
-  grade: string | number;
 }
 
 // N8N response format with value and accuracy
@@ -28,15 +20,13 @@ interface N8NFieldResponse {
 }
 
 interface N8NWebhookResponse {
-  "Certificate of Grades": boolean;
+  "Certificate of Registration": boolean;
   school: N8NFieldResponse;
   school_year: N8NFieldResponse;
   semester: N8NFieldResponse;
   course: N8NFieldResponse;
   name: N8NFieldResponse;
-  total_gwa: N8NFieldResponse;
   total_units: N8NFieldResponse;
-  subjects: N8NFieldResponse; // Array of subjects
 }
 
 interface RequestBody {
@@ -53,7 +43,7 @@ interface RequestBody {
  */
 function transformN8NResponse(
   n8nData: N8NWebhookResponse | N8NWebhookResponse[]
-): COGExtractionResponse {
+): CORExtractionResponse {
   // Handle array response (N8N returns array with single object)
   const dataObject = Array.isArray(n8nData) ? n8nData[0] : n8nData;
 
@@ -73,20 +63,19 @@ function transformN8NResponse(
     return null;
   };
 
-  const transformed: COGExtractionResponse = {
-    "Certificate of Grades": dataObject["Certificate of Grades"] ?? true,
+  const transformed: CORExtractionResponse = {
+    "Certificate of Registration":
+      dataObject["Certificate of Registration"] ?? true,
     school: extractValue(dataObject.school) as string | null,
     school_year: extractValue(dataObject.school_year) as string | null,
     semester: extractValue(dataObject.semester) as string | null,
     course: extractValue(dataObject.course) as string | null,
     name: extractValue(dataObject.name) as string | null,
-    gwa: extractValue(dataObject.total_gwa) as number | null,
     total_units: extractValue(dataObject.total_units) as number | null,
-    subjects: extractValue(dataObject.subjects) as GradeSubject[] | null,
   };
 
   // Log accuracy information if available
-  console.log("=== COG Field Accuracy Report ===");
+  console.log("=== COR Field Accuracy Report ===");
   Object.entries(dataObject).forEach(([key, field]) => {
     if (
       field &&
@@ -123,38 +112,36 @@ export async function POST(request: NextRequest) {
     }
 
     const { ocrText, fileData, fileName, userId } = body;
-
+    
     // Upload file to Supabase storage if provided
     let fileUrl: string | null = null;
     if (fileData && fileName && userId) {
       try {
         const supabase = getSupabaseServerClient();
-
+        
         // Convert base64 to buffer
-        const base64Data = fileData.split(",")[1] || fileData;
-        const buffer = Buffer.from(base64Data, "base64");
-
+        const base64Data = fileData.split(',')[1] || fileData;
+        const buffer = Buffer.from(base64Data, 'base64');
+        
         // Generate unique file path
         const timestamp = Date.now();
-        const filePath = `${userId}/cog/${timestamp}-${fileName}`;
-
+        const filePath = `${userId}/cor/${timestamp}-${fileName}`;
+        
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("documents")
+          .from('documents')
           .upload(filePath, buffer, {
-            contentType: fileName.endsWith(".pdf")
-              ? "application/pdf"
-              : "image/jpeg",
+            contentType: fileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
             upsert: false,
           });
-
+        
         if (uploadError) {
-          console.error("COG file upload error:", uploadError);
+          console.error('COR file upload error:', uploadError);
         } else {
           fileUrl = uploadData.path;
-          console.log("✅ COG file uploaded to storage:", fileUrl);
+          console.log('✅ COR file uploaded to storage:', fileUrl);
         }
       } catch (storageError) {
-        console.error("COG storage error:", storageError);
+        console.error('COR storage error:', storageError);
         // Continue with OCR even if storage fails
       }
     }
@@ -182,21 +169,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Check environment variables
-    const webhookUrl = process.env.N8N_WEBHOOK_URL2; // COG uses N8N_WEBHOOK_URL2
+    const webhookUrl = process.env.N8N_WEBHOOK_URL3; // COR uses N8N_WEBHOOK_URL3
     const jwtSecret = process.env.JWT_SECRET;
 
     if (!webhookUrl) {
-      console.error("N8N_WEBHOOK_URL2 environment variable is not configured");
+      console.error("N8N_WEBHOOK_URL3 environment variable is not configured");
       return NextResponse.json(
-        { error: "COG extraction service not configured" },
+        { error: "COR extraction service not configured" },
         { status: 503 }
       );
     }
 
-    if (!jwtSecret) {
-      console.error("JWT_SECRET environment variable is not configured");
+    // Validate JWT secret with security requirements
+    const jwtValidation = validateJwtSecret(jwtSecret);
+    if (!jwtValidation.isValid) {
+      console.error("JWT_SECRET validation failed:", jwtValidation.error);
       return NextResponse.json(
-        { error: "Authentication service not configured" },
+        {
+          error:
+            jwtValidation.error || "Authentication service not configured",
+        },
         { status: 503 }
       );
     }
@@ -205,7 +197,7 @@ export async function POST(request: NextRequest) {
     try {
       new URL(webhookUrl);
     } catch {
-      console.error("Invalid N8N_WEBHOOK_URL2:", webhookUrl);
+      console.error("Invalid N8N_WEBHOOK_URL3:", webhookUrl);
       return NextResponse.json(
         { error: "Invalid webhook URL configuration" },
         { status: 500 }
@@ -220,7 +212,7 @@ export async function POST(request: NextRequest) {
         timestamp: Date.now(),
       };
 
-      token = sign(payload, jwtSecret, {
+      token = sign(payload, jwtSecret as string, {
         expiresIn: "5m",
       });
     } catch (jwtError) {
@@ -235,7 +227,7 @@ export async function POST(request: NextRequest) {
     let response: Response;
     try {
       const requestBody = { ocrText };
-      console.log("=== N8N COG Webhook Request ===");
+      console.log("=== N8N COR Webhook Request ===");
       console.log("URL:", webhookUrl);
       console.log("OCR Text Length:", ocrText.length);
       console.log("OCR Text Preview:", ocrText.substring(0, 200));
@@ -249,12 +241,12 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify(requestBody),
       });
 
-      console.log("=== N8N COG Webhook Response ===");
+      console.log("=== N8N COR Webhook Response ===");
       console.log("Status Code:", response.status);
       console.log("Status Text:", response.statusText);
     } catch (fetchError) {
       if (fetchError instanceof Error) {
-        console.error("COG webhook request failed:", fetchError.message);
+        console.error("COR webhook request failed:", fetchError.message);
         return NextResponse.json(
           {
             error: "Failed to connect to extraction service. Please try again.",
@@ -276,7 +268,7 @@ export async function POST(request: NextRequest) {
       try {
         const errorData = await response.text();
         console.error(
-          `COG Webhook error response (${statusCode}):`,
+          `COR Webhook error response (${statusCode}):`,
           errorData.substring(0, 500)
         );
       } catch {
@@ -308,10 +300,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse response data
-    let data: COGExtractionResponse;
+    let data: CORExtractionResponse;
     try {
       const responseText = await response.text();
-      console.log("=== N8N COG Webhook Response Body ===");
+      console.log("=== N8N COR Webhook Response Body ===");
       console.log("Raw Response:", responseText.substring(0, 1000));
 
       const rawData = JSON.parse(responseText) as
@@ -321,10 +313,10 @@ export async function POST(request: NextRequest) {
 
       // Transform N8N format to our expected format
       data = transformN8NResponse(rawData);
-      console.log("=== Transformed COG Response Data ===");
+      console.log("=== Transformed COR Response Data ===");
       console.log(JSON.stringify(data, null, 2));
     } catch (jsonError) {
-      console.error("Failed to parse COG webhook response:", jsonError);
+      console.error("Failed to parse COR webhook response:", jsonError);
       const errorMessage =
         jsonError instanceof Error ? jsonError.message : "Unknown error";
       return NextResponse.json(
@@ -335,7 +327,7 @@ export async function POST(request: NextRequest) {
 
     // Validate response structure
     if (!data || typeof data !== "object") {
-      console.error("COG Webhook returned invalid data structure:", data);
+      console.error("COR Webhook returned invalid data structure:", data);
       return NextResponse.json(
         { error: "Invalid data format from extraction service" },
         { status: 502 }
@@ -343,7 +335,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      "✅ Successfully extracted and transformed COG data from N8N webhook"
+      "✅ Successfully extracted and transformed COR data from N8N webhook"
     );
     return NextResponse.json({
       ...data,
@@ -351,7 +343,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     // Catch-all error handler
-    console.error("Unexpected error in extract-cog API:", error);
+    console.error("Unexpected error in extract-cor API:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(

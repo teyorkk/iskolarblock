@@ -50,7 +50,7 @@ export async function extractIDData(
 
     let response: Response;
     try {
-      response = await fetch("/api/extract-id", {
+      response = await fetch("/api/extract/id", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/utils/auth-server";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -10,31 +11,19 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
+    // Verify admin user using database role check
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unauthorized";
+      const status = message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: message }, { status });
+    }
+
     const supabase = await getSupabaseServerClient();
     const { id } = await context.params;
     const body = await request.json();
     const { status } = body;
-
-    // Verify admin user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const { data: userData, error: userError } = await supabase
-      .from("User")
-      .select("role")
-      .eq("email", user.email)
-      .single();
-
-    if (userError || userData?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     // Validate status
     const validStatuses = ["PENDING", "UNDER_REVIEW", "APPROVED", "REJECTED"];
@@ -76,29 +65,17 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    // Verify admin user using database role check
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unauthorized";
+      const status = message.includes("Forbidden") ? 403 : 401;
+      return NextResponse.json({ error: message }, { status });
+    }
+
     const supabase = await getSupabaseServerClient();
     const { id } = await context.params;
-
-    // Verify admin user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const { data: userData, error: userError } = await supabase
-      .from("User")
-      .select("role")
-      .eq("email", user.email)
-      .single();
-
-    if (userError || userData?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     // Fetch application with all related data
     const { data: application, error: appError } = await supabase

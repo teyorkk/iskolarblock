@@ -82,7 +82,7 @@ export async function extractCOGData(
 
     let response: Response;
     try {
-      response = await fetch("/api/extract-cog", {
+      response = await fetch("/api/extract/cog", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -253,7 +253,7 @@ export async function extractCORData(
 
     let response: Response;
     try {
-      response = await fetch("/api/extract-cor", {
+      response = await fetch("/api/extract/cor", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

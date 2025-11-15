@@ -32,6 +32,8 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors },
     setError,
+    getValues,
+    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
@@ -60,10 +62,30 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       setErrorMessage("");
+
+      // Ensure we have the current password value (in case type change caused issues)
+      // Try multiple methods to get the password value
+      let passwordValue = getValues("password") || data.password;
+
+      // Fallback: get value directly from DOM if React Hook Form doesn't have it
+      if (!passwordValue) {
+        const passwordInput = document.getElementById(
+          "password"
+        ) as HTMLInputElement;
+        if (passwordInput) {
+          passwordValue = passwordInput.value;
+        }
+      }
+
+      const formData = {
+        email: data.email,
+        password: passwordValue,
+      };
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formData),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -138,6 +160,8 @@ export default function LoginPage() {
                   fill
                   className="object-contain"
                   priority
+                  quality={90}
+                  sizes="48px"
                 />
               </div>
             </div>
@@ -178,18 +202,46 @@ export default function LoginPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
-                    {...register("password")}
+                    {...register("password", {
+                      onChange: (e) => {
+                        setErrorMessage("");
+                      },
+                    })}
                     className={
                       errors.password ? "border-red-500 pr-10" : "pr-10"
                     }
-                    onChange={() => setErrorMessage("")}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // Preserve the password value when toggling visibility
+                      // Try to get value from React Hook Form first, then from DOM
+                      let currentPassword = getValues("password");
+                      if (!currentPassword) {
+                        const passwordInput = document.getElementById(
+                          "password"
+                        ) as HTMLInputElement;
+                        if (passwordInput) {
+                          currentPassword = passwordInput.value;
+                        }
+                      }
+                      setShowPassword(!showPassword);
+                      // Ensure the value is preserved after type change
+                      if (currentPassword) {
+                        // Use setTimeout to ensure the value is set after the type change
+                        setTimeout(() => {
+                          setValue("password", currentPassword, {
+                            shouldValidate: false,
+                            shouldDirty: true,
+                          });
+                        }, 0);
+                      }
+                    }}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-gray-500" />
@@ -203,13 +255,6 @@ export default function LoginPage() {
                     {errors.password.message}
                   </p>
                 )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox id="remember" />
-                <Label htmlFor="remember" className="text-sm text-gray-600">
-                  Remember me
-                </Label>
               </div>
 
               <Button

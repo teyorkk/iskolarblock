@@ -389,6 +389,9 @@ export function ApplicationDetailsDialog({
                             alt="ID"
                             fill
                             className="object-contain"
+                            quality={85}
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                            loading="lazy"
                           />
                         </div>
                       </div>
@@ -402,6 +405,9 @@ export function ApplicationDetailsDialog({
                             alt="Face Scan"
                             fill
                             className="object-contain"
+                            quality={85}
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                            loading="lazy"
                           />
                         </div>
                       </div>

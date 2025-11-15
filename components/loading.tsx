@@ -26,6 +26,8 @@ export function Loading() {
               fill
               className="object-contain"
               priority
+              quality={90}
+              sizes="80px"
             />
           </div>
         </motion.div>
