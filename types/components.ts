@@ -181,8 +181,10 @@ export interface PieChartProps {
 
 export interface RecentApplicantsProps {
   applicants: Array<{
+    id: string;
     name: string;
     email: string;
+    type: string;
     status: string;
     submittedDate: string;
   }>;

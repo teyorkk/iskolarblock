@@ -29,6 +29,8 @@ export function LandingNavigation({
                   fill
                   className="object-contain"
                   priority
+                  quality={90}
+                  sizes="32px"
                 />
               </div>
               <span className="font-bold text-xl text-gray-900">

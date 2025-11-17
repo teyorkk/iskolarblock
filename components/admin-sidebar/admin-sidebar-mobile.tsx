@@ -127,6 +127,9 @@ export function AdminSidebarMobile({
                   alt="ScholarBlock Logo"
                   fill
                   className="object-contain"
+                  quality={90}
+                  sizes="24px"
+                  priority
                 />
               </div>
               <span className="font-bold text-lg">ScholarBlock</span>
@@ -189,6 +192,9 @@ export function AdminSidebarMobile({
                 alt="ScholarBlock Logo"
                 fill
                 className="object-contain"
+                quality={90}
+                sizes="20px"
+                priority
               />
             </div>
             <span className="font-bold">ScholarBlock</span>

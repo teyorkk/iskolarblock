@@ -17,6 +17,9 @@ export function AdminSidebarHeader({
               alt="ScholarBlock Logo"
               fill
               className="object-contain"
+              quality={90}
+              sizes="40px"
+              priority
             />
           </div>
           <div className="flex-1">
@@ -37,6 +40,9 @@ export function AdminSidebarHeader({
             alt="ScholarBlock Logo"
             fill
             className="object-contain"
+            quality={90}
+            sizes="40px"
+            priority
           />
         </div>
       )}

@@ -192,6 +192,9 @@ export function UserSidebar(): React.JSX.Element {
                     alt="ScholarBlock Logo"
                     fill
                     className="object-contain"
+                    quality={90}
+                    sizes="24px"
+                    priority
                   />
                 </div>
                 <div>
@@ -290,6 +293,9 @@ export function UserSidebar(): React.JSX.Element {
                   alt="ScholarBlock Logo"
                   fill
                   className="object-contain"
+                  quality={90}
+                  sizes="20px"
+                  priority
                 />
               </div>
               <span className="font-bold">ScholarBlock</span>
@@ -321,6 +327,9 @@ export function UserSidebar(): React.JSX.Element {
                   alt="ScholarBlock Logo"
                   fill
                   className="object-contain"
+                  quality={90}
+                  sizes="40px"
+                  priority
                 />
               </div>
               <div>
@@ -343,6 +352,9 @@ export function UserSidebar(): React.JSX.Element {
                 alt="ScholarBlock Logo"
                 fill
                 className="object-contain"
+                quality={90}
+                sizes="40px"
+                priority
               />
             </div>
           )}

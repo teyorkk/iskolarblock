@@ -54,6 +54,8 @@ export function LandingHero({}: LandingHeroProps): React.JSX.Element {
                 fill
                 className="object-contain"
                 priority
+                quality={90}
+                sizes="80px"
               />
             </div>
             <div className="relative w-24 h-24">
@@ -63,7 +65,8 @@ export function LandingHero({}: LandingHeroProps): React.JSX.Element {
                 fill
                 className="object-contain"
                 priority
-                unoptimized
+                quality={90}
+                sizes="96px"
               />
             </div>
           </div>

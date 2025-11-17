@@ -44,8 +44,13 @@ export function ProfileCard({
     const file = event.target.files?.[0];
     if (!file || !userData?.email) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
+    // Validate file type - only PNG and JPG allowed
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+    const allowedExtensions = ["png", "jpg", "jpeg"];
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+
+    if (!allowedTypes.includes(file.type) || !fileExt || !allowedExtensions.includes(fileExt)) {
+      toast.error("Please upload a PNG or JPG image file only");
       return;
     }
 
@@ -72,11 +77,11 @@ export function ProfileCard({
         return;
       }
 
-      const fileExt = file.name.split(".").pop();
       const fileName = `profile-pictures/${userRecord.id}/${Date.now()}.${fileExt}`;
 
+      // Upload to avatars bucket (has RLS policy for profile pictures)
       const { error: uploadError } = await supabase.storage
-        .from("documents")
+        .from("avatars")
         .upload(fileName, file, {
           cacheControl: "3600",
           upsert: false,
@@ -90,7 +95,7 @@ export function ProfileCard({
       }
 
       const { data: urlData } = supabase.storage
-        .from("documents")
+        .from("avatars")
         .getPublicUrl(fileName);
 
       const publicUrl = urlData.publicUrl;
@@ -150,7 +155,7 @@ export function ProfileCard({
             <input
               type="file"
               className="hidden"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg"
               onChange={handleImageUpload}
               disabled={isUploading}
             />
