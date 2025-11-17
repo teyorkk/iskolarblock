@@ -24,7 +24,9 @@ export function UserCard({
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
             <Avatar className="w-16 h-16">
-              <AvatarImage src={user.profilePicture || ""} />
+              {user.profilePicture ? (
+                <AvatarImage src={user.profilePicture} />
+              ) : null}
               <AvatarFallback
                 className={`${
                   user.role === "ADMIN"

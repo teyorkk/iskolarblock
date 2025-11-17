@@ -210,11 +210,7 @@ export function ProfileCard({
       <CardHeader className="text-center">
         <div className="relative mx-auto">
           <Avatar className="w-24 h-24 mx-auto">
-            {profilePicture ? (
-              <AvatarImage src={profilePicture} />
-            ) : (
-              <AvatarImage src={undefined} />
-            )}
+            {profilePicture ? <AvatarImage src={profilePicture} /> : null}
             <AvatarFallback
               className={`${
                 isAdmin
@@ -226,7 +222,7 @@ export function ProfileCard({
             </AvatarFallback>
           </Avatar>
           <label
-            className={`absolute bottom-0 right-0 rounded-full p-2 cursor-pointer transition-colors ${
+            className={`absolute bottom-0 right-0 rounded-full p-2 cursor-pointer transition-colors z-20 ${
               isAdmin
                 ? "bg-red-500 hover:bg-red-600"
                 : "bg-orange-500 hover:bg-orange-600"
@@ -242,8 +238,8 @@ export function ProfileCard({
             />
           </label>
           {isUploading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/90 z-10">
+              <div className="h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
         </div>

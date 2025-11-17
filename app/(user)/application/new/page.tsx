@@ -1,9 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { UserSidebar } from "@/components/user-sidebar";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -27,9 +34,16 @@ import type {
   COGExtractionResponse,
   CORExtractionResponse,
 } from "@/lib/services/document-extraction";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useSession } from "@/components/session-provider";
 
 export default function NewApplicationPage() {
   const router = useRouter();
+  const { user } = useSession();
+  const [eligibilityChecked, setEligibilityChecked] = useState(false);
+  const [isPageLocked, setIsPageLocked] = useState(false);
+  const [lockReason, setLockReason] = useState<string | null>(null);
+  const [lockStatus, setLockStatus] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedStatus, setSubmittedStatus] = useState<
@@ -78,6 +92,76 @@ export default function NewApplicationPage() {
   const [submittedApplicationId, setSubmittedApplicationId] = useState<
     string | null
   >(null);
+
+  useEffect(() => {
+    async function checkEligibility() {
+      if (!user?.id) {
+        setIsPageLocked(true);
+        setLockReason("Please sign in to continue your application.");
+        setLockStatus(null);
+        setEligibilityChecked(true);
+        return;
+      }
+
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data: periodData, error: periodError } = await supabase
+          .from("ApplicationPeriod")
+          .select("id")
+          .eq("isOpen", true)
+          .order("createdAt", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (periodError) {
+          throw periodError;
+        }
+
+        if (!periodData) {
+          setIsPageLocked(true);
+          setLockReason("No application period is currently open.");
+          setLockStatus(null);
+          setEligibilityChecked(true);
+          return;
+        }
+
+        const { data: existingApplications, error: applicationError } =
+          await supabase
+            .from("Application")
+            .select("id, status")
+            .eq("userId", user.id)
+            .eq("applicationPeriodId", periodData.id)
+            .limit(1);
+
+        if (applicationError) {
+          throw applicationError;
+        }
+
+        if (existingApplications && existingApplications.length > 0) {
+          setIsPageLocked(true);
+          setLockReason(
+            "You already submitted an application for the current period. Please wait for updates or check your history."
+          );
+          setLockStatus(existingApplications[0].status);
+        } else {
+          setIsPageLocked(false);
+          setLockReason(null);
+          setLockStatus(null);
+        }
+      } catch (error) {
+        console.error("Eligibility check failed:", error);
+        setIsPageLocked(true);
+        setLockReason(
+          "We couldn't verify your eligibility right now. Please try again later."
+        );
+        setLockStatus(null);
+      } finally {
+        setEligibilityChecked(true);
+      }
+    }
+
+    void checkEligibility();
+  }, [user?.id]);
 
   const {
     register,
@@ -205,6 +289,62 @@ export default function NewApplicationPage() {
     },
     maxFiles: 1,
   });
+
+  if (!eligibilityChecked) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <UserSidebar />
+        <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
+          <div className="p-4 md:p-6 flex items-center justify-center min-h-[60vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isPageLocked) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <UserSidebar />
+        <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
+          <div className="p-4 md:p-6 max-w-3xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-500" />
+                  Application Unavailable
+                </CardTitle>
+                <CardDescription>
+                  {lockReason ||
+                    "You cannot start a new application at the moment."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {lockStatus && (
+                  <p className="text-sm text-gray-600">
+                    Current application status:{" "}
+                    <span className="font-semibold">{lockStatus}</span>
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => router.push("/history")}>
+                    View Application History
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push("/user-dashboard")}
+                  >
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const readFileAsBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {

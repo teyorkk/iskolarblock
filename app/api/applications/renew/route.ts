@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { randomUUID } from "crypto";
 import type { GradeSubject } from "@/lib/services/document-extraction";
+import { logApplicationToBlockchain } from "@/lib/services/blockchain";
 
 interface RenewApplicationRequest {
   // Images (base64 strings)
@@ -379,11 +380,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let transactionHash: string | null = null;
+    try {
+      transactionHash = await logApplicationToBlockchain(applicationId, userId);
+      if (transactionHash) {
+        await supabase.from("BlockchainRecord").insert({
+          id: randomUUID(),
+          recordType: "APPLICATION",
+          transactionHash,
+          applicationId,
+          userId,
+          timestamp: now,
+        });
+      }
+    } catch (error) {
+      console.error("Blockchain logging failed (renewal application):", error);
+    }
+
     return NextResponse.json({
       success: true,
       applicationId: applicationId,
       status: applicationStatus,
       personalInfo: personalInfoData,
+      transactionHash,
     });
   } catch (error) {
     console.error("Renewal application submission error:", error);

@@ -83,7 +83,9 @@ export function AdminSidebarProfile({
     return (
       <div className="flex justify-center mb-6">
         <Avatar>
-          <AvatarImage src={userProfile?.profilePicture || ""} />
+          {userProfile?.profilePicture ? (
+            <AvatarImage src={userProfile.profilePicture} />
+          ) : null}
           <AvatarFallback className="bg-red-100 text-red-600">
             {getUserInitial()}
           </AvatarFallback>
@@ -95,7 +97,9 @@ export function AdminSidebarProfile({
   return (
     <div className="flex items-center space-x-3 mb-6 p-3 bg-red-50 rounded-lg">
       <Avatar>
-        <AvatarImage src={userProfile?.profilePicture || ""} />
+        {userProfile?.profilePicture ? (
+          <AvatarImage src={userProfile.profilePicture} />
+        ) : null}
         <AvatarFallback className="bg-red-100 text-red-600">
           {getUserInitial()}
         </AvatarFallback>

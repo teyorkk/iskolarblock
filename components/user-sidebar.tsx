@@ -222,7 +222,9 @@ export function UserSidebar(): React.JSX.Element {
           <div className="p-4">
             <div className="flex items-center space-x-3 mb-6 p-3 bg-orange-50 rounded-lg">
               <Avatar>
-                <AvatarImage src={userProfile?.profilePicture || ""} />
+                {userProfile?.profilePicture ? (
+                  <AvatarImage src={userProfile.profilePicture} />
+                ) : null}
                 <AvatarFallback className="bg-orange-100 text-orange-600">
                   {userProfile?.name?.charAt(0) ||
                     user?.email?.charAt(0) ||
@@ -379,7 +381,9 @@ export function UserSidebar(): React.JSX.Element {
           {!isCollapsed && (
             <div className="flex items-center space-x-3 mb-6 p-3 bg-orange-50 rounded-lg">
               <Avatar>
-                <AvatarImage src={userProfile?.profilePicture || ""} />
+                {userProfile?.profilePicture ? (
+                  <AvatarImage src={userProfile.profilePicture} />
+                ) : null}
                 <AvatarFallback className="bg-orange-100 text-orange-600">
                   {userProfile?.name?.charAt(0) ||
                     user?.email?.charAt(0) ||
@@ -400,7 +404,9 @@ export function UserSidebar(): React.JSX.Element {
           {isCollapsed && (
             <div className="flex justify-center mb-6">
               <Avatar>
-                <AvatarImage src={userProfile?.profilePicture || ""} />
+                {userProfile?.profilePicture ? (
+                  <AvatarImage src={userProfile.profilePicture} />
+                ) : null}
                 <AvatarFallback className="bg-orange-100 text-orange-600">
                   {userProfile?.name?.charAt(0) ||
                     user?.email?.charAt(0) ||

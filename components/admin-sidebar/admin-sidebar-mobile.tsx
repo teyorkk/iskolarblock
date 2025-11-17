@@ -149,7 +149,9 @@ export function AdminSidebarMobile({
         <div className="p-4">
           <div className="flex items-center space-x-3 mb-6">
             <Avatar>
-              <AvatarImage src={userProfile?.profilePicture || ""} />
+              {userProfile?.profilePicture ? (
+                <AvatarImage src={userProfile.profilePicture} />
+              ) : null}
               <AvatarFallback className="bg-red-100 text-red-600">
                 {getUserInitial()}
               </AvatarFallback>

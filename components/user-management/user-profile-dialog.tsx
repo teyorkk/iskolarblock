@@ -49,7 +49,9 @@ export function UserProfileDialog({
           {/* Profile Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-4 border-b">
             <Avatar className="w-20 h-20 shrink-0">
-              <AvatarImage src={user.profilePicture || ""} />
+              {user.profilePicture ? (
+                <AvatarImage src={user.profilePicture} />
+              ) : null}
               <AvatarFallback
                 className={`${
                   user.role === "ADMIN"

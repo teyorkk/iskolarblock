@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, Zap, Lock } from "lucide-react";
+import { FileText, Zap, Lock, AlertTriangle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -18,40 +18,81 @@ import { useSession } from "@/components/session-provider";
 export default function ApplicationPage() {
   const { user } = useSession();
   const [hasPastApplication, setHasPastApplication] = useState(false);
+  const [hasCurrentApplication, setHasCurrentApplication] = useState(false);
+  const [currentApplicationStatus, setCurrentApplicationStatus] = useState<
+    string | null
+  >(null);
+  const [hasOpenPeriod, setHasOpenPeriod] = useState(true);
   const [isCheckingApplications, setIsCheckingApplications] = useState(true);
 
   useEffect(() => {
     async function checkUserApplications() {
       if (!user) {
         setIsCheckingApplications(false);
+        setHasOpenPeriod(true);
         return;
       }
 
       try {
         const supabase = getSupabaseBrowserClient();
+        const { data: periodData, error: periodError } = await supabase
+          .from("ApplicationPeriod")
+          .select("id")
+          .eq("isOpen", true)
+          .order("createdAt", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (periodError) {
+          console.error("Error fetching application period:", periodError);
+        }
+
+        if (!periodData) {
+          setHasOpenPeriod(false);
+        } else {
+          setHasOpenPeriod(true);
+        }
+
         const { data, error } = await supabase
           .from("Application")
-          .select("id, status")
-          .eq("userId", user.id)
-          .limit(1);
+          .select("id, status, applicationPeriodId")
+          .eq("userId", user.id);
 
         if (error) {
           console.error("Error checking applications:", error);
           console.error("Error details:", JSON.stringify(error, null, 2));
 
-          // Don't show error toast if table doesn't exist yet (new setup)
-          // Just assume no past applications
           setHasPastApplication(false);
+          setHasCurrentApplication(false);
+          setCurrentApplicationStatus(null);
           setIsCheckingApplications(false);
           return;
         }
 
-        // User has at least one past application
-        setHasPastApplication(data && data.length > 0);
+        setHasPastApplication(Boolean(data && data.length > 0));
+
+        if (periodData && data?.length) {
+          const currentApplication = data.find(
+            (app) => app.applicationPeriodId === periodData.id
+          );
+          if (currentApplication) {
+            setHasCurrentApplication(true);
+            setCurrentApplicationStatus(currentApplication.status);
+          } else {
+            setHasCurrentApplication(false);
+            setCurrentApplicationStatus(null);
+          }
+        } else {
+          setHasCurrentApplication(false);
+          setCurrentApplicationStatus(null);
+        }
       } catch (error) {
         console.error("Unexpected error checking applications:", error);
         // Fail gracefully - assume no past applications
         setHasPastApplication(false);
+        setHasCurrentApplication(false);
+        setCurrentApplicationStatus(null);
+        setHasOpenPeriod(true);
       } finally {
         setIsCheckingApplications(false);
       }
@@ -59,6 +100,8 @@ export default function ApplicationPage() {
 
     void checkUserApplications();
   }, [user]);
+
+  const disableAll = hasCurrentApplication || !hasOpenPeriod || !user;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,38 +125,69 @@ export default function ApplicationPage() {
               </p>
             </div>
 
+            {!hasOpenPeriod && !isCheckingApplications && (
+              <div className="mb-6 flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">No active application period.</p>
+                  <p>
+                    Please wait for the next application cycle or watch for
+                    announcements.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {hasCurrentApplication && !isCheckingApplications && (
+              <div className="mb-6 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">
+                    You already submitted for this period.
+                  </p>
+                  <p>
+                    Current status:{" "}
+                    <span className="font-semibold">
+                      {currentApplicationStatus || "PENDING"}
+                    </span>
+                    . Please monitor your history page for updates.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {isCheckingApplications ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {!hasPastApplication ? (
+                {!hasPastApplication && !disableAll ? (
                   <Link href="/application/new" className="block h-full">
                     <Card className="flex h-full cursor-pointer flex-col transition-all hover:shadow-lg hover:scale-105">
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-                          <FileText className="w-5 h-5 text-orange-500" />
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                            <FileText className="w-5 h-5 text-orange-500" />
+                          </div>
+                          New Application
+                        </CardTitle>
+                        <CardDescription>
+                          First-time scholarship applicant
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex flex-1 flex-col justify-between">
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          Apply for a scholarship for the first time. You will
+                          need to complete your personal information and upload
+                          required documents.
+                        </p>
+                        <div className="mt-4 text-sm font-medium text-orange-500">
+                          4 steps • ~12 minutes
                         </div>
-                        New Application
-                      </CardTitle>
-                      <CardDescription>
-                        First-time scholarship applicant
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 flex-col justify-between">
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        Apply for a scholarship for the first time. You will
-                        need to complete your personal information and upload
-                        required documents.
-                      </p>
-                      <div className="mt-4 text-sm font-medium text-orange-500">
-                        4 steps • ~12 minutes
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ) : (
                   <div className="block h-full cursor-not-allowed">
                     <Card className="flex h-full flex-col opacity-60 bg-gray-50 relative overflow-hidden">
@@ -136,15 +210,19 @@ export default function ApplicationPage() {
                         <div>
                           <p className="text-sm text-gray-500 leading-relaxed mb-3">
                             Apply for a scholarship for the first time. You will
-                            need to complete your personal information and upload
-                            required documents.
+                            need to complete your personal information and
+                            upload required documents.
                           </p>
                           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
                             <p className="text-xs text-yellow-800 font-medium">
                               New Application Not Available
                             </p>
                             <p className="text-xs text-yellow-700 mt-1">
-                              You already have an existing application. Please use Renewal Application.
+                              {disableAll
+                                ? hasCurrentApplication
+                                  ? "You already submitted for the current period. Please wait for the review of your existing application."
+                                  : "Applications are currently closed until the next period opens."
+                                : "You already have an application on record. Please submit a Renewal Application instead."}
                             </p>
                           </div>
                         </div>
@@ -156,7 +234,7 @@ export default function ApplicationPage() {
                   </div>
                 )}
 
-                {hasPastApplication ? (
+                {hasPastApplication && !disableAll ? (
                   <Link href="/application/renewal" className="block h-full">
                     <Card className="flex h-full cursor-pointer flex-col transition-all hover:shadow-lg hover:scale-105">
                       <CardHeader>
@@ -172,9 +250,9 @@ export default function ApplicationPage() {
                       </CardHeader>
                       <CardContent className="flex flex-1 flex-col justify-between">
                         <p className="text-sm text-gray-600 leading-relaxed">
-                          Renew your scholarship. Your personal information will be
-                          auto-filled from your previous application so you can focus on
-                          uploading updated documents.
+                          Renew your scholarship. Your personal information will
+                          be auto-filled from your previous application so you
+                          can focus on uploading updated documents.
                         </p>
                         <div className="mt-4 text-sm font-medium text-orange-500">
                           2 steps • ~5 minutes
@@ -197,28 +275,32 @@ export default function ApplicationPage() {
                           Renewal Application
                         </CardTitle>
                         <CardDescription className="text-gray-400">
-                            Renew your scholarship
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-1 flex-col justify-between">
-                          <div>
-                            <p className="text-sm text-gray-500 leading-relaxed mb-3">
-                              Renew your scholarship. Your personal information will be
-                              auto-filled from your previous application so you only need
-                              to upload updated documents.
+                          Renew your scholarship
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex flex-1 flex-col justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500 leading-relaxed mb-3">
+                            Renew your scholarship. Your personal information
+                            will be auto-filled from your previous application
+                            so you only need to upload updated documents.
+                          </p>
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                            <p className="text-xs text-yellow-800 font-medium">
+                              Renewal Not Available
                             </p>
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
-                              <p className="text-xs text-yellow-800 font-medium">
-                                Renewal Not Available
-                              </p>
-                              <p className="text-xs text-yellow-700 mt-1">
-                                You need to submit a new application first.
-                              </p>
-                            </div>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              {disableAll
+                                ? hasCurrentApplication
+                                  ? "A submission for this period already exists. You can only have one active application."
+                                  : "Applications are closed until the next period."
+                                : "You need to submit a new application first."}
+                            </p>
                           </div>
-                          <div className="mt-4 text-sm font-medium text-gray-400">
-                            2 steps • ~5 minutes
-                          </div>
+                        </div>
+                        <div className="mt-4 text-sm font-medium text-gray-400">
+                          2 steps • ~5 minutes
+                        </div>
                       </CardContent>
                     </Card>
                   </div>

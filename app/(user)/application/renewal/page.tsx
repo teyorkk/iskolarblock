@@ -2,8 +2,15 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowRight, ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { UserSidebar } from "@/components/user-sidebar";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -52,6 +59,9 @@ export default function RenewalApplicationPage() {
   const [submittedApplicationId, setSubmittedApplicationId] = useState<
     string | null
   >(null);
+  const [isPageLocked, setIsPageLocked] = useState(false);
+  const [lockReason, setLockReason] = useState<string | null>(null);
+  const [lockStatus, setLockStatus] = useState<string | null>(null);
 
   // Track OCR data and images for submission
   const [idOcrText, setIdOcrText] = useState<string>("");
@@ -103,48 +113,78 @@ export default function RenewalApplicationPage() {
     async function checkRenewalEligibility() {
       if (!user) {
         setIsCheckingEligibility(false);
+        setIsPageLocked(true);
+        setLockReason("Please sign in to continue.");
         return;
       }
 
       try {
         const supabase = getSupabaseBrowserClient();
+        const { data: periodData, error: periodError } = await supabase
+          .from("ApplicationPeriod")
+          .select("id")
+          .eq("isOpen", true)
+          .order("createdAt", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (periodError) {
+          throw periodError;
+        }
+
+        if (!periodData) {
+          setIsPageLocked(true);
+          setLockReason("No application period is currently open.");
+          setLockStatus(null);
+          setIsCheckingEligibility(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from("Application")
-          .select("id, status")
-          .eq("userId", user.id)
-          .limit(1);
+          .select("id, status, applicationPeriodId")
+          .eq("userId", user.id);
 
         if (error) {
-          console.error("Error checking renewal eligibility:", error);
-          console.error("Error details:", JSON.stringify(error, null, 2));
-
-          // Fail gracefully - redirect to application page
-          toast.warning(
-            "Unable to verify eligibility. Redirecting to application selection.",
-            { duration: 5000 }
-          );
-          router.push("/application");
-          return;
+          throw error;
         }
 
-        // User must have at least one past application
         if (!data || data.length === 0) {
-          toast.error(
-            "You need an approved scholarship before applying for renewal",
-            { duration: 6000 }
+          setIsPageLocked(true);
+          setLockReason(
+            "You need to have a previous application before you can submit a renewal."
           );
-          router.push("/application");
+          setLockStatus(null);
+          setIsCheckingEligibility(false);
           return;
         }
 
+        const currentApplication = data.find(
+          (app) => app.applicationPeriodId === periodData.id
+        );
+
+        if (currentApplication) {
+          setIsPageLocked(true);
+          setLockReason(
+            "You already submitted an application for the current period. Renewals are limited to one submission."
+          );
+          setLockStatus(currentApplication.status);
+          setIsCheckingEligibility(false);
+          return;
+        }
+
+        setIsPageLocked(false);
+        setLockReason(null);
+        setLockStatus(null);
         setIsCheckingEligibility(false);
       } catch (error) {
         console.error("Unexpected error checking renewal eligibility:", error);
-        toast.warning(
-          "An error occurred while checking eligibility. Redirecting to application selection.",
-          { duration: 5000 }
+        setIsPageLocked(true);
+        setLockReason(
+          "We couldn't verify your eligibility right now. Please try again later."
         );
-        router.push("/application");
+        setLockStatus(null);
+        setIsCheckingEligibility(false);
       }
     }
 
@@ -384,6 +424,49 @@ export default function RenewalApplicationPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
               <p className="text-gray-600">Verifying renewal eligibility...</p>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isPageLocked) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <UserSidebar />
+        <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
+          <div className="p-4 md:p-6 max-w-3xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-500" />
+                  Renewal Unavailable
+                </CardTitle>
+                <CardDescription>
+                  {lockReason ||
+                    "Renewal submissions are unavailable at the moment."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {lockStatus && (
+                  <p className="text-sm text-gray-600">
+                    Current application status:{" "}
+                    <span className="font-semibold">{lockStatus}</span>
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => router.push("/history")}>
+                    View Application History
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push("/application")}
+                  >
+                    Back to Application Options
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

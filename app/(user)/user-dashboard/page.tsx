@@ -148,7 +148,7 @@ export default function UserDashboard() {
   };
 
   const quickActions = [
-    { label: "New Application", icon: FileText, href: "/application" },
+    { label: "Application", icon: FileText, href: "/application" },
     { label: "View History", icon: History, href: "/history" },
     { label: "Update Profile", icon: Users, href: "/user-settings" },
   ];
