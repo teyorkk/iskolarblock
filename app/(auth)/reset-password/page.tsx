@@ -1,25 +1,34 @@
-'use client'
+"use client";
 
-import { motion } from "framer-motion"
-import { useState } from "react"
-import Link from "next/link"
-import NextImage from "next/image"
-import { Eye, EyeOff, ArrowLeft, Lock, CheckCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { PasswordStrength } from "@/components/ui/password-strength"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { resetPasswordSchema, type ResetPasswordFormData } from "@/lib/validations"
-import { toast } from "sonner"
+import { motion } from "framer-motion";
+import { useState } from "react";
+import Link from "next/link";
+import NextImage from "next/image";
+import { Eye, EyeOff, ArrowLeft, Lock, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { PasswordStrength } from "@/components/ui/password-strength";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  resetPasswordSchema,
+  type ResetPasswordFormData,
+} from "@/lib/validations";
+import { toast } from "sonner";
 
 export default function ResetPasswordPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const {
     register,
@@ -28,37 +37,37 @@ export default function ResetPasswordPage() {
     watch,
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
-  })
+  });
 
-  const password = watch('password', '')
+  const password = watch("password", "");
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     try {
-      setIsLoading(true)
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: data.password })
-      })
-      const json = await res.json()
+      setIsLoading(true);
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: data.password }),
+      });
+      const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error || 'Reset failed')
-        setIsLoading(false)
-        return
+        toast.error(json.error || "Reset failed");
+        setIsLoading(false);
+        return;
       }
-      setIsSuccess(true)
-      toast.success('Password reset successful!')
+      setIsSuccess(true);
+      toast.success("Password reset successful!");
     } catch (e) {
       const error = e as Error;
-      toast.error(error.message || 'Unexpected error')
+      toast.error(error.message || "Unexpected error");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isSuccess) {
     return (
-  <div className="min-h-screen bg-linear-to-br from-orange-50 to-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-orange-50 to-white flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -79,7 +88,7 @@ export default function ResetPasswordPage() {
                 Your password has been successfully reset
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="text-center space-y-4">
               <motion.div
                 initial={{ scale: 0 }}
@@ -94,7 +103,8 @@ export default function ResetPasswordPage() {
 
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">
-                  You can now use your new password to sign in to your ScholarBlock account.
+                  You can now use your new password to sign in to your
+                  IskolarBlock account.
                 </p>
               </div>
 
@@ -119,11 +129,11 @@ export default function ResetPasswordPage() {
           </div>
         </motion.div>
       </div>
-    )
+    );
   }
 
   return (
-  <div className="min-h-screen bg-linear-to-br from-orange-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-orange-50 to-white flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -135,8 +145,8 @@ export default function ResetPasswordPage() {
             <div className="flex justify-center mb-4">
               <div className="relative w-12 h-12 rounded-xl overflow-hidden">
                 <NextImage
-                  src="/scholarblock.svg"
-                  alt="ScholarBlock Logo"
+                  src="/iskolarblock.svg"
+                  alt="IskolarBlock Logo"
                   fill
                   className="object-contain"
                   priority
@@ -147,10 +157,10 @@ export default function ResetPasswordPage() {
               Reset Password
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Create a new password for your ScholarBlock account
+              Create a new password for your IskolarBlock account
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
@@ -164,9 +174,11 @@ export default function ResetPasswordPage() {
                     {...register("password", {
                       onChange: () => {
                         // This ensures watch("password") updates in real-time
-                      }
+                      },
                     })}
-                    className={`pl-10 pr-10 ${errors.password ? "border-red-500" : ""}`}
+                    className={`pl-10 pr-10 ${
+                      errors.password ? "border-red-500" : ""
+                    }`}
                   />
                   <Button
                     type="button"
@@ -183,7 +195,9 @@ export default function ResetPasswordPage() {
                   </Button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-500">{errors.password.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.password.message}
+                  </p>
                 )}
                 <PasswordStrength password={password} />
               </div>
@@ -197,7 +211,9 @@ export default function ResetPasswordPage() {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm new password"
                     {...register("confirmPassword")}
-                    className={`pl-10 pr-10 ${errors.confirmPassword ? "border-red-500" : ""}`}
+                    className={`pl-10 pr-10 ${
+                      errors.confirmPassword ? "border-red-500" : ""
+                    }`}
                   />
                   <Button
                     type="button"
@@ -214,11 +230,12 @@ export default function ResetPasswordPage() {
                   </Button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.confirmPassword.message}
+                  </p>
                 )}
               </div>
 
-            
               <Button
                 type="submit"
                 className="w-full bg-orange-500 hover:bg-orange-600"
@@ -227,7 +244,11 @@ export default function ResetPasswordPage() {
                 {isLoading ? (
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
                     className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                   />
                 ) : (
@@ -258,5 +279,5 @@ export default function ResetPasswordPage() {
         </div>
       </motion.div>
     </div>
-  )
+  );
 }

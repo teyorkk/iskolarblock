@@ -98,7 +98,7 @@ export interface FileUploadZoneProps {
 
 export interface ApplicationSuccessProps {
   applicationId?: string;
-  status?: "PENDING" | "APPROVED";
+  status?: ApplicationStatus;
 }
 
 // User management component props

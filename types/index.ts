@@ -1,7 +1,7 @@
 // Core entity types
 export type UserRole = "ADMIN" | "USER";
 
-export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED" | "GRANTED";
 
 export interface User {
   id: string;

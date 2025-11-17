@@ -50,6 +50,16 @@ function createApplicationHash(
   return keccak256(toUtf8Bytes(data));
 }
 
+function createAwardingHash(
+  awardingId: string,
+  applicationId: string,
+  amount: number,
+  timestamp: string
+): string {
+  const data = `${awardingId}-${applicationId}-${amount}-${timestamp}`;
+  return keccak256(toUtf8Bytes(data));
+}
+
 /**
  * Log application to blockchain
  * @param applicationId - The application ID
@@ -95,6 +105,39 @@ export async function logApplicationToBlockchain(
   } catch (error) {
     console.error("Error logging application to blockchain:", error);
     // Return null instead of throwing to allow application submission to continue
+    return null;
+  }
+}
+
+export async function logAwardingToBlockchain(
+  awardingId: string,
+  applicationId: string,
+  amount: number
+): Promise<string | null> {
+  try {
+    const wallet = getBlockchainWallet();
+    const timestamp = new Date().toISOString();
+    const awardingHash = createAwardingHash(
+      awardingId,
+      applicationId,
+      amount,
+      timestamp
+    );
+
+    const tx = await wallet.sendTransaction({
+      to: BURN_ADDRESS,
+      data: awardingHash,
+      gasLimit: 25000,
+    });
+
+    const receipt = await tx.wait();
+    if (!receipt) {
+      throw new Error("Awarding transaction receipt is null");
+    }
+
+    return receipt.hash;
+  } catch (error) {
+    console.error("Error logging awarding to blockchain:", error);
     return null;
   }
 }

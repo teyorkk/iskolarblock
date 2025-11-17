@@ -197,6 +197,8 @@ export default function ScreeningPage() {
     switch (status) {
       case "APPROVED":
         return "bg-green-100 text-green-700";
+      case "GRANTED":
+        return "bg-purple-100 text-purple-700";
       case "REJECTED":
         return "bg-red-100 text-red-700";
       default:
@@ -217,6 +219,7 @@ export default function ScreeningPage() {
       total: applications.length,
       pending: applications.filter((app) => app.status === "PENDING").length,
       approved: applications.filter((app) => app.status === "APPROVED").length,
+      granted: applications.filter((app) => app.status === "GRANTED").length,
       rejected: applications.filter((app) => app.status === "REJECTED").length,
     };
   }, [applications]);
@@ -250,6 +253,7 @@ export default function ScreeningPage() {
     { label: "All", value: "ALL" as const, count: stats.total },
     { label: "Pending", value: "PENDING" as const, count: stats.pending },
     { label: "Approved", value: "APPROVED" as const, count: stats.approved },
+    { label: "Granted", value: "GRANTED" as const, count: stats.granted },
     { label: "Rejected", value: "REJECTED" as const, count: stats.rejected },
   ];
 

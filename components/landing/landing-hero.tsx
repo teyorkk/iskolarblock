@@ -49,8 +49,8 @@ export function LandingHero({}: LandingHeroProps): React.JSX.Element {
           <div className="flex justify-center items-center gap-4 mb-6">
             <div className="relative w-20 h-20 rounded-2xl overflow-hidden">
               <NextImage
-                src="/scholarblock.svg"
-                alt="ScholarBlock Logo"
+                src="/iskolarblock.svg"
+                alt="IskolarBlock Logo"
                 fill
                 className="object-contain"
                 priority
@@ -72,7 +72,7 @@ export function LandingHero({}: LandingHeroProps): React.JSX.Element {
           </div>
 
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            ScholarBlock
+            IskolarBlock
             <span className="block text-lg md:text-2xl font-normal text-gray-600 mt-2">
               Empowering Scholars Through Blockchain Transparency
             </span>
@@ -94,11 +94,7 @@ export function LandingHero({}: LandingHeroProps): React.JSX.Element {
               </Button>
             </Link>
             <Link href="/login">
-              <Button
-                variant="outline"
-                size="lg"
-                className="text-lg px-8 py-6"
-              >
+              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
                 Login to Dashboard
               </Button>
             </Link>
@@ -108,4 +104,3 @@ export function LandingHero({}: LandingHeroProps): React.JSX.Element {
     </section>
   );
 }
-

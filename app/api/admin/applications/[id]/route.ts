@@ -87,7 +87,11 @@ export async function GET(request: Request, context: RouteContext) {
           address
         ),
         CertificateOfGrades (*),
-        CertificateOfRegistration (*)
+        CertificateOfRegistration (*),
+        BlockchainRecord:BlockchainRecord_applicationId_fkey (
+          id,
+          transactionHash
+        )
       `
       )
       .eq("id", id)

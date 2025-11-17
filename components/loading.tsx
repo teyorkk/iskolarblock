@@ -21,8 +21,8 @@ export function Loading() {
         >
           <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-lg">
             <NextImage
-              src="/scholarblock.svg"
-              alt="ScholarBlock Logo"
+              src="/iskolarblock.svg"
+              alt="IskolarBlock Logo"
               fill
               className="object-contain"
               priority
@@ -39,7 +39,7 @@ export function Loading() {
           transition={{ delay: 0.2 }}
           className="text-gray-600 text-2xl font-medium"
         >
-          Loading ScholarBlock Please wait...
+          Loading IskolarBlock Please wait...
         </motion.p>
       </div>
     </div>

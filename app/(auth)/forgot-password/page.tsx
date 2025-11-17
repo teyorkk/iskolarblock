@@ -196,8 +196,8 @@ export default function ForgotPasswordPage() {
             <div className="flex justify-center mb-4">
               <div className="relative w-12 h-12 rounded-xl overflow-hidden">
                 <NextImage
-                  src="/scholarblock.svg"
-                  alt="ScholarBlock Logo"
+                  src="/iskolarblock.svg"
+                  alt="IskolarBlock Logo"
                   fill
                   className="object-contain"
                   priority

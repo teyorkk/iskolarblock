@@ -123,8 +123,8 @@ export function AdminSidebarMobile({
             <div className="flex items-center space-x-2">
               <div className="relative w-6 h-6 rounded overflow-hidden">
                 <NextImage
-                  src="/scholarblock.svg"
-                  alt="ScholarBlock Logo"
+                  src="/iskolarblock.svg"
+                  alt="IskolarBlock Logo"
                   fill
                   className="object-contain"
                   quality={90}
@@ -132,7 +132,7 @@ export function AdminSidebarMobile({
                   priority
                 />
               </div>
-              <span className="font-bold text-lg">ScholarBlock</span>
+              <span className="font-bold text-lg">IskolarBlock</span>
               <Badge
                 variant="secondary"
                 className="bg-red-100 text-red-700 text-xs"
@@ -190,8 +190,8 @@ export function AdminSidebarMobile({
           <div className="flex items-center space-x-2">
             <div className="relative w-5 h-5 rounded overflow-hidden">
               <NextImage
-                src="/scholarblock.svg"
-                alt="ScholarBlock Logo"
+                src="/iskolarblock.svg"
+                alt="IskolarBlock Logo"
                 fill
                 className="object-contain"
                 quality={90}
@@ -199,7 +199,7 @@ export function AdminSidebarMobile({
                 priority
               />
             </div>
-            <span className="font-bold">ScholarBlock</span>
+            <span className="font-bold">IskolarBlock</span>
           </div>
           <div className="w-8 h-8"></div>
         </div>
@@ -207,4 +207,3 @@ export function AdminSidebarMobile({
     </>
   );
 }
-

@@ -24,8 +24,8 @@ export default function NotFound() {
         >
           <div className="relative w-24 h-24 rounded-2xl overflow-hidden shadow-lg">
             <NextImage
-              src="/scholarblock.svg"
-              alt="ScholarBlock Logo"
+              src="/iskolarblock.svg"
+              alt="IskolarBlock Logo"
               fill
               className="object-contain"
               priority
@@ -71,7 +71,10 @@ export default function NotFound() {
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
           <Link href="/">
-            <Button size="lg" className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto">
+            <Button
+              size="lg"
+              className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
+            >
               <Home className="w-4 h-4 mr-2" />
               Go Home
             </Button>
@@ -90,4 +93,3 @@ export default function NotFound() {
     </div>
   );
 }
-

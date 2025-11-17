@@ -1,4 +1,4 @@
-import { Clock, CheckCircle, XCircle } from "lucide-react";
+import { Clock, CheckCircle, XCircle, Award } from "lucide-react";
 import type { ApplicationStatus } from "@/types";
 
 export interface StatusBadgeConfig {
@@ -12,6 +12,7 @@ export function getStatusBadgeConfig(
   const statusConfig: Record<string, StatusBadgeConfig> = {
     PENDING: { color: "bg-orange-100 text-orange-700", icon: Clock },
     APPROVED: { color: "bg-green-100 text-green-700", icon: CheckCircle },
+    GRANTED: { color: "bg-purple-100 text-purple-700", icon: Award },
     REJECTED: { color: "bg-red-100 text-red-700", icon: XCircle },
   };
 

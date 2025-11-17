@@ -12,8 +12,8 @@ export function LandingFooter({}: LandingFooterProps): React.JSX.Element {
             <div className="flex items-center space-x-2">
               <div className="relative w-8 h-8 rounded-lg overflow-hidden">
                 <NextImage
-                  src="/scholarblock.svg"
-                  alt="ScholarBlock Logo"
+                  src="/iskolarblock.svg"
+                  alt="IskolarBlock Logo"
                   fill
                   className="object-contain"
                   quality={90}
@@ -21,12 +21,12 @@ export function LandingFooter({}: LandingFooterProps): React.JSX.Element {
                   loading="lazy"
                 />
               </div>
-              <span className="font-bold text-lg">ScholarBlock</span>
+              <span className="font-bold text-lg">IskolarBlock</span>
             </div>
           </div>
           <div className="text-center md:text-right">
             <p className="text-gray-400">
-              © 2025 ScholarBlock. Barangay San Miguel, Hagonoy
+              © 2025 IskolarBlock. Barangay San Miguel, Hagonoy
             </p>
             <p className="text-gray-500 text-sm mt-1">
               Empowering scholars through blockchain transparency
@@ -37,4 +37,3 @@ export function LandingFooter({}: LandingFooterProps): React.JSX.Element {
     </footer>
   );
 }
-

@@ -15,10 +15,10 @@ export function LandingAbout({}: LandingAboutProps): React.JSX.Element {
           className="max-w-4xl mx-auto text-center"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-            About ScholarBlock
+            About IskolarBlock
           </h2>
           <p className="text-lg text-gray-600 mb-8">
-            ScholarBlock is dedicated to supporting the educational aspirations
+            IskolarBlock is dedicated to supporting the educational aspirations
             of our youth in Barangay San Miguel. Through transparent and
             efficient scholarship management, we ensure that deserving students
             receive the financial support they need to pursue their dreams.
@@ -40,4 +40,3 @@ export function LandingAbout({}: LandingAboutProps): React.JSX.Element {
     </section>
   );
 }
-

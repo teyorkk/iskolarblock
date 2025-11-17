@@ -14,6 +14,19 @@ import {
 import type { RecentApplicantsProps } from "@/types/components";
 
 export function RecentApplicants({ applicants }: RecentApplicantsProps): React.JSX.Element {
+  const statusClassMap: Record<
+    string,
+    { variant: "default" | "secondary" | "destructive"; className: string }
+  > = {
+    APPROVED: { variant: "default", className: "bg-green-100 text-green-700" },
+    GRANTED: { variant: "default", className: "bg-purple-100 text-purple-700" },
+    PENDING: { variant: "secondary", className: "bg-orange-100 text-orange-700" },
+    REJECTED: { variant: "destructive", className: "bg-red-100 text-red-700" },
+  };
+
+  const getStatusConfig = (status: string) =>
+    statusClassMap[status] ?? { variant: "secondary", className: "bg-gray-100 text-gray-700" };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -57,24 +70,14 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
                   </div>
                 </div>
                 <div className="text-right">
-                  <Badge
-                    variant={
-                      applicant.status === "APPROVED"
-                        ? "default"
-                        : applicant.status === "PENDING"
-                        ? "secondary"
-                        : "destructive"
-                    }
-                    className={
-                      applicant.status === "APPROVED"
-                        ? "bg-green-100 text-green-700"
-                        : applicant.status === "PENDING"
-                        ? "bg-orange-100 text-orange-700"
-                        : "bg-red-100 text-red-700"
-                    }
-                  >
+                  {(() => {
+                    const { variant, className } = getStatusConfig(applicant.status);
+                    return (
+                      <Badge variant={variant} className={className}>
                     {applicant.status}
                   </Badge>
+                    );
+                  })()}
                   <p className="text-xs text-gray-500 mt-1">
                     {applicant.submittedDate}
                   </p>

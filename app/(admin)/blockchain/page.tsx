@@ -37,10 +37,17 @@ import {
   FileText,
   Award,
   Filter,
+  ExternalLink,
 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type RecordTypeFilter = "ALL" | "APPLICATION" | "AWARDING";
+
+const BLOCKCHAIN_EXPLORER_BASE_URL =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_BLOCKCHAIN_EXPLORER_URL
+    ? process.env.NEXT_PUBLIC_BLOCKCHAIN_EXPLORER_URL
+    : "https://www.oklink.com/amoy/tx/";
 
 type SupabaseBlockchainRecord = {
   id: string;
@@ -60,14 +67,22 @@ type SupabaseBlockchainRecord = {
   Awarding?:
     | {
         id: string;
-        title: string | null;
+        name: string | null;
       }
     | Array<{
         id: string;
-        title: string | null;
+        name: string | null;
       }>
     | null;
 };
+
+function buildExplorerUrl(hash?: string | null) {
+  if (!hash) return null;
+  const base = BLOCKCHAIN_EXPLORER_BASE_URL.endsWith("/")
+    ? BLOCKCHAIN_EXPLORER_BASE_URL
+    : `${BLOCKCHAIN_EXPLORER_BASE_URL}/`;
+  return `${base}${hash}`;
+}
 
 export default function BlockchainPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,7 +114,7 @@ export default function BlockchainPage() {
             ),
             Awarding (
               id,
-              title
+              name
             )
           `
           )
@@ -136,7 +151,7 @@ export default function BlockchainPage() {
       const awarding = Array.isArray(record.Awarding)
         ? record.Awarding[0]
         : record.Awarding;
-      return awarding?.title ?? "Awarding Record";
+      return awarding?.name ?? "Awarding Record";
     }
 
     const application = Array.isArray(record.Application)
@@ -210,6 +225,13 @@ export default function BlockchainPage() {
   const formatRecordType = (type: SupabaseBlockchainRecord["recordType"]) =>
     type === "APPLICATION" ? "Application" : "Awarding";
 
+  const getRecordBadgeClasses = (
+    type: SupabaseBlockchainRecord["recordType"]
+  ) =>
+    type === "APPLICATION"
+      ? "bg-blue-50 text-blue-700 border border-blue-200"
+      : "bg-purple-50 text-purple-700 border border-purple-200";
+
   const formatDate = (timestamp: string) =>
     new Date(timestamp).toLocaleString("en-US", {
       year: "numeric",
@@ -247,7 +269,7 @@ export default function BlockchainPage() {
             {/* Search & Filters */}
             <Card className="mb-6">
               <CardContent className="p-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
@@ -258,9 +280,9 @@ export default function BlockchainPage() {
                     />
                   </div>
 
-                  <div className="w-full md:w-auto">
+                  <div className="w-full lg:w-auto">
                     <div className="flex items-center gap-2">
-                      <Filter className="w-4 h-4 text-gray-500" />
+                      <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
                       <div className="flex flex-wrap gap-2">
                         {filterOptions.map((option) => (
                           <Button
@@ -278,7 +300,17 @@ export default function BlockchainPage() {
                             }
                             onClick={() => setTypeFilter(option.value)}
                           >
-                            {option.label} ({option.count})
+                            <span className="hidden sm:inline">
+                              {option.label}
+                            </span>
+                            <span className="sm:hidden">
+                              {option.value === "ALL"
+                                ? "All"
+                                : option.value === "APPLICATION"
+                                ? "App"
+                                : "Award"}
+                            </span>
+                            <span className="ml-1">({option.count})</span>
                           </Button>
                         ))}
                       </div>
@@ -289,7 +321,7 @@ export default function BlockchainPage() {
             </Card>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -389,18 +421,32 @@ export default function BlockchainPage() {
                           return (
                             <TableRow key={record.id}>
                               <TableCell>
-                                <div className="flex items-center space-x-2">
-                                  <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                    {record.transactionHash.slice(0, 10)}...
-                                    {record.transactionHash.slice(-8)}
-                                  </code>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                  <a
+                                    href={
+                                      buildExplorerUrl(
+                                        record.transactionHash
+                                      ) ?? "#"
+                                    }
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 font-mono text-xs text-orange-700 hover:text-orange-800 min-w-0 flex-1"
+                                    title={record.transactionHash}
+                                  >
+                                    <span className="truncate">
+                                      {record.transactionHash.slice(0, 10)}...
+                                      {record.transactionHash.slice(-8)}
+                                    </span>
+                                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                  </a>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6"
+                                    className="h-6 w-6 flex-shrink-0"
                                     onClick={() =>
                                       copyToClipboard(record.transactionHash)
                                     }
+                                    title="Copy transaction hash"
                                   >
                                     <Copy className="w-3 h-3" />
                                   </Button>
@@ -411,12 +457,10 @@ export default function BlockchainPage() {
                               </TableCell>
                               <TableCell>
                                 <Badge
-                                  variant="default"
-                                  className={
-                                    record.recordType === "APPLICATION"
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-purple-100 text-purple-700"
-                                  }
+                                  variant="outline"
+                                  className={getRecordBadgeClasses(
+                                    record.recordType
+                                  )}
                                 >
                                   {formatRecordType(record.recordType)}
                                 </Badge>
@@ -435,7 +479,7 @@ export default function BlockchainPage() {
                                       <Eye className="w-4 h-4" />
                                     </Button>
                                   </DialogTrigger>
-                                  <DialogContent className="max-w-md">
+                                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                                     <DialogHeader>
                                       <DialogTitle>
                                         Transaction Details
@@ -446,45 +490,102 @@ export default function BlockchainPage() {
                                       </DialogDescription>
                                     </DialogHeader>
                                     {selectedRecord?.id === record.id && (
-                                      <div className="space-y-4">
-                                        <div>
-                                          <p className="text-sm text-gray-600">
+                                      <div className="space-y-5">
+                                        <div className="space-y-2">
+                                          <p className="text-xs uppercase tracking-wide text-gray-500">
                                             Transaction Hash
                                           </p>
-                                          <div className="flex items-center space-x-2 mt-1">
-                                            <code className="text-xs bg-gray-100 p-2 rounded break-all flex-1">
-                                              {selectedRecord.transactionHash}
-                                            </code>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() =>
-                                                copyToClipboard(
-                                                  selectedRecord.transactionHash
-                                                )
-                                              }
-                                            >
-                                              <Copy className="w-4 h-4" />
-                                            </Button>
+                                          <div className="flex flex-col gap-2">
+                                            <div className="flex-1 min-w-0">
+                                              {buildExplorerUrl(
+                                                selectedRecord.transactionHash
+                                              ) ? (
+                                                <a
+                                                  href={
+                                                    buildExplorerUrl(
+                                                      selectedRecord.transactionHash
+                                                    ) ?? "#"
+                                                  }
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="block w-full text-sm font-mono rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-orange-700 hover:text-orange-800 break-all"
+                                                  title={
+                                                    selectedRecord.transactionHash
+                                                  }
+                                                >
+                                                  {
+                                                    selectedRecord.transactionHash
+                                                  }
+                                                </a>
+                                              ) : (
+                                                <code className="block w-full text-sm font-mono rounded-md border border-gray-200 bg-gray-50 px-3 py-2 break-all">
+                                                  {
+                                                    selectedRecord.transactionHash
+                                                  }
+                                                </code>
+                                              )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1"
+                                                onClick={() =>
+                                                  copyToClipboard(
+                                                    selectedRecord.transactionHash
+                                                  )
+                                                }
+                                                title="Copy transaction hash"
+                                              >
+                                                <Copy className="w-4 h-4 mr-2" />
+                                                Copy
+                                              </Button>
+                                              {buildExplorerUrl(
+                                                selectedRecord.transactionHash
+                                              ) && (
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className="flex-1"
+                                                  asChild
+                                                  title="Open in blockchain explorer"
+                                                >
+                                                  <a
+                                                    href={
+                                                      buildExplorerUrl(
+                                                        selectedRecord.transactionHash
+                                                      ) ?? "#"
+                                                    }
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                  >
+                                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                                    View
+                                                  </a>
+                                                </Button>
+                                              )}
+                                            </div>
                                           </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                            <p className="text-sm text-gray-600">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                          <div className="rounded-lg border border-gray-200 p-3">
+                                            <p className="text-xs uppercase tracking-wide text-gray-500">
                                               Name
                                             </p>
-                                            <p className="font-medium">
+                                            <p className="font-medium text-gray-900 break-words">
                                               {getApplicantName(selectedRecord)}
                                             </p>
                                           </div>
-                                          <div>
-                                            <p className="text-sm text-gray-600">
+                                          <div className="rounded-lg border border-gray-200 p-3">
+                                            <p className="text-xs uppercase tracking-wide text-gray-500">
                                               Type
                                             </p>
                                             <Badge
-                                              variant="default"
-                                              className="bg-gray-100 text-gray-800"
+                                              variant="outline"
+                                              className={getRecordBadgeClasses(
+                                                selectedRecord.recordType
+                                              )}
                                             >
                                               {formatRecordType(
                                                 selectedRecord.recordType
@@ -493,9 +594,9 @@ export default function BlockchainPage() {
                                           </div>
                                         </div>
 
-                                        <div className="space-y-1">
-                                          <p className="text-sm text-gray-600">
-                                            Date
+                                        <div className="rounded-lg border border-gray-200 p-3">
+                                          <p className="text-xs uppercase tracking-wide text-gray-500">
+                                            Date Recorded
                                           </p>
                                           <p className="font-medium">
                                             {formatDate(

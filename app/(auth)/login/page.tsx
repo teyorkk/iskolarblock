@@ -155,8 +155,8 @@ export default function LoginPage() {
             <div className="flex justify-center mb-4">
               <div className="relative w-12 h-12 rounded-xl overflow-hidden">
                 <NextImage
-                  src="/scholarblock.svg"
-                  alt="ScholarBlock Logo"
+                  src="/iskolarblock.svg"
+                  alt="IskolarBlock Logo"
                   fill
                   className="object-contain"
                   priority
@@ -169,7 +169,7 @@ export default function LoginPage() {
               Welcome Back
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Sign in to your ScholarBlock account
+              Sign in to your IskolarBlock account
             </CardDescription>
           </CardHeader>
 
@@ -294,7 +294,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="px-2 bg-white text-gray-500">
-                    New to ScholarBlock?
+                    New to IskolarBlock?
                   </span>
                 </div>
               </div>

@@ -9,7 +9,7 @@ type MinimalDatabase = {
           id: string;
           userId: string;
           applicationPeriodId: string | null;
-          status: "PENDING" | "APPROVED" | "REJECTED";
+          status: "PENDING" | "APPROVED" | "REJECTED" | "GRANTED";
           updatedAt: string;
         };
         Insert: Partial<

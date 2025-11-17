@@ -1,4 +1,4 @@
-import { Users, Coins, TrendingUp, FileText } from "lucide-react";
+import { Users, Coins, TrendingUp, FileText, Award } from "lucide-react";
 import type { StatsCard } from "@/types";
 
 export const adminStatsCards: StatsCard[] = [
@@ -64,6 +64,14 @@ export const userStatsCards: StatsCard[] = [
     icon: Users,
     color: "bg-green-500",
     trend: "+1 this month",
+  },
+  {
+    title: "Granted",
+    value: "0",
+    description: "Scholarships released",
+    icon: Award,
+    color: "bg-purple-500",
+    trend: "New payouts",
   },
 ];
 

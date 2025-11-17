@@ -9,6 +9,7 @@ interface FilterTabsProps {
     all: number;
     pending: number;
     approved: number;
+    granted: number;
     rejected: number;
   };
 }
@@ -43,6 +44,13 @@ export function FilterTabs({
             onClick={() => onFilterChange("APPROVED")}
           >
             Approved ({counts.approved})
+          </Button>
+          <Button
+            variant={filter === "GRANTED" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onFilterChange("GRANTED")}
+          >
+            Granted ({counts.granted})
           </Button>
           <Button
             variant={filter === "REJECTED" ? "default" : "outline"}

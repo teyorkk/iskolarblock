@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
     // Minimum quality for optimized images (1-100, default is 75)
     minimumCacheTTL: 60, // Cache optimized images for 60 seconds
     // Enable image optimization
-    dangerouslyAllowSVG: true, // Allow SVG optimization (for scholarblock.svg)
+    dangerouslyAllowSVG: true, // Allow SVG optimization (for iskolarblock.svg)
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Content Disposition for SVGs
     contentDispositionType: "attachment",

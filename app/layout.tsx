@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ScholarBlock - Blockchain Scholar Management",
-  description: "Empowering Scholars Through Blockchain Transparency",
+  title: "IskolarBlock - Blockchain Scholar Management",
+  description: "Empowering Isko at Iska Through Blockchain Transparency",
 };
 
 export default function RootLayout({

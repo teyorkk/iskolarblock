@@ -24,8 +24,8 @@ export function LandingNavigation({
             <div className="flex items-center space-x-2">
               <div className="relative w-8 h-8 rounded-lg overflow-hidden">
                 <NextImage
-                  src="/scholarblock.svg"
-                  alt="ScholarBlock Logo"
+                  src="/iskolarblock.svg"
+                  alt="IskolarBlock Logo"
                   fill
                   className="object-contain"
                   priority
@@ -34,7 +34,7 @@ export function LandingNavigation({
                 />
               </div>
               <span className="font-bold text-xl text-gray-900">
-                ScholarBlock
+                IskolarBlock
               </span>
             </div>
           </div>

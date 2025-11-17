@@ -13,8 +13,8 @@ export function AdminSidebarHeader({
         <div className="flex items-center space-x-3">
           <div className="relative w-10 h-10 rounded-lg overflow-hidden">
             <NextImage
-              src="/scholarblock.svg"
-              alt="ScholarBlock Logo"
+              src="/iskolarblock.svg"
+              alt="IskolarBlock Logo"
               fill
               className="object-contain"
               quality={90}
@@ -23,7 +23,7 @@ export function AdminSidebarHeader({
             />
           </div>
           <div className="flex-1">
-            <span className="font-bold text-xl">ScholarBlock</span>
+            <span className="font-bold text-xl">IskolarBlock</span>
             <Badge
               variant="secondary"
               className="ml-2 bg-red-100 text-red-700 text-xs"
@@ -36,8 +36,8 @@ export function AdminSidebarHeader({
       {isCollapsed && (
         <div className="relative w-10 h-10 rounded-lg overflow-hidden mx-auto">
           <NextImage
-            src="/scholarblock.svg"
-            alt="ScholarBlock Logo"
+            src="/iskolarblock.svg"
+            alt="IskolarBlock Logo"
             fill
             className="object-contain"
             quality={90}

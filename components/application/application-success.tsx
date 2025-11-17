@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle, Clock } from "lucide-react";
+import { CheckCircle, Clock, Award, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +11,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ApplicationSuccessProps } from "@/types/components";
+import type { ApplicationStatus } from "@/types";
 
-const statusMeta = {
+const statusMeta: Record<
+  ApplicationStatus,
+  {
+    badgeBg: string;
+    textColor: string;
+    highlight: string;
+    iconWrapper: string;
+    icon: typeof CheckCircle;
+    title: string;
+    description: string;
+  }
+> = {
   APPROVED: {
     badgeBg: "bg-green-50",
     textColor: "text-green-700",
@@ -31,14 +43,41 @@ const statusMeta = {
     title: "Application Submitted!",
     description: "Your application is pending. Please upload remaining documents if needed.",
   },
+  GRANTED: {
+    badgeBg: "bg-purple-50",
+    textColor: "text-purple-700",
+    highlight: "text-purple-600",
+    iconWrapper: "bg-purple-500",
+    icon: Award,
+    title: "Scholarship Granted!",
+    description: "Congratulations! Your stipend has been approved for release.",
+  },
+  REJECTED: {
+    badgeBg: "bg-red-50",
+    textColor: "text-red-700",
+    highlight: "text-red-600",
+    iconWrapper: "bg-red-500",
+    icon: XCircle,
+    title: "Application Rejected",
+    description:
+      "Unfortunately, your application didn’t meet the criteria. Please review and try again.",
+  },
 };
 
 export function ApplicationSuccess({
   applicationId,
   status = "PENDING",
 }: ApplicationSuccessProps): React.JSX.Element {
-  const meta = statusMeta[status];
+  const meta = statusMeta[status] ?? statusMeta.PENDING;
   const IconComponent = meta.icon;
+  const statusLabel =
+    status === "GRANTED"
+      ? "Granted"
+      : status === "APPROVED"
+      ? "Approved"
+      : status === "REJECTED"
+      ? "Rejected"
+      : "Pending";
 
   return (
     <motion.div
@@ -70,7 +109,7 @@ export function ApplicationSuccess({
               {applicationId || `SCH-${Date.now()}`}
               <br />
               <strong>Status:</strong>{" "}
-              {status === "APPROVED" ? "Approved" : "Pending"}
+              {statusLabel}
               <br />
             </p>
           </div>

@@ -48,9 +48,12 @@ interface ApplicationData {
   status: string;
   applicationType: string;
   createdAt: string;
-  applicationDetails?: {
-    personalInfo?: PersonalInfo;
-  } | PersonalInfo | null;
+  applicationDetails?:
+    | {
+        personalInfo?: PersonalInfo;
+      }
+    | PersonalInfo
+    | null;
   User: {
     id: string;
     name: string;
@@ -79,6 +82,30 @@ interface ApplicationData {
     totalUnits: number;
     fileUrl?: string | null;
   }>;
+  BlockchainRecord?:
+    | Array<{
+        id: string;
+        transactionHash: string | null;
+      }>
+    | {
+        id: string;
+        transactionHash: string | null;
+      }
+    | null;
+}
+
+const BLOCKCHAIN_EXPLORER_BASE_URL =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_BLOCKCHAIN_EXPLORER_URL
+    ? process.env.NEXT_PUBLIC_BLOCKCHAIN_EXPLORER_URL
+    : "https://www.oklink.com/amoy/tx/";
+
+function buildBlockchainExplorerUrl(hash?: string | null) {
+  if (!hash) return null;
+  const base = BLOCKCHAIN_EXPLORER_BASE_URL.endsWith("/")
+    ? BLOCKCHAIN_EXPLORER_BASE_URL
+    : `${BLOCKCHAIN_EXPLORER_BASE_URL}/`;
+  return `${base}${hash}`;
 }
 
 export function ApplicationDetailsDialog({
@@ -154,6 +181,8 @@ export function ApplicationDetailsDialog({
     switch (status) {
       case "APPROVED":
         return "bg-green-100 text-green-700";
+      case "GRANTED":
+        return "bg-purple-100 text-purple-700";
       case "REJECTED":
         return "bg-red-100 text-red-700";
       default:
@@ -179,6 +208,15 @@ export function ApplicationDetailsDialog({
   })();
   const cog = application?.CertificateOfGrades?.[0];
   const cor = application?.CertificateOfRegistration?.[0];
+  const blockchainRecord = (() => {
+    const record = application?.BlockchainRecord;
+    if (!record) return null;
+    return Array.isArray(record) ? record[0] ?? null : record;
+  })();
+  const blockchainDisplayHash =
+    blockchainRecord?.transactionHash ?? blockchainRecord?.id ?? "";
+  const isActionDisabled =
+    application?.status === "APPROVED" || application?.status === "GRANTED";
 
   // Helper function to check if value is null/empty
   const hasValue = (value: string | number | null | undefined): boolean => {
@@ -534,41 +572,79 @@ export function ApplicationDetailsDialog({
               </TabsContent>
             </Tabs>
 
+            {blockchainRecord && blockchainDisplayHash && (
+              <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Blockchain Record
+                  </p>
+                  <p className="font-mono text-sm text-gray-900 truncate max-w-[240px]">
+                    {blockchainDisplayHash}
+                  </p>
+                </div>
+                {buildBlockchainExplorerUrl(
+                  blockchainRecord.transactionHash
+                ) ? (
+                  <a
+                    href={
+                      buildBlockchainExplorerUrl(
+                        blockchainRecord.transactionHash
+                      ) ?? "#"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-orange-600 hover:text-orange-700 inline-flex items-center gap-1"
+                  >
+                    View
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : (
+                  <span className="text-sm text-gray-400">
+                    No hash available
+                  </span>
+                )}
+              </div>
+            )}
+
             <Separator className="my-4" />
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2 flex-wrap">
-              {application.status !== "PENDING" && (
-                <Button
-                  variant="outline"
-                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                  onClick={() => handleStatusUpdate("PENDING")}
-                  disabled={isUpdating}
-                >
-                  Move to Pending
-                </Button>
-              )}
-              {application.status !== "APPROVED" && (
-                <Button
-                  variant="outline"
-                  className="text-green-600 border-green-600 hover:bg-green-50"
-                  onClick={() => handleStatusUpdate("APPROVED")}
-                  disabled={isUpdating}
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Approve
-                </Button>
-              )}
-              {application.status !== "REJECTED" && (
-                <Button
-                  variant="outline"
-                  className="text-red-600 border-red-600 hover:bg-red-50"
-                  onClick={() => handleStatusUpdate("REJECTED")}
-                  disabled={isUpdating}
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Reject
-                </Button>
+              {!isActionDisabled && (
+                <>
+                  {application.status !== "PENDING" && (
+                    <Button
+                      variant="outline"
+                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                      onClick={() => handleStatusUpdate("PENDING")}
+                      disabled={isUpdating}
+                    >
+                      Move to Pending
+                    </Button>
+                  )}
+                  {application.status !== "APPROVED" && (
+                    <Button
+                      variant="outline"
+                      className="text-green-600 border-green-600 hover:bg-green-50"
+                      onClick={() => handleStatusUpdate("APPROVED")}
+                      disabled={isUpdating}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Approve
+                    </Button>
+                  )}
+                  {application.status !== "REJECTED" && (
+                    <Button
+                      variant="outline"
+                      className="text-red-600 border-red-600 hover:bg-red-50"
+                      onClick={() => handleStatusUpdate("REJECTED")}
+                      disabled={isUpdating}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Reject
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </div>

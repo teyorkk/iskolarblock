@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useState, useMemo, useEffect } from "react";
 import { UserSidebar } from "@/components/user-sidebar";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, AlertCircle } from "lucide-react";
+import { RefreshCcw, Loader2, AlertCircle } from "lucide-react";
 import { StatsCards } from "../../../components/user-history/StatsCards";
 import { FilterTabs } from "../../../components/user-history/FilterTabs";
 import { ApplicationsTable } from "../../../components/user-history/ApplicationsTable";
@@ -24,6 +24,7 @@ interface Application {
 
 const statusColors = {
   APPROVED: "bg-green-100 text-green-700",
+  GRANTED: "bg-purple-100 text-purple-700",
   PENDING: "bg-orange-100 text-orange-700",
   REJECTED: "bg-red-100 text-red-700",
 };
@@ -74,6 +75,7 @@ export default function HistoryPage() {
     () => ({
       total: applications.length,
       approved: applications.filter((app) => app.status === "APPROVED").length,
+      granted: applications.filter((app) => app.status === "GRANTED").length,
       pending: applications.filter((app) => app.status === "PENDING").length,
       rejected: applications.filter((app) => app.status === "REJECTED").length,
     }),
@@ -113,7 +115,7 @@ export default function HistoryPage() {
                   {loading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
-                    <Download className="w-4 h-4 mr-2" />
+                    <RefreshCcw className="w-4 h-4 mr-2" />
                   )}
                   Refresh
                 </Button>
@@ -171,6 +173,7 @@ export default function HistoryPage() {
                   total={stats.total}
                   approved={stats.approved}
                   pending={stats.pending}
+                  granted={stats.granted}
                 />
 
                 {/* Filter Tabs */}
@@ -181,6 +184,7 @@ export default function HistoryPage() {
                     all: stats.total,
                     pending: stats.pending,
                     approved: stats.approved,
+                    granted: stats.granted,
                     rejected: stats.rejected,
                   }}
                 />

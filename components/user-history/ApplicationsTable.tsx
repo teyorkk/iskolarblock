@@ -24,6 +24,7 @@ import {
   Clock,
   XCircle,
   CloudUpload,
+  Award,
 } from "lucide-react";
 import { ApplicationDetailsDialog } from "./ApplicationDetailsDialog";
 
@@ -43,6 +44,7 @@ interface ApplicationsTableProps {
 
 const statusIcons = {
   APPROVED: CheckCircle,
+  GRANTED: Award,
   PENDING: Clock,
   REJECTED: XCircle,
 };

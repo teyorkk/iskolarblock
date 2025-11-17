@@ -96,6 +96,8 @@ function getStatusRemarks(status: string): string {
   switch (status) {
     case "APPROVED":
       return "Your have completed your application. It has been approved. Congratulations!";
+    case "GRANTED":
+      return "Your scholarship has been granted. Expect disbursement instructions soon.";
     case "PENDING":
       return "Your application is incomplete. Please provide the missing files and information.";
     case "REJECTED":

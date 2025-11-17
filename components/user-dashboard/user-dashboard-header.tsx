@@ -23,8 +23,7 @@ export function UserDashboardHeader({
   user,
   userData,
 }: UserDashboardHeaderProps): React.JSX.Element {
-  const userName =
-    userData?.name || user?.email?.split("@")[0] || "User";
+  const userName = userData?.name || user?.email?.split("@")[0] || "User";
 
   return (
     <motion.div
@@ -39,7 +38,7 @@ export function UserDashboardHeader({
         </h1>
         <p className="text-orange-100 mb-4">
           Track your scholarship applications and manage your academic journey
-          with ScholarBlock.
+          with IskolarBlock.
         </p>
         <Link href="/application">
           <Button
@@ -54,4 +53,3 @@ export function UserDashboardHeader({
     </motion.div>
   );
 }
-

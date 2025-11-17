@@ -17,6 +17,16 @@ import type { RecentApplicationsProps } from "@/types/components";
 export function RecentApplications({
   applications,
 }: RecentApplicationsProps): React.JSX.Element {
+  const statusClassMap: Record<string, string> = {
+    APPROVED: "bg-green-100 text-green-700 px-3 py-1",
+    GRANTED: "bg-purple-100 text-purple-700 px-3 py-1",
+    PENDING: "bg-orange-100 text-orange-700 px-3 py-1",
+    REJECTED: "bg-red-100 text-red-700 px-3 py-1",
+  };
+
+  const getStatusClass = (status: string) =>
+    statusClassMap[status] || "bg-gray-100 text-gray-700 px-3 py-1";
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -44,23 +54,8 @@ export function RecentApplications({
                   </p>
                   <p className="text-sm text-gray-500 mt-1">{application.date}</p>
                 </div>
-                <Badge
-                  variant={
-                    application.status === "APPROVED"
-                      ? "default"
-                      : application.status === "PENDING"
-                      ? "secondary"
-                      : "destructive"
-                  }
-                  className={
-                    application.status === "APPROVED"
-                      ? "bg-green-100 text-green-700 px-3 py-1"
-                      : application.status === "PENDING"
-                      ? "bg-orange-100 text-orange-700 px-3 py-1"
-                      : "bg-red-100 text-red-700 px-3 py-1"
-                  }
-                >
-                  {application.status}
+                <Badge variant="outline" className={getStatusClass(application.status)}>
+                  {application.status === "GRANTED" ? "GRANTED" : application.status}
                 </Badge>
               </div>
             ))}

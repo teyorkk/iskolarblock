@@ -218,9 +218,11 @@ export default function RegisterPage() {
     setTermsAccepted(true);
     setShowTermsModal(false);
     // Auto-submit form after terms are accepted
-    const form = document.querySelector('form');
+    const form = document.querySelector("form");
     if (form) {
-      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      form.dispatchEvent(
+        new Event("submit", { cancelable: true, bubbles: true })
+      );
     }
   };
 
@@ -242,8 +244,8 @@ export default function RegisterPage() {
             <div className="flex justify-center mb-4">
               <div className="relative w-12 h-12 rounded-xl overflow-hidden">
                 <NextImage
-                  src="/scholarblock.svg"
-                  alt="ScholarBlock Logo"
+                  src="/iskolarblock.svg"
+                  alt="IskolarBlock Logo"
                   fill
                   className="object-contain"
                   priority
@@ -254,7 +256,7 @@ export default function RegisterPage() {
               Create Account
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Join ScholarBlock and start your scholarship journey
+              Join IskolarBlock and start your scholarship journey
             </CardDescription>
           </CardHeader>
 
@@ -380,7 +382,9 @@ export default function RegisterPage() {
                   <Checkbox
                     id="terms-checkbox"
                     checked={termsAccepted}
-                    onCheckedChange={(checked: boolean) => setTermsAccepted(checked)}
+                    onCheckedChange={(checked: boolean) =>
+                      setTermsAccepted(checked)
+                    }
                   />
                   <label
                     htmlFor="terms-checkbox"

@@ -29,7 +29,7 @@ interface ExistingCertificate {
 
 interface ApplicationSummary {
   id: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "GRANTED";
   applicationType: string;
   CertificateOfGrades?: ExistingCertificate[];
   CertificateOfRegistration?: ExistingCertificate[];

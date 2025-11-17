@@ -138,6 +138,8 @@ export default function UserDashboard() {
     switch (status) {
       case "APPROVED":
         return "Your have completed your application. It has been approved. Congratulations!";
+      case "GRANTED":
+        return "Your scholarship has been granted. Please monitor updates for the release schedule.";
       case "PENDING":
         return "Your application is incomplete. Please provide the missing files and information.";
       case "REJECTED":
@@ -153,6 +155,10 @@ export default function UserDashboard() {
     { label: "Update Profile", icon: Users, href: "/user-settings" },
   ];
 
+  const pendingCount = applications.filter((app) => app.status === "PENDING").length;
+  const approvedCount = applications.filter((app) => app.status === "APPROVED").length;
+  const grantedCount = applications.filter((app) => app.status === "GRANTED").length;
+
   // Calculate stats from real data
   const stats = [
     {
@@ -161,15 +167,15 @@ export default function UserDashboard() {
     },
     {
       ...userStatsCards[1],
-      value: applications
-        .filter((app) => app.status === "PENDING")
-        .length.toString(),
+      value: pendingCount.toString(),
     },
     {
       ...userStatsCards[2],
-      value: applications
-        .filter((app) => app.status === "APPROVED")
-        .length.toString(),
+      value: approvedCount.toString(),
+    },
+    {
+      ...userStatsCards[3],
+      value: grantedCount.toString(),
     },
   ];
 
