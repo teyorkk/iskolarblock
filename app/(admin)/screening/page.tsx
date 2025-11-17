@@ -27,8 +27,11 @@ import {
   Clock,
   Eye,
   FileSearch,
+  Filter,
+  Search,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ApplicationDetailsDialog } from "@/components/admin-screening/application-details-dialog";
 import {
@@ -75,6 +78,11 @@ export default function ScreeningPage() {
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
   const [latestPeriodId, setLatestPeriodId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | Application["status"]
+  >("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchPeriods = async () => {
@@ -163,11 +171,15 @@ export default function ScreeningPage() {
     }
   };
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = (checked: boolean, targetApps: Application[]) => {
     if (checked) {
-      setSelectedApplications(new Set(applications.map((app) => app.id)));
+      const newSelected = new Set(selectedApplications);
+      targetApps.forEach((app) => newSelected.add(app.id));
+      setSelectedApplications(newSelected);
     } else {
-      setSelectedApplications(new Set());
+      const newSelected = new Set(selectedApplications);
+      targetApps.forEach((app) => newSelected.delete(app.id));
+      setSelectedApplications(newSelected);
     }
   };
 
@@ -200,12 +212,52 @@ export default function ScreeningPage() {
     });
   };
 
-  const stats = {
-    total: applications.length,
-    pending: applications.filter((app) => app.status === "PENDING").length,
-    approved: applications.filter((app) => app.status === "APPROVED").length,
-    rejected: applications.filter((app) => app.status === "REJECTED").length,
-  };
+  const stats = useMemo(() => {
+    return {
+      total: applications.length,
+      pending: applications.filter((app) => app.status === "PENDING").length,
+      approved: applications.filter((app) => app.status === "APPROVED").length,
+      rejected: applications.filter((app) => app.status === "REJECTED").length,
+    };
+  }, [applications]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim().toLowerCase());
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const filteredApplications = useMemo(() => {
+    return applications.filter((app) => {
+      const matchesStatus =
+        statusFilter === "ALL" || app.status === statusFilter;
+      if (!matchesStatus) return false;
+
+      if (!debouncedSearchTerm) return true;
+
+      const term = debouncedSearchTerm;
+      return (
+        app.User.name.toLowerCase().includes(term) ||
+        app.User.email.toLowerCase().includes(term) ||
+        app.applicationType.toLowerCase().includes(term)
+      );
+    });
+  }, [applications, statusFilter, debouncedSearchTerm]);
+
+  const statusFilters = [
+    { label: "All", value: "ALL" as const, count: stats.total },
+    { label: "Pending", value: "PENDING" as const, count: stats.pending },
+    { label: "Approved", value: "APPROVED" as const, count: stats.approved },
+    { label: "Rejected", value: "REJECTED" as const, count: stats.rejected },
+  ];
+
+  const visibleApplications = filteredApplications;
+
+  const allVisibleSelected =
+    visibleApplications.length > 0 &&
+    visibleApplications.every((app) => selectedApplications.has(app.id));
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
@@ -233,48 +285,70 @@ export default function ScreeningPage() {
 
             {/* Application Period Selector */}
             {periods.length > 0 && (
-              <div className="mb-6 flex items-center gap-4">
-                <Label htmlFor="period-select" className="text-sm font-medium">
-                  View Period:
-                </Label>
-                <Select
-                  value={selectedPeriodId || undefined}
-                  onValueChange={(value) => setSelectedPeriodId(value)}
-                >
-                  <SelectTrigger id="period-select" className="w-[300px]">
-                    <SelectValue placeholder="Select application period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {periods.map((period) => (
-                      <SelectItem key={period.id} value={period.id}>
-                        {period.title} (
-                        {new Date(period.startDate).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )}{" "}
-                        -{" "}
-                        {new Date(period.endDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          year: "numeric",
-                        })}
-                        )
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedPeriodId && selectedPeriodId !== latestPeriodId && (
-                  <Badge
-                    variant="outline"
-                    className="bg-yellow-50 text-yellow-700 border-yellow-200"
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="w-full sm:max-w-md">
+                  <Label
+                    htmlFor="period-select"
+                    className="text-sm font-medium mb-1 inline-flex"
                   >
-                    View Only - Past Period
-                  </Badge>
-                )}
+                    View Period
+                  </Label>
+                  <Select
+                    value={selectedPeriodId || undefined}
+                    onValueChange={(value) => setSelectedPeriodId(value)}
+                  >
+                    <SelectTrigger id="period-select" className="w-full">
+                      <SelectValue placeholder="Select application period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {periods.map((period) => (
+                        <SelectItem key={period.id} value={period.id}>
+                          {period.title} (
+                          {new Date(period.startDate).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              year: "numeric",
+                            }
+                          )}{" "}
+                          -{" "}
+                          {new Date(period.endDate).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              year: "numeric",
+                            }
+                          )}
+                          )
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedPeriodId &&
+                  selectedPeriodId !== latestPeriodId && (
+                    <Badge
+                      variant="outline"
+                      className="bg-yellow-50 text-yellow-700 border-yellow-200 w-full sm:w-auto text-center py-2"
+                    >
+                      View Only · Past Period
+                    </Badge>
+                  )}
               </div>
             )}
+
+            {/* Search Bar */}
+            <div className="mb-4">
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search by name, email, or type..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
 
             {/* Stats Cards */}
             {isLoading ? (
@@ -360,6 +434,35 @@ export default function ScreeningPage() {
               </div>
             )}
 
+            {/* Status Filters */}
+            <div className="mb-4">
+              <div className="flex flex-wrap items-center gap-3 bg-white border rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Filter className="w-4 h-4" />
+                  <span className="text-sm font-medium">Filter by status:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {statusFilters.map((filter) => (
+                    <Button
+                      key={filter.value}
+                      variant={
+                        statusFilter === filter.value ? "default" : "outline"
+                      }
+                      size="sm"
+                      className={
+                        statusFilter === filter.value
+                          ? "bg-orange-500 hover:bg-orange-600 text-white"
+                          : undefined
+                      }
+                      onClick={() => setStatusFilter(filter.value)}
+                    >
+                      {filter.label} ({filter.count})
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Applicants Table */}
             <Card>
               <CardHeader>
@@ -381,6 +484,13 @@ export default function ScreeningPage() {
                     <FileSearch className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">No applications found</p>
                   </div>
+                ) : visibleApplications.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileSearch className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">
+                      No applications match the selected filters
+                    </p>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
@@ -388,12 +498,13 @@ export default function ScreeningPage() {
                         <TableRow>
                           <TableHead className="w-12">
                             <Checkbox
-                              checked={
-                                applications.length > 0 &&
-                                selectedApplications.size ===
-                                  applications.length
+                              checked={allVisibleSelected}
+                              onCheckedChange={(checked) =>
+                                handleSelectAll(
+                                  checked === true,
+                                  visibleApplications
+                                )
                               }
-                              onCheckedChange={handleSelectAll}
                             />
                           </TableHead>
                           <TableHead>Name</TableHead>
@@ -405,7 +516,7 @@ export default function ScreeningPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {applications.map((application) => (
+                        {visibleApplications.map((application) => (
                           <TableRow key={application.id}>
                             <TableCell>
                               <Checkbox

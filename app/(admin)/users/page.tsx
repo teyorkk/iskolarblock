@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | User["role"]>("ALL");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userApplications, setUserApplications] = useState<Application[]>([]);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
@@ -29,20 +30,19 @@ export default function UsersPage() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredUsers(users);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredUsers(
-        users.filter(
-          (user) =>
-            user.name?.toLowerCase().includes(query) ||
-            user.email?.toLowerCase().includes(query) ||
-            user.phone?.toLowerCase().includes(query)
-        )
-      );
-    }
-  }, [searchQuery, users]);
+    const query = searchQuery.toLowerCase().trim();
+    setFilteredUsers(
+      users.filter((user) => {
+        const matchesRole = roleFilter === "ALL" || user.role === roleFilter;
+        const matchesQuery =
+          query === "" ||
+          user.name?.toLowerCase().includes(query) ||
+          user.email?.toLowerCase().includes(query) ||
+          user.phone?.toLowerCase().includes(query);
+        return matchesRole && matchesQuery;
+      })
+    );
+  }, [searchQuery, users, roleFilter]);
 
   const fetchUsers = async (): Promise<void> => {
     try {
@@ -168,6 +168,27 @@ export default function UsersPage() {
   };
 
 
+  const roleStats = useMemo(() => {
+    return users.reduce(
+      (acc, user) => {
+        acc.total += 1;
+        if (user.role === "ADMIN") acc.admin += 1;
+        if (user.role === "USER") acc.user += 1;
+        return acc;
+      },
+      { total: 0, admin: 0, user: 0 }
+    );
+  }, [users]);
+
+  const filterOptions = useMemo(
+    () => [
+      { label: "All", value: "ALL" as const, count: roleStats.total },
+      { label: "Admins", value: "ADMIN" as const, count: roleStats.admin },
+      { label: "Users", value: "USER" as const, count: roleStats.user },
+    ],
+    [roleStats]
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
@@ -188,6 +209,9 @@ export default function UsersPage() {
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               resultCount={filteredUsers.length}
+              activeFilter={roleFilter}
+              onFilterChange={setRoleFilter}
+              filterOptions={filterOptions}
             />
 
             <UserList

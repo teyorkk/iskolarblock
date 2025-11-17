@@ -2,6 +2,7 @@ import type {
   User,
   Application,
   ApplicationStatus,
+  UserRole,
   NavigationItem,
   StatsCard,
   ChartDataPoint,
@@ -103,10 +104,19 @@ export interface ApplicationSuccessProps {
 // User management component props
 export type UserManagementProps = Record<string, never>;
 
+export interface FilterOption<TValue> {
+  label: string;
+  value: TValue;
+  count: number;
+}
+
 export interface UserSearchBarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   resultCount: number;
+  activeFilter: "ALL" | UserRole;
+  onFilterChange: (value: "ALL" | UserRole) => void;
+  filterOptions: FilterOption<"ALL" | UserRole>[];
 }
 
 export interface UserCardProps {
