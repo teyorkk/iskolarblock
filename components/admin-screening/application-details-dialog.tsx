@@ -11,14 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  User,
-  FileText,
-  ExternalLink,
-  MapPin,
-  Phone,
-  Mail,
-} from "lucide-react";
+import { User, FileText, ExternalLink, MapPin, Phone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { CheckCircle, XCircle } from "lucide-react";
@@ -30,32 +23,34 @@ interface ApplicationDetailsDialogProps {
   onStatusUpdate: () => void;
 }
 
+interface PersonalInfo {
+  lastName: string;
+  firstName: string;
+  middleName?: string | null;
+  dateOfBirth: string;
+  placeOfBirth: string;
+  age: string;
+  sex: "male" | "female";
+  houseNumber: string;
+  purok: string;
+  barangay: string;
+  municipality: string;
+  province: string;
+  citizenship: string;
+  contactNumber: string;
+  religion: string;
+  course: string;
+  yearLevel: string;
+}
+
 interface ApplicationData {
   id: string;
   status: string;
   applicationType: string;
   createdAt: string;
-  applicationDetails: {
-    personalInfo?: {
-      lastName: string;
-      firstName: string;
-      middleName?: string | null;
-      dateOfBirth: string;
-      placeOfBirth: string;
-      age: string;
-      sex: "male" | "female";
-      houseNumber: string;
-      purok: string;
-      barangay: string;
-      municipality: string;
-      province: string;
-      citizenship: string;
-      contactNumber: string;
-      religion: string;
-      course: string;
-      yearLevel: string;
-    };
-  };
+  applicationDetails?: {
+    personalInfo?: PersonalInfo;
+  } | PersonalInfo | null;
   User: {
     id: string;
     name: string;
@@ -161,8 +156,6 @@ export function ApplicationDetailsDialog({
         return "bg-green-100 text-green-700";
       case "REJECTED":
         return "bg-red-100 text-red-700";
-      case "UNDER_REVIEW":
-        return "bg-blue-100 text-blue-700";
       default:
         return "bg-orange-100 text-orange-700";
     }
@@ -176,7 +169,14 @@ export function ApplicationDetailsDialog({
     });
   };
 
-  const personalInfo = application?.applicationDetails?.personalInfo;
+  const personalInfo = (() => {
+    const details = application?.applicationDetails;
+    if (!details) return null;
+    if (typeof details === "object" && "personalInfo" in details) {
+      return (details as { personalInfo?: PersonalInfo }).personalInfo ?? null;
+    }
+    return details as PersonalInfo;
+  })();
   const cog = application?.CertificateOfGrades?.[0];
   const cor = application?.CertificateOfRegistration?.[0];
 
@@ -538,57 +538,37 @@ export function ApplicationDetailsDialog({
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2 flex-wrap">
-              {application.status === "PENDING" && (
-                <>
-                  <Button
-                    variant="outline"
-                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                    onClick={() => handleStatusUpdate("UNDER_REVIEW")}
-                    disabled={isUpdating}
-                  >
-                    Mark as Under Review
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="text-green-600 border-green-600 hover:bg-green-50"
-                    onClick={() => handleStatusUpdate("APPROVED")}
-                    disabled={isUpdating}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="text-red-600 border-red-600 hover:bg-red-50"
-                    onClick={() => handleStatusUpdate("REJECTED")}
-                    disabled={isUpdating}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Reject
-                  </Button>
-                </>
+              {application.status !== "PENDING" && (
+                <Button
+                  variant="outline"
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                  onClick={() => handleStatusUpdate("PENDING")}
+                  disabled={isUpdating}
+                >
+                  Move to Pending
+                </Button>
               )}
-              {application.status === "UNDER_REVIEW" && (
-                <>
-                  <Button
-                    variant="outline"
-                    className="text-green-600 border-green-600 hover:bg-green-50"
-                    onClick={() => handleStatusUpdate("APPROVED")}
-                    disabled={isUpdating}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="text-red-600 border-red-600 hover:bg-red-50"
-                    onClick={() => handleStatusUpdate("REJECTED")}
-                    disabled={isUpdating}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Reject
-                  </Button>
-                </>
+              {application.status !== "APPROVED" && (
+                <Button
+                  variant="outline"
+                  className="text-green-600 border-green-600 hover:bg-green-50"
+                  onClick={() => handleStatusUpdate("APPROVED")}
+                  disabled={isUpdating}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve
+                </Button>
+              )}
+              {application.status !== "REJECTED" && (
+                <Button
+                  variant="outline"
+                  className="text-red-600 border-red-600 hover:bg-red-50"
+                  onClick={() => handleStatusUpdate("REJECTED")}
+                  disabled={isUpdating}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
               )}
             </div>
           </div>

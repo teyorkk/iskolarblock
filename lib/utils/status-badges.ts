@@ -11,7 +11,6 @@ export function getStatusBadgeConfig(
 ): StatusBadgeConfig {
   const statusConfig: Record<string, StatusBadgeConfig> = {
     PENDING: { color: "bg-orange-100 text-orange-700", icon: Clock },
-    UNDER_REVIEW: { color: "bg-blue-100 text-blue-700", icon: Clock },
     APPROVED: { color: "bg-green-100 text-green-700", icon: CheckCircle },
     REJECTED: { color: "bg-red-100 text-red-700", icon: XCircle },
   };

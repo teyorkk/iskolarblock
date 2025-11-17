@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/auth-server";
+import { expirePendingApplications } from "@/lib/services/application-status";
 
 export async function GET(request: Request) {
   try {
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
     }
 
     const supabase = await getSupabaseServerClient();
+    await expirePendingApplications(supabase);
 
     // Get periodId from query parameters
     const { searchParams } = new URL(request.url);

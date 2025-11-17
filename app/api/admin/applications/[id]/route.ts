@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/auth-server";
+import { expirePendingApplications } from "@/lib/services/application-status";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-export async function PATCH(
-  request: Request,
-  context: RouteContext
-) {
+export async function PATCH(request: Request, context: RouteContext) {
   try {
     // Verify admin user using database role check
     try {
@@ -26,7 +24,7 @@ export async function PATCH(
     const { status } = body;
 
     // Validate status
-    const validStatuses = ["PENDING", "UNDER_REVIEW", "APPROVED", "REJECTED"];
+    const validStatuses = ["PENDING", "APPROVED", "REJECTED"];
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
@@ -60,10 +58,7 @@ export async function PATCH(
   }
 }
 
-export async function GET(
-  request: Request,
-  context: RouteContext
-) {
+export async function GET(request: Request, context: RouteContext) {
   try {
     // Verify admin user using database role check
     try {
@@ -75,6 +70,7 @@ export async function GET(
     }
 
     const supabase = await getSupabaseServerClient();
+    await expirePendingApplications(supabase);
     const { id } = await context.params;
 
     // Fetch application with all related data
@@ -114,4 +110,3 @@ export async function GET(
     );
   }
 }
-

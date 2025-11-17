@@ -76,10 +76,6 @@ export async function extractCOGData(
       fileName = file.name;
     }
 
-    // Call our API route which handles JWT signing and webhook communication
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
-
     let response: Response;
     try {
       response = await fetch("/api/extract/cog", {
@@ -93,21 +89,9 @@ export async function extractCOGData(
           fileName,
           userId,
         }),
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-
       if (fetchError instanceof Error) {
-        if (fetchError.name === "AbortError") {
-          console.error("extractCOGData: Request timed out");
-          throw new Error(
-            "Request timed out. The extraction service is taking too long to respond."
-          );
-        }
-
         console.error("extractCOGData: Network error:", fetchError.message);
         throw new Error(
           "Network error. Please check your internet connection and try again."
@@ -247,10 +231,8 @@ export async function extractCORData(
       fileName = file.name;
     }
 
-    // Call our API route which handles JWT signing and webhook communication
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
-
+    // Call our API route which handles JWT signing and webhook communication.
+    // Timeout temporarily disabled to avoid premature failures.
     let response: Response;
     try {
       response = await fetch("/api/extract/cor", {
@@ -264,21 +246,9 @@ export async function extractCORData(
           fileName,
           userId,
         }),
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-
       if (fetchError instanceof Error) {
-        if (fetchError.name === "AbortError") {
-          console.error("extractCORData: Request timed out");
-          throw new Error(
-            "Request timed out. The extraction service is taking too long to respond."
-          );
-        }
-
         console.error("extractCORData: Network error:", fetchError.message);
         throw new Error(
           "Network error. Please check your internet connection and try again."

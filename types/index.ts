@@ -1,11 +1,7 @@
 // Core entity types
 export type UserRole = "ADMIN" | "USER";
 
-export type ApplicationStatus =
-  | "PENDING"
-  | "UNDER_REVIEW"
-  | "APPROVED"
-  | "REJECTED";
+export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface User {
   id: string;
@@ -86,4 +82,3 @@ export interface MockApplication {
   date: string;
   status: string;
 }
-

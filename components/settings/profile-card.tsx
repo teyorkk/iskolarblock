@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Lock, Camera, CheckCircle } from "lucide-react";
+import { Calendar, Lock, Camera, CheckCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -25,7 +25,7 @@ interface ProfileCardProps {
   } | null;
   profilePicture: string | null;
   onPasswordClick: () => void;
-  onProfilePictureUpdate: (url: string) => void;
+  onProfilePictureUpdate: (url: string | null) => void;
   isAdmin?: boolean;
 }
 
@@ -38,6 +38,26 @@ export function ProfileCard({
 }: ProfileCardProps) {
   const [isUploading, setIsUploading] = useState(false);
 
+  const getStoragePathFromUrl = (
+    url: string | null | undefined
+  ): string | null => {
+    if (!url) return null;
+    const marker = "/storage/v1/object/public/avatars/";
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.substring(idx + marker.length);
+  };
+
+  const deleteProfilePictureFile = async (url: string | null | undefined) => {
+    const path = getStoragePathFromUrl(url);
+    if (!path) return;
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase.storage.from("avatars").remove([path]);
+    if (error) {
+      console.warn("Failed to remove old profile picture:", error);
+    }
+  };
+
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -49,7 +69,11 @@ export function ProfileCard({
     const allowedExtensions = ["png", "jpg", "jpeg"];
     const fileExt = file.name.split(".").pop()?.toLowerCase();
 
-    if (!allowedTypes.includes(file.type) || !fileExt || !allowedExtensions.includes(fileExt)) {
+    if (
+      !allowedTypes.includes(file.type) ||
+      !fileExt ||
+      !allowedExtensions.includes(fileExt)
+    ) {
       toast.error("Please upload a PNG or JPG image file only");
       return;
     }
@@ -63,7 +87,8 @@ export function ProfileCard({
 
     try {
       const supabase = getSupabaseBrowserClient();
-      
+      const previousUrl = profilePicture;
+
       // Get user ID from User table first
       const { data: userRecord, error: userError } = await supabase
         .from("User")
@@ -77,7 +102,9 @@ export function ProfileCard({
         return;
       }
 
-      const fileName = `profile-pictures/${userRecord.id}/${Date.now()}.${fileExt}`;
+      const fileName = `profile-pictures/${
+        userRecord.id
+      }/${Date.now()}.${fileExt}`;
 
       // Upload to avatars bucket (has RLS policy for profile pictures)
       const { error: uploadError } = await supabase.storage
@@ -102,7 +129,7 @@ export function ProfileCard({
 
       const { error: updateError } = await supabase
         .from("User")
-        .update({ 
+        .update({
           profilePicture: publicUrl,
           updatedAt: new Date().toISOString(),
         })
@@ -114,13 +141,59 @@ export function ProfileCard({
       } else {
         onProfilePictureUpdate(publicUrl);
         toast.success("Profile image updated!");
-        
+        if (previousUrl) {
+          await deleteProfilePictureFile(previousUrl);
+        }
+
         // Dispatch event to notify sidebar and other components
         window.dispatchEvent(new CustomEvent("userProfileUpdated"));
       }
     } catch (error) {
       toast.error("An error occurred while uploading the image");
       console.error("Error:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!userData?.email) {
+      toast.error("User not authenticated");
+      return;
+    }
+
+    if (!profilePicture) {
+      toast.error("No profile photo to remove");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      await deleteProfilePictureFile(profilePicture);
+
+      const supabase = getSupabaseBrowserClient();
+      const { error: updateError } = await supabase
+        .from("User")
+        .update({
+          profilePicture: null,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq("email", userData.email.toLowerCase().trim());
+
+      if (updateError) {
+        toast.error("Failed to remove profile picture");
+        console.error("Remove photo error:", updateError);
+        return;
+      }
+
+      onProfilePictureUpdate(null);
+      toast.success("Profile photo removed");
+
+      window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+    } catch (error) {
+      console.error("Unexpected error removing photo:", error);
+      toast.error("Unable to remove profile photo");
     } finally {
       setIsUploading(false);
     }
@@ -137,9 +210,17 @@ export function ProfileCard({
       <CardHeader className="text-center">
         <div className="relative mx-auto">
           <Avatar className="w-24 h-24 mx-auto">
-            <AvatarImage src={profilePicture || ""} />
+            {profilePicture ? (
+              <AvatarImage src={profilePicture} />
+            ) : (
+              <AvatarImage src={undefined} />
+            )}
             <AvatarFallback
-              className={`${isAdmin ? "bg-red-100 text-red-600" : "bg-orange-100 text-orange-600"} text-2xl`}
+              className={`${
+                isAdmin
+                  ? "bg-red-100 text-red-600"
+                  : "bg-orange-100 text-orange-600"
+              } text-2xl`}
             >
               {getInitial()}
             </AvatarFallback>
@@ -198,7 +279,16 @@ export function ProfileCard({
           <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
           Email verified
         </div>
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t space-y-2">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleRemovePhoto}
+            disabled={isUploading || !profilePicture}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Remove Photo
+          </Button>
           <Button
             variant="outline"
             className="w-full"

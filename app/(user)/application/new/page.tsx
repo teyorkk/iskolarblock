@@ -32,6 +32,9 @@ export default function NewApplicationPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedStatus, setSubmittedStatus] = useState<
+    "PENDING" | "APPROVED"
+  >("PENDING");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
@@ -58,6 +61,9 @@ export default function NewApplicationPage() {
   const [currentFileType, setCurrentFileType] = useState<
     "ID Document" | "Certificate of Grades" | "Certificate of Registration"
   >("ID Document");
+  const documentsProcessing =
+    (Boolean(certificateOfGrades) && !isCogProcessingDone) ||
+    (Boolean(certificateOfRegistration) && !isCorProcessingDone);
 
   // Track OCR data and images for submission
   const [idOcrText, setIdOcrText] = useState<string>("");
@@ -200,6 +206,14 @@ export default function NewApplicationPage() {
     maxFiles: 1,
   });
 
+  const readFileAsBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   const onSubmit = async (data: NewApplicationFormData): Promise<void> => {
     console.log("🚀 onSubmit called with data:", data);
     try {
@@ -209,12 +223,31 @@ export default function NewApplicationPage() {
       // Convert ID file to base64
       let idImageBase64 = "";
       if (uploadedFile) {
-        idImageBase64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(uploadedFile);
-        });
+        idImageBase64 = await readFileAsBase64(uploadedFile);
+      }
+
+      let cogFileBase64: string | null = null;
+      if (certificateOfGrades) {
+        try {
+          cogFileBase64 = await readFileAsBase64(certificateOfGrades);
+        } catch (error) {
+          console.error("COG file conversion error:", error);
+          toast.error("Failed to read Certificate of Grades file");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      let corFileBase64: string | null = null;
+      if (certificateOfRegistration) {
+        try {
+          corFileBase64 = await readFileAsBase64(certificateOfRegistration);
+        } catch (error) {
+          console.error("COR file conversion error:", error);
+          toast.error("Failed to read Certificate of Registration file");
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       // Prepare submission data
@@ -252,6 +285,10 @@ export default function NewApplicationPage() {
           extractedData: corExtractedData || null,
           fileUrl: corFileUrl || undefined,
         },
+        cogFile: cogFileBase64,
+        corFile: corFileBase64,
+        cogFileName: certificateOfGrades?.name ?? null,
+        corFileName: certificateOfRegistration?.name ?? null,
       };
 
       const response = await fetch("/api/applications/submit", {
@@ -268,10 +305,25 @@ export default function NewApplicationPage() {
       }
 
       const result = await response.json();
+      const resultingStatus =
+        typeof result.status === "string" ? result.status : "PENDING";
       setSubmittedApplicationId(result.applicationId || `SCH-${Date.now()}`);
+      setSubmittedStatus(
+        resultingStatus === "APPROVED" ? "APPROVED" : "PENDING"
+      );
       setIsSubmitted(true);
       setIsSubmitting(false);
-      toast.success("Application submitted successfully!");
+      toast.success(
+        resultingStatus === "APPROVED"
+          ? "Application approved instantly!"
+          : "Application submitted successfully!",
+        {
+          description:
+            resultingStatus === "APPROVED"
+              ? "All required documents were provided."
+              : "Missing documents detected. Please upload the rest to get approved.",
+        }
+      );
     } catch (error) {
       setIsSubmitting(false);
       const errorMessage =
@@ -301,6 +353,7 @@ export default function NewApplicationPage() {
           <div className="p-4 md:p-6">
             <ApplicationSuccess
               applicationId={submittedApplicationId || undefined}
+              status={submittedStatus}
             />
           </div>
         </div>
@@ -467,11 +520,7 @@ export default function NewApplicationPage() {
                       !watch("religion") ||
                       !watch("course") ||
                       !watch("yearLevel"))) ||
-                  (currentStep === 4 &&
-                    (!certificateOfGrades ||
-                      !certificateOfRegistration ||
-                      !isCogProcessingDone ||
-                      !isCorProcessingDone))
+                  (currentStep === 4 && documentsProcessing)
                 }
               >
                 {isSubmitting ? (

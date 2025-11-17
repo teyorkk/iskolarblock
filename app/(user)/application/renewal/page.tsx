@@ -32,6 +32,9 @@ export default function RenewalApplicationPage() {
   const { user } = useSession();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedStatus, setSubmittedStatus] = useState<
+    "PENDING" | "APPROVED"
+  >("PENDING");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
@@ -73,6 +76,17 @@ export default function RenewalApplicationPage() {
   const [currentFileType, setCurrentFileType] = useState<
     "ID Document" | "Certificate of Grades" | "Certificate of Registration"
   >("ID Document");
+  const readFileAsBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const documentsProcessing =
+    (Boolean(certificateOfGrades) && !isCogProcessingDone) ||
+    (Boolean(certificateOfRegistration) && !isCorProcessingDone);
 
   const {
     register,
@@ -252,12 +266,31 @@ export default function RenewalApplicationPage() {
       // Convert ID file to base64
       let idImageBase64 = "";
       if (uploadedFile) {
-        idImageBase64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(uploadedFile);
-        });
+        idImageBase64 = await readFileAsBase64(uploadedFile);
+      }
+
+      let cogFileBase64: string | null = null;
+      if (certificateOfGrades) {
+        try {
+          cogFileBase64 = await readFileAsBase64(certificateOfGrades);
+        } catch (error) {
+          console.error("COG file conversion error:", error);
+          toast.error("Failed to read Certificate of Grades file");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      let corFileBase64: string | null = null;
+      if (certificateOfRegistration) {
+        try {
+          corFileBase64 = await readFileAsBase64(certificateOfRegistration);
+        } catch (error) {
+          console.error("COR file conversion error:", error);
+          toast.error("Failed to read Certificate of Registration file");
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       // Prepare submission data
@@ -276,6 +309,10 @@ export default function RenewalApplicationPage() {
           extractedData: corExtractedData || null,
           fileUrl: corFileUrl || undefined,
         },
+        cogFile: cogFileBase64,
+        corFile: corFileBase64,
+        cogFileName: certificateOfGrades?.name ?? null,
+        corFileName: certificateOfRegistration?.name ?? null,
       };
 
       const response = await fetch("/api/applications/renew", {
@@ -292,10 +329,25 @@ export default function RenewalApplicationPage() {
       }
 
       const result = await response.json();
+      const resultingStatus =
+        typeof result.status === "string" ? result.status : "PENDING";
       setSubmittedApplicationId(result.applicationId || `SCH-${Date.now()}`);
+      setSubmittedStatus(
+        resultingStatus === "APPROVED" ? "APPROVED" : "PENDING"
+      );
       setIsSubmitted(true);
       setIsSubmitting(false);
-      toast.success("Renewal application submitted successfully!");
+      toast.success(
+        resultingStatus === "APPROVED"
+          ? "Renewal approved instantly!"
+          : "Renewal application submitted!",
+        {
+          description:
+            resultingStatus === "APPROVED"
+              ? "All required documents were provided."
+              : "Missing documents detected. Submit the rest to move from Pending to Approved.",
+        }
+      );
     } catch (error) {
       setIsSubmitting(false);
       const errorMessage =
@@ -344,7 +396,10 @@ export default function RenewalApplicationPage() {
         <UserSidebar />
         <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
           <div className="p-4 md:p-6">
-            <ApplicationSuccess applicationId={submittedApplicationId} />
+            <ApplicationSuccess
+              applicationId={submittedApplicationId}
+              status={submittedStatus}
+            />
           </div>
         </div>
       </div>
@@ -455,11 +510,7 @@ export default function RenewalApplicationPage() {
                   isSubmitting ||
                   (currentStep === 1 &&
                     (!uploadedFile || !isIdProcessingDone)) ||
-                  (isLastStep &&
-                    (!certificateOfGrades ||
-                      !certificateOfRegistration ||
-                      !isCogProcessingDone ||
-                      !isCorProcessingDone))
+                  (isLastStep && documentsProcessing)
                 }
               >
                 {isSubmitting && isLastStep ? (

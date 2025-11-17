@@ -27,6 +27,10 @@ interface SubmitApplicationRequest {
 
   // Images (base64 strings)
   idImage?: string; // base64
+  cogFile?: string; // base64
+  corFile?: string; // base64
+  cogFileName?: string;
+  corFileName?: string;
 
   // OCR Data
   idOcr?: {
@@ -64,6 +68,55 @@ interface SubmitApplicationRequest {
 
   // Note: Files are sent as base64 strings, not File objects
 }
+
+interface DocumentUploadParams {
+  base64: string;
+  fileName: string;
+  userId: string;
+  applicationId: string;
+  type: "cog" | "cor";
+}
+
+const uploadDocumentFromBase64 = async (
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  { base64, fileName, userId, applicationId, type }: DocumentUploadParams
+): Promise<string | null> => {
+  try {
+    const cleaned = base64.replace(/^data:.*;base64,/, "");
+    const buffer = Buffer.from(cleaned, "base64");
+    const filePath = `applications/${userId}/${applicationId}/${type}-${Date.now()}-${fileName}`;
+    const { error: uploadError } = await supabase.storage
+      .from("documents")
+      .upload(filePath, buffer, {
+        contentType: fileName.endsWith(".pdf")
+          ? "application/pdf"
+          : "image/jpeg",
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error(`${type.toUpperCase()} upload error:`, uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage.from("documents").getPublicUrl(filePath);
+    return data.publicUrl;
+  } catch (error) {
+    console.error(`Failed to upload ${type} document:`, error);
+    return null;
+  }
+};
+
+const resolveStoredDocumentUrl = (
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  path?: string | null
+): string | null => {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  const { data } = supabase.storage.from("documents").getPublicUrl(path);
+  return data.publicUrl ?? null;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,6 +166,8 @@ export async function POST(request: NextRequest) {
 
     // Upload images to storage
     let idImageUrl = "";
+    let cogDocumentUrl: string | null = null;
+    let corDocumentUrl: string | null = null;
 
     // Upload ID image
     if (body.idImage && body.idImage.trim() !== "") {
@@ -139,15 +194,47 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (body.cogFile && body.cogFileName) {
+      cogDocumentUrl = await uploadDocumentFromBase64(supabase, {
+        base64: body.cogFile,
+        fileName: body.cogFileName,
+        userId,
+        applicationId,
+        type: "cog",
+      });
+    } else if (body.cogOcr?.fileUrl) {
+      cogDocumentUrl = resolveStoredDocumentUrl(supabase, body.cogOcr.fileUrl);
+    }
+
+    if (body.corFile && body.corFileName) {
+      corDocumentUrl = await uploadDocumentFromBase64(supabase, {
+        base64: body.corFile,
+        fileName: body.corFileName,
+        userId,
+        applicationId,
+        type: "cor",
+      });
+    } else if (body.corOcr?.fileUrl) {
+      corDocumentUrl = resolveStoredDocumentUrl(supabase, body.corOcr.fileUrl);
+    }
+
+    const hasIdDocument = Boolean(idImageUrl);
+    const hasCogDocument = Boolean(cogDocumentUrl);
+    const hasCorDocument = Boolean(corDocumentUrl);
+    const applicationStatus: "APPROVED" | "PENDING" =
+      hasIdDocument && hasCogDocument && hasCorDocument
+        ? "APPROVED"
+        : "PENDING";
+
     // Create Application record
     const now = new Date().toISOString();
     const { error: appError } = await supabase.from("Application").insert({
       id: applicationId,
       userId: userId,
       applicationPeriodId: periodData.id,
-      status: "PENDING",
+      status: applicationStatus,
       applicationType: "NEW",
-      applicationDetails: body.formData,
+      applicationDetails: { personalInfo: body.formData },
       id_image: idImageUrl,
       createdAt: now,
       updatedAt: now,
@@ -261,7 +348,7 @@ export async function POST(request: NextRequest) {
           gwa: body.cogOcr.extractedData.gwa || 0,
           totalUnits: body.cogOcr.extractedData.total_units || 0,
           subjects: body.cogOcr.extractedData.subjects || [],
-          fileUrl: body.cogOcr.fileUrl || null,
+          fileUrl: cogDocumentUrl,
         });
 
       if (cogError) {
@@ -283,7 +370,7 @@ export async function POST(request: NextRequest) {
           course: body.corOcr.extractedData.course || "",
           name: body.corOcr.extractedData.name || "",
           totalUnits: body.corOcr.extractedData.total_units || 0,
-          fileUrl: body.corOcr.fileUrl || null,
+          fileUrl: corDocumentUrl,
         });
 
       if (corError) {
@@ -294,6 +381,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       applicationId: applicationId,
+      status: applicationStatus,
     });
   } catch (error) {
     console.error("Application submission error:", error);

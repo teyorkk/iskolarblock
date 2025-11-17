@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { DropzoneRootProps, DropzoneInputProps } from "react-dropzone";
 import { FileUploadZone } from "./file-upload-zone";
 import type { ApplicationStepProps } from "@/types/components";
@@ -59,6 +60,12 @@ interface DocumentsUploadStepProps<
     data: CORExtractionResponse | null,
     fileUrl?: string
   ) => void;
+  existingCogFileUrl?: string | null;
+  existingCorFileUrl?: string | null;
+  cogUploadLocked?: boolean;
+  corUploadLocked?: boolean;
+  onUnlockCogUpload?: () => void;
+  onUnlockCorUpload?: () => void;
 }
 
 export function DocumentsUploadStep<
@@ -85,6 +92,12 @@ export function DocumentsUploadStep<
   setProcessedCorFile,
   onCogOcrChange,
   onCorOcrChange,
+  existingCogFileUrl,
+  existingCorFileUrl,
+  cogUploadLocked,
+  corUploadLocked,
+  onUnlockCogUpload,
+  onUnlockCorUpload,
 }: DocumentsUploadStepProps<T>): React.JSX.Element {
   const { user } = useSession();
   // Certificate of Grades state
@@ -120,6 +133,7 @@ export function DocumentsUploadStep<
   const hasErrors = cogOcrError || corOcrError;
   const bothFilesUploaded = certificateOfGrades && certificateOfRegistration;
   const bothProcessingDone = isCogProcessingDone && isCorProcessingDone;
+  const missingDocuments = !certificateOfGrades || !certificateOfRegistration;
 
   // Process Certificate of Grades
   useEffect(() => {
@@ -427,18 +441,55 @@ export function DocumentsUploadStep<
             </AlertDescription>
           </Alert>
         )}
+        {!hasErrors && missingDocuments && (
+          <Alert className="border-blue-200 bg-blue-50 text-blue-700">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Submit now, finish later</AlertTitle>
+            <AlertDescription>
+              You may submit even if one document is missing. Your application
+              stays in Pending until both COG and COR are uploaded.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Certificate of Grades Upload */}
         <div className="space-y-3">
-          <FileUploadZone
-            uploadedFile={certificateOfGrades}
-            isDragActive={isDragActiveGrades}
-            getRootProps={getRootPropsGrades}
-            getInputProps={getInputPropsGrades}
-            error={gradesErrorText}
-            label="Certificate of Grades"
-            onRemove={onRemoveGradesFile}
-          />
+          {cogUploadLocked && !certificateOfGrades ? (
+            <div className="flex items-center justify-between rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+              <span>
+                An existing Certificate of Grades is already on file. You can
+                view it below or replace it with a new upload.
+              </span>
+              <div className="flex gap-2">
+                {existingCogFileUrl && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open(existingCogFileUrl, "_blank")}
+                    className="text-black hover:text-gray-600"
+                  >
+                    View
+                  </Button>
+                )}
+                {onUnlockCogUpload && (
+                  <Button type="button" size="sm" onClick={onUnlockCogUpload}>
+                    Replace
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <FileUploadZone
+              uploadedFile={certificateOfGrades}
+              isDragActive={isDragActiveGrades}
+              getRootProps={getRootPropsGrades}
+              getInputProps={getInputPropsGrades}
+              error={gradesErrorText}
+              label="Certificate of Grades"
+              onRemove={onRemoveGradesFile}
+            />
+          )}
 
           {/* COG Processing Status */}
           {isCogProcessing && (
@@ -496,15 +547,56 @@ export function DocumentsUploadStep<
 
         {/* Certificate of Registration Upload */}
         <div className="space-y-3">
-          <FileUploadZone
-            uploadedFile={certificateOfRegistration}
-            isDragActive={isDragActiveRegistration}
-            getRootProps={getRootPropsRegistration}
-            getInputProps={getInputPropsRegistration}
-            error={registrationErrorText}
-            label="Certificate of Registration"
-            onRemove={onRemoveRegistrationFile}
-          />
+          {corUploadLocked && !certificateOfRegistration ? (
+            <div className="flex items-center justify-between rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+              <span>
+                An existing Certificate of Registration is already on file. View
+                it or replace with a new upload.
+              </span>
+              <div className="flex gap-2">
+                {existingCorFileUrl && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open(existingCorFileUrl, "_blank")}
+                    className="text-black hover:text-gray-600"
+                  >
+                    View
+                  </Button>
+                )}
+                {onUnlockCorUpload && (
+                  <Button type="button" size="sm" onClick={onUnlockCorUpload}>
+                    Replace
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <FileUploadZone
+              uploadedFile={certificateOfRegistration}
+              isDragActive={isDragActiveRegistration}
+              getRootProps={getRootPropsRegistration}
+              getInputProps={getInputPropsRegistration}
+              error={registrationErrorText}
+              label="Certificate of Registration"
+              onRemove={onRemoveRegistrationFile}
+            />
+          )}
+
+          {existingCorFileUrl && !certificateOfRegistration && (
+            <div className="flex items-center justify-between text-sm text-blue-700 bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
+              <span>An existing Certificate of Registration is on file.</span>
+              <Button
+                type="button"
+                variant="link"
+                className="px-0"
+                onClick={() => window.open(existingCorFileUrl, "_blank")}
+              >
+                View
+              </Button>
+            </div>
+          )}
 
           {/* COR Processing Status */}
           {isCorProcessing && (

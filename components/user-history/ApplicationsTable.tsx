@@ -16,7 +16,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Calendar, CheckCircle, Clock, XCircle } from "lucide-react";
+import Link from "next/link";
+import {
+  FileText,
+  Calendar,
+  CheckCircle,
+  Clock,
+  XCircle,
+  CloudUpload,
+} from "lucide-react";
 import { ApplicationDetailsDialog } from "./ApplicationDetailsDialog";
 
 interface Application {
@@ -111,10 +119,21 @@ export function ApplicationsTable({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <ApplicationDetailsDialog
-                      application={application}
-                      statusColors={statusColors}
-                    />
+                    <div className="flex justify-end gap-2">
+                      {application.status === "PENDING" && (
+                        <Button variant="secondary" size="sm" asChild>
+                          <Link
+                            href={`/application/complete/${application.id}`}
+                          >
+                            <CloudUpload className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                      )}
+                      <ApplicationDetailsDialog
+                        application={application}
+                        statusColors={statusColors}
+                      />
+                    </div>
                   </TableCell>
                 </motion.tr>
               ))}

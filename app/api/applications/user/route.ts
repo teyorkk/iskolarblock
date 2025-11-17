@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { expirePendingApplications } from "@/lib/services/application-status";
 
 export async function GET() {
   try {
     const supabase = getSupabaseServerClient();
+    await expirePendingApplications(supabase);
 
     // Get current user
     const {
@@ -62,7 +64,10 @@ export async function GET() {
         month: "long",
         day: "numeric",
       }),
-      type: app.applicationType === "NEW" ? "New Application" : "Renewal Application",
+      type:
+        app.applicationType === "NEW"
+          ? "New Application"
+          : "Renewal Application",
       status: app.status,
       remarks: getStatusRemarks(app.status),
       details: app.applicationDetails,
@@ -90,15 +95,12 @@ export async function GET() {
 function getStatusRemarks(status: string): string {
   switch (status) {
     case "APPROVED":
-      return "Your application has been approved. Congratulations!";
+      return "Your have completed your application. It has been approved. Congratulations!";
     case "PENDING":
-      return "Your application is under review. Please wait for the result.";
+      return "Your application is incomplete. Please provide the missing files and information.";
     case "REJECTED":
       return "Your application was not approved. You may apply again in the next period.";
-    case "UNDER_REVIEW":
-      return "Your application is currently being reviewed by our team.";
     default:
       return "Status unknown";
   }
 }
-

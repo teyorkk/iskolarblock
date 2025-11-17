@@ -89,9 +89,11 @@ export default function AdminSettingsPage() {
     );
   };
 
-  const handleProfilePictureUpdate = (url: string) => {
-    setProfilePicture(url);
-    setUserData((prev) => (prev ? { ...prev, profilePicture: url } : null));
+  const handleProfilePictureUpdate = (url: string | null) => {
+    setProfilePicture(url ?? null);
+    setUserData((prev) =>
+      prev ? { ...prev, profilePicture: url ?? null } : null
+    );
   };
 
   if (isLoading) {

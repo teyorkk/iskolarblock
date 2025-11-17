@@ -44,10 +44,6 @@ export async function extractIDData(
   }
 
   try {
-    // Call our API route which handles JWT signing and webhook communication
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout (slightly longer than server)
-
     let response: Response;
     try {
       response = await fetch("/api/extract/id", {
@@ -56,21 +52,9 @@ export async function extractIDData(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ ocrText }),
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-
       if (fetchError instanceof Error) {
-        if (fetchError.name === "AbortError") {
-          console.error("extractIDData: Request timed out");
-          throw new Error(
-            "Request timed out. The extraction service is taking too long to respond."
-          );
-        }
-
         console.error("extractIDData: Network error:", fetchError.message);
         throw new Error(
           "Network error. Please check your internet connection and try again."
