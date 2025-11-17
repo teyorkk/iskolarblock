@@ -17,7 +17,6 @@ import { useDropzone } from "react-dropzone";
 import { renewalApplicationSteps } from "@/lib/constants/application-steps";
 import { ApplicationProgress } from "@/components/application/application-progress";
 import { IdUploadStep } from "@/components/application/id-upload-step";
-import { FaceScanStep } from "@/components/application/face-scan-step";
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
 import { ApplicationSuccess } from "@/components/application/application-success";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -36,7 +35,6 @@ export default function RenewalApplicationPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
-  const [isFaceVerified, setIsFaceVerified] = useState<boolean>(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
@@ -54,7 +52,6 @@ export default function RenewalApplicationPage() {
 
   // Track OCR data and images for submission
   const [idOcrText, setIdOcrText] = useState<string>("");
-  const [faceScanImage, setFaceScanImage] = useState<string>("");
   const [cogOcrText, setCogOcrText] = useState<string>("");
   const [cogExtractedData, setCogExtractedData] =
     useState<COGExtractionResponse | null>(null);
@@ -266,7 +263,6 @@ export default function RenewalApplicationPage() {
       // Prepare submission data
       const submissionData = {
         idImage: idImageBase64,
-        faceScanImage: faceScanImage,
         idOcr: {
           rawText: idOcrText,
         },
@@ -322,6 +318,8 @@ export default function RenewalApplicationPage() {
       setCurrentStep(currentStep - 1);
     }
   };
+
+  const isLastStep = currentStep === renewalApplicationSteps.length;
 
   // Show loading while checking eligibility
   if (isCheckingEligibility) {
@@ -398,18 +396,6 @@ export default function RenewalApplicationPage() {
               )}
 
               {currentStep === 2 && (
-                <FaceScanStep<RenewalApplicationFormData>
-                  register={register}
-                  errors={errors}
-                  setValue={setValue}
-                  watch={watch}
-                  uploadedIdFile={uploadedFile}
-                  onVerificationComplete={setIsFaceVerified}
-                  onFaceScanImageChange={setFaceScanImage}
-                />
-              )}
-
-              {currentStep === 3 && (
                 <DocumentsUploadStep<RenewalApplicationFormData>
                   register={register}
                   errors={errors}
@@ -464,27 +450,26 @@ export default function RenewalApplicationPage() {
               </Button>
 
               <Button
-                onClick={currentStep === 3 ? handleSubmit(onSubmit) : nextStep}
+                onClick={isLastStep ? handleSubmit(onSubmit) : nextStep}
                 disabled={
                   isSubmitting ||
                   (currentStep === 1 &&
                     (!uploadedFile || !isIdProcessingDone)) ||
-                  (currentStep === 2 && !isFaceVerified) ||
-                  (currentStep === 3 &&
+                  (isLastStep &&
                     (!certificateOfGrades ||
                       !certificateOfRegistration ||
                       !isCogProcessingDone ||
                       !isCorProcessingDone))
                 }
               >
-                {isSubmitting && currentStep === 3 ? (
+                {isSubmitting && isLastStep ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Submitting...
                   </>
                 ) : (
                   <>
-                    {currentStep === 3 ? "Submit Application" : "Next"}
+                    {isLastStep ? "Submit Application" : "Next"}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}

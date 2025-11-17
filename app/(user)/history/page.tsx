@@ -18,7 +18,6 @@ interface Application {
   remarks: string;
   details?: Record<string, unknown>;
   id_image?: string;
-  face_scan_image?: string;
   createdAt: string;
   updatedAt: string;
 }

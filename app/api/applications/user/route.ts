@@ -40,7 +40,6 @@ export async function GET() {
         createdAt,
         updatedAt,
         id_image,
-        face_scan_image,
         applicationPeriodId
       `
       )
@@ -68,7 +67,6 @@ export async function GET() {
       remarks: getStatusRemarks(app.status),
       details: app.applicationDetails,
       id_image: app.id_image,
-      face_scan_image: app.face_scan_image,
       createdAt: app.createdAt,
       updatedAt: app.updatedAt,
     }));

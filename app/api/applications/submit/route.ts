@@ -27,7 +27,6 @@ interface SubmitApplicationRequest {
 
   // Images (base64 strings)
   idImage?: string; // base64
-  faceScanImage?: string; // base64
 
   // OCR Data
   idOcr?: {
@@ -114,7 +113,6 @@ export async function POST(request: NextRequest) {
 
     // Upload images to storage
     let idImageUrl = "";
-    let faceScanImageUrl = "";
 
     // Upload ID image
     if (body.idImage && body.idImage.trim() !== "") {
@@ -141,31 +139,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload face scan image
-    if (body.faceScanImage && body.faceScanImage.trim() !== "") {
-      const faceImageBuffer = Buffer.from(
-        body.faceScanImage.replace(/^data:image\/\w+;base64,/, ""),
-        "base64"
-      );
-      const faceFileName = `applications/${userId}/${applicationId}/face-${Date.now()}.jpg`;
-      const { error: faceUploadError } = await supabase.storage
-        .from("documents")
-        .upload(faceFileName, faceImageBuffer, {
-          contentType: "image/jpeg",
-          cacheControl: "3600",
-        });
-
-      if (faceUploadError) {
-        console.error("Face scan image upload error:", faceUploadError);
-        // Continue without image URL if upload fails
-      } else {
-        const { data: faceUrlData } = supabase.storage
-          .from("documents")
-          .getPublicUrl(faceFileName);
-        faceScanImageUrl = faceUrlData.publicUrl;
-      }
-    }
-
     // Create Application record
     const now = new Date().toISOString();
     const { error: appError } = await supabase.from("Application").insert({
@@ -176,7 +149,6 @@ export async function POST(request: NextRequest) {
       applicationType: "NEW",
       applicationDetails: body.formData,
       id_image: idImageUrl,
-      face_scan_image: faceScanImageUrl,
       createdAt: now,
       updatedAt: now,
     });

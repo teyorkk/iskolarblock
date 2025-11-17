@@ -17,7 +17,6 @@ import { useDropzone } from "react-dropzone";
 import { newApplicationSteps } from "@/lib/constants/application-steps";
 import { ApplicationProgress } from "@/components/application/application-progress";
 import { IdUploadStep } from "@/components/application/id-upload-step";
-import { FaceScanStep } from "@/components/application/face-scan-step";
 import { PersonalInfoStepPart1 } from "@/components/application/personal-info-step-part1";
 import { PersonalInfoStepPart2 } from "@/components/application/personal-info-step-part2";
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
@@ -37,7 +36,6 @@ export default function NewApplicationPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
-  const [isFaceVerified, setIsFaceVerified] = useState<boolean>(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
@@ -63,7 +61,6 @@ export default function NewApplicationPage() {
 
   // Track OCR data and images for submission
   const [idOcrText, setIdOcrText] = useState<string>("");
-  const [faceScanImage, setFaceScanImage] = useState<string>("");
   const [cogOcrText, setCogOcrText] = useState<string>("");
   const [cogExtractedData, setCogExtractedData] =
     useState<COGExtractionResponse | null>(null);
@@ -242,7 +239,6 @@ export default function NewApplicationPage() {
           yearLevel: data.yearLevel,
         },
         idImage: idImageBase64,
-        faceScanImage: faceScanImage,
         idOcr: {
           rawText: idOcrText,
         },
@@ -359,20 +355,6 @@ export default function NewApplicationPage() {
               )}
 
               {currentStep === 2 && (
-                <StepErrorBoundary stepName="Face Scan Step">
-                  <FaceScanStep<NewApplicationFormData>
-                    register={register}
-                    errors={errors}
-                    setValue={setValue}
-                    watch={watch}
-                    uploadedIdFile={uploadedFile}
-                    onVerificationComplete={setIsFaceVerified}
-                    onFaceScanImageChange={setFaceScanImage}
-                  />
-                </StepErrorBoundary>
-              )}
-
-              {currentStep === 3 && (
                 <StepErrorBoundary stepName="Personal Information Step 1">
                   <PersonalInfoStepPart1
                     register={register}
@@ -383,7 +365,7 @@ export default function NewApplicationPage() {
                 </StepErrorBoundary>
               )}
 
-              {currentStep === 4 && (
+              {currentStep === 3 && (
                 <StepErrorBoundary stepName="Personal Information Step 2">
                   <PersonalInfoStepPart2
                     register={register}
@@ -394,7 +376,7 @@ export default function NewApplicationPage() {
                 </StepErrorBoundary>
               )}
 
-              {currentStep === 5 && (
+              {currentStep === 4 && (
                 <StepErrorBoundary stepName="Documents Upload Step">
                   <DocumentsUploadStep<NewApplicationFormData>
                     register={register}
@@ -469,15 +451,14 @@ export default function NewApplicationPage() {
                   isSubmitting ||
                   (currentStep === 1 &&
                     (!uploadedFile || !isIdProcessingDone)) ||
-                  (currentStep === 2 && !isFaceVerified) ||
-                  (currentStep === 3 &&
+                  (currentStep === 2 &&
                     (!watch("lastName") ||
                       !watch("firstName") ||
                       !watch("dateOfBirth") ||
                       !watch("placeOfBirth") ||
                       !watch("age") ||
                       !watch("sex"))) ||
-                  (currentStep === 4 &&
+                  (currentStep === 3 &&
                     (!watch("houseNumber") ||
                       !watch("purok") ||
                       !watch("barangay") ||
@@ -486,7 +467,7 @@ export default function NewApplicationPage() {
                       !watch("religion") ||
                       !watch("course") ||
                       !watch("yearLevel"))) ||
-                  (currentStep === 5 &&
+                  (currentStep === 4 &&
                     (!certificateOfGrades ||
                       !certificateOfRegistration ||
                       !isCogProcessingDone ||

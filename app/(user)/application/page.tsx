@@ -109,7 +109,7 @@ export default function ApplicationPage() {
                         required documents.
                       </p>
                       <div className="mt-4 text-sm font-medium text-orange-500">
-                        5 steps • ~15 minutes
+                        4 steps • ~12 minutes
                       </div>
                     </CardContent>
                   </Card>
@@ -149,7 +149,7 @@ export default function ApplicationPage() {
                           </div>
                         </div>
                         <div className="mt-4 text-sm font-medium text-gray-400">
-                          5 steps • ~15 minutes
+                          4 steps • ~12 minutes
                         </div>
                       </CardContent>
                     </Card>
@@ -173,11 +173,11 @@ export default function ApplicationPage() {
                       <CardContent className="flex flex-1 flex-col justify-between">
                         <p className="text-sm text-gray-600 leading-relaxed">
                           Renew your scholarship. Your personal information will be
-                          auto-filled from your previous application. You only need to
-                          verify identity and upload updated documents.
+                          auto-filled from your previous application so you can focus on
+                          uploading updated documents.
                         </p>
                         <div className="mt-4 text-sm font-medium text-orange-500">
-                          3 steps • ~5 minutes
+                          2 steps • ~5 minutes
                         </div>
                       </CardContent>
                     </Card>
@@ -204,7 +204,8 @@ export default function ApplicationPage() {
                           <div>
                             <p className="text-sm text-gray-500 leading-relaxed mb-3">
                               Renew your scholarship. Your personal information will be
-                              auto-filled from your previous application.
+                              auto-filled from your previous application so you only need
+                              to upload updated documents.
                             </p>
                             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
                               <p className="text-xs text-yellow-800 font-medium">
@@ -216,7 +217,7 @@ export default function ApplicationPage() {
                             </div>
                           </div>
                           <div className="mt-4 text-sm font-medium text-gray-400">
-                            3 steps • ~5 minutes
+                            2 steps • ~5 minutes
                           </div>
                       </CardContent>
                     </Card>
