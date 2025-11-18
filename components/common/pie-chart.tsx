@@ -36,7 +36,7 @@ export function PieChart({
           </CardHeader>
         )}
         <CardContent>
-          <div className="h-64">
+          <div className="h-64 min-h-[256px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <RechartsPieChart>
                 <Pie

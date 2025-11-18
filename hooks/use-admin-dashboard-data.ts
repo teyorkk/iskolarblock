@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Users, Coins, Award } from "lucide-react";
 import type { StatsCard } from "@/types";
 
 interface Applicant {
@@ -159,7 +160,7 @@ export function useAdminDashboardData({
             title: "Total Applicants",
             value: totalApplicants.toString(),
             description: "This month",
-            icon: "Users" as any,
+            icon: Users,
             color: "bg-blue-500",
             trend: `${trendUp ? "+" : ""}${monthTrend}%`,
             trendUp,
@@ -168,7 +169,7 @@ export function useAdminDashboardData({
             title: "Total Budget",
             value: formatCurrency(totalBudget),
             description: "Allocated funds",
-            icon: "Coins" as any,
+            icon: Coins,
             color: "bg-green-500",
             trend: totalBudget > 0 ? "Active" : "Not set",
             trendUp: true,
@@ -177,7 +178,7 @@ export function useAdminDashboardData({
             title: "Remaining Budget",
             value: formatCurrency(remainingBudget),
             description: "Available funds",
-            icon: "Coins" as any,
+            icon: Coins,
             color: "bg-orange-500",
             trend:
               totalBudget > 0
@@ -191,7 +192,7 @@ export function useAdminDashboardData({
             title: "Granted Scholars",
             value: grantedCount.toString(),
             description: "Scholarships granted",
-            icon: "Award" as any,
+            icon: Award,
             color: "bg-purple-500",
             trend:
               grantedCount > 0 ? `${grantedCount} granted` : "None granted",
@@ -308,4 +309,3 @@ export function useAdminDashboardData({
     isLoading,
   };
 }
-

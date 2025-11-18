@@ -39,7 +39,7 @@ export function LineChart({
           </CardHeader>
         )}
         <CardContent>
-          <div className="h-64">
+          <div className="h-64 min-h-[256px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <RechartsLineChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
