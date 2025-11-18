@@ -27,6 +27,7 @@ interface ProfileFormData {
 
 interface ProfileFormProps {
   userData: {
+    id: string;
     name: string;
     email: string;
     phone: string | null;
@@ -56,7 +57,7 @@ export function ProfileForm({ userData, onUpdate }: ProfileFormProps) {
   });
 
   const onSubmit = async (formData: ProfileFormData) => {
-    if (!userData?.email) {
+    if (!userData?.email || !userData?.id) {
       toast.error("User not authenticated");
       return;
     }
@@ -64,29 +65,45 @@ export function ProfileForm({ userData, onUpdate }: ProfileFormProps) {
     setIsSaving(true);
 
     try {
-      const supabase = getSupabaseBrowserClient();
+      const trimmedNextEmail = formData.email.toLowerCase().trim();
+      const isEmailChanged =
+        trimmedNextEmail !== userData.email.toLowerCase().trim();
 
-      const { error } = await supabase
-        .from("User")
-        .update({
+      // Use API route to update profile (handles both auth and User table)
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           name: formData.name,
+          email: trimmedNextEmail,
           phone: formData.phone || null,
           address: formData.address || null,
           bio: formData.bio || null,
-          updatedAt: new Date().toISOString(),
-        })
-        .eq("email", userData.email.toLowerCase().trim());
+        }),
+      });
 
-      if (error) {
-        console.error("Error updating profile:", error);
-        toast.error("Failed to update profile");
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Error updating profile:", data);
+        toast.error(data.error || "Failed to update profile");
         return;
       }
 
-      onUpdate(formData);
-      toast.success("Profile updated successfully!");
+      onUpdate({
+        ...formData,
+        email: trimmedNextEmail,
+      });
+
+      if (isEmailChanged) {
+        toast.success("Email and profile updated successfully!");
+      } else {
+        toast.success("Profile updated successfully!");
+      }
       setIsEditing(false);
-      
+
       // Dispatch event to notify sidebar and other components
       window.dispatchEvent(new CustomEvent("userProfileUpdated"));
     } catch (error) {
@@ -154,9 +171,15 @@ export function ProfileForm({ userData, onUpdate }: ProfileFormProps) {
                 <Input
                   id="email"
                   type="email"
-                  {...register("email")}
-                  className="pl-10 bg-gray-50"
-                  disabled
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: "Invalid email format",
+                    },
+                  })}
+                  className={`pl-10 ${!isEditing ? "bg-gray-50" : ""}`}
+                  disabled={!isEditing}
                 />
               </div>
               {errors.email && (
@@ -234,4 +257,3 @@ export function ProfileForm({ userData, onUpdate }: ProfileFormProps) {
     </Card>
   );
 }
-

@@ -86,6 +86,7 @@ export default function SettingsPage() {
       prev
         ? {
             ...prev,
+            email: formData.email,
             name: formData.name,
             phone: formData.phone || null,
             address: formData.address || null,
