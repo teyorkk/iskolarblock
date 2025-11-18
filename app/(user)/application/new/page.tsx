@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowRight, ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,14 +13,12 @@ import {
 } from "@/components/ui/card";
 import { UserSidebar } from "@/components/user-sidebar";
 import { useRouter } from "next/navigation";
-import { useForm, type FieldErrors } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   newApplicationSchema,
   type NewApplicationFormData,
 } from "@/lib/validations";
-import { toast } from "sonner";
-import { useDropzone } from "react-dropzone";
 import { newApplicationSteps } from "@/lib/constants/application-steps";
 import { ApplicationProgress } from "@/components/application/application-progress";
 import { IdUploadStep } from "@/components/application/id-upload-step";
@@ -30,12 +28,10 @@ import { DocumentsUploadStep } from "@/components/application/documents-upload-s
 import { ApplicationSuccess } from "@/components/application/application-success";
 import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
 import { StepErrorBoundary } from "@/components/application/error-boundary";
-import type {
-  COGExtractionResponse,
-  CORExtractionResponse,
-} from "@/lib/services/document-extraction";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useSession } from "@/components/session-provider";
+import { useApplicationEligibility } from "@/hooks/use-application-eligibility";
+import { useApplicationFileUploads } from "@/hooks/use-application-file-uploads";
+import { useApplicationSubmission } from "@/hooks/use-application-submission";
 
 export default function NewApplicationPage() {
   const router = useRouter();

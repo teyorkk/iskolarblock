@@ -1,0 +1,194 @@
+import { useState } from "react";
+import { toast } from "sonner";
+import type { FieldErrors } from "react-hook-form";
+import type { NewApplicationFormData } from "@/lib/validations";
+import type {
+  COGExtractionResponse,
+  CORExtractionResponse,
+} from "@/lib/services/document-extraction";
+
+interface UseApplicationSubmissionOptions {
+  uploadedFile: File | null;
+  certificateOfGrades: File | null;
+  certificateOfRegistration: File | null;
+  idOcrText: string;
+  cogOcrText: string;
+  cogExtractedData: COGExtractionResponse | null;
+  cogFileUrl: string;
+  corOcrText: string;
+  corExtractedData: CORExtractionResponse | null;
+  corFileUrl: string;
+}
+
+const readFileAsBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+export function useApplicationSubmission(
+  options: UseApplicationSubmissionOptions
+) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedStatus, setSubmittedStatus] = useState<"PENDING" | "APPROVED">("PENDING");
+  const [submittedApplicationId, setSubmittedApplicationId] = useState<string | null>(null);
+
+  const getFirstErrorMessage = (
+    validationErrors: FieldErrors<NewApplicationFormData>
+  ): string | null => {
+    for (const candidate of Object.values(validationErrors)) {
+      if (
+        candidate &&
+        typeof candidate === "object" &&
+        "message" in candidate &&
+        candidate.message
+      ) {
+        return String(candidate.message);
+      }
+    }
+    return null;
+  };
+
+  const handleValidationErrors = (
+    validationErrors: FieldErrors<NewApplicationFormData>
+  ): void => {
+    const message =
+      getFirstErrorMessage(validationErrors) ||
+      "Please review your information and correct any highlighted fields.";
+    toast.error("Unable to submit application", {
+      description: message,
+    });
+  };
+
+  const onSubmit = async (data: NewApplicationFormData): Promise<void> => {
+    console.log("🚀 onSubmit called with data:", data);
+    try {
+      setIsSubmitting(true);
+      console.log("📝 Starting submission process...");
+
+      // Convert ID file to base64
+      let idImageBase64 = "";
+      if (options.uploadedFile) {
+        idImageBase64 = await readFileAsBase64(options.uploadedFile);
+      }
+
+      let cogFileBase64: string | null = null;
+      if (options.certificateOfGrades) {
+        try {
+          cogFileBase64 = await readFileAsBase64(options.certificateOfGrades);
+        } catch (error) {
+          console.error("COG file conversion error:", error);
+          toast.error("Failed to read Certificate of Grades file");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      let corFileBase64: string | null = null;
+      if (options.certificateOfRegistration) {
+        try {
+          corFileBase64 = await readFileAsBase64(options.certificateOfRegistration);
+        } catch (error) {
+          console.error("COR file conversion error:", error);
+          toast.error("Failed to read Certificate of Registration file");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Prepare submission data
+      const submissionData = {
+        formData: {
+          lastName: data.lastName,
+          firstName: data.firstName,
+          middleName: data.middleName,
+          dateOfBirth: data.dateOfBirth,
+          placeOfBirth: data.placeOfBirth,
+          age: data.age,
+          sex: data.sex,
+          houseNumber: data.houseNumber,
+          purok: data.purok,
+          barangay: data.barangay,
+          municipality: data.municipality,
+          province: data.province,
+          citizenship: data.citizenship,
+          contactNumber: data.contactNumber,
+          religion: data.religion,
+          course: data.course,
+          yearLevel: data.yearLevel,
+        },
+        idImage: idImageBase64,
+        idOcr: {
+          rawText: options.idOcrText,
+        },
+        cogOcr: {
+          rawText: options.cogOcrText || "",
+          extractedData: options.cogExtractedData || null,
+          fileUrl: options.cogFileUrl || undefined,
+        },
+        corOcr: {
+          rawText: options.corOcrText || "",
+          extractedData: options.corExtractedData || null,
+          fileUrl: options.corFileUrl || undefined,
+        },
+        cogFile: cogFileBase64,
+        corFile: corFileBase64,
+        cogFileName: options.certificateOfGrades?.name ?? null,
+        corFileName: options.certificateOfRegistration?.name ?? null,
+      };
+
+      const response = await fetch("/api/applications/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to submit application");
+      }
+
+      const result = await response.json();
+      const resultingStatus =
+        typeof result.status === "string" ? result.status : "PENDING";
+      setSubmittedApplicationId(result.applicationId || `SCH-${Date.now()}`);
+      setSubmittedStatus(
+        resultingStatus === "APPROVED" ? "APPROVED" : "PENDING"
+      );
+      setIsSubmitted(true);
+      setIsSubmitting(false);
+      toast.success(
+        resultingStatus === "APPROVED"
+          ? "Application approved instantly!"
+          : "Application submitted successfully!",
+        {
+          description:
+            resultingStatus === "APPROVED"
+              ? "All required documents were provided."
+              : "Missing documents detected. Please upload the rest to get approved.",
+        }
+      );
+    } catch (error) {
+      setIsSubmitting(false);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to submit application";
+      toast.error(errorMessage);
+      console.error("Submission error:", error);
+    }
+  };
+
+  return {
+    isSubmitting,
+    isSubmitted,
+    submittedStatus,
+    submittedApplicationId,
+    onSubmit,
+    handleValidationErrors,
+  };
+}
+
