@@ -8,6 +8,7 @@ import { UserSearchBar } from "@/components/user-management/user-search-bar";
 import { UserList } from "@/components/user-management/user-list";
 import { UserProfileDialog } from "@/components/user-management/user-profile-dialog";
 import { DeleteUserDialog } from "@/components/user-management/delete-user-dialog";
+import { Pagination } from "@/components/common/pagination";
 import type { User, Application } from "@/types";
 
 export default function UsersPage() {
@@ -23,6 +24,8 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     fetchUsers();
@@ -164,6 +167,19 @@ export default function UsersPage() {
     [roleStats]
   );
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
@@ -192,11 +208,21 @@ export default function UsersPage() {
             />
 
             <UserList
-              users={filteredUsers}
+              users={paginatedUsers}
               onViewProfile={handleViewProfile}
               onDelete={handleDeleteUser}
               isLoading={isLoading}
             />
+
+            {filteredUsers.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredUsers.length}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Pagination } from "@/components/common/pagination";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface Application {
@@ -83,6 +84,8 @@ export default function ScreeningPage() {
   >("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchPeriods = async () => {
@@ -257,11 +260,24 @@ export default function ScreeningPage() {
     { label: "Rejected", value: "REJECTED" as const, count: stats.rejected },
   ];
 
-  const visibleApplications = filteredApplications;
+  // Pagination logic
+  const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
+  const paginatedApplications = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredApplications.slice(startIndex, endIndex);
+  }, [filteredApplications, currentPage, itemsPerPage]);
+
+  const visibleApplications = paginatedApplications;
 
   const allVisibleSelected =
     visibleApplications.length > 0 &&
     visibleApplications.every((app) => selectedApplications.has(app.id));
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, debouncedSearchTerm]);
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
@@ -606,6 +622,15 @@ export default function ScreeningPage() {
                       </TableBody>
                     </Table>
                   </div>
+                )}
+                {filteredApplications.length > 0 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={filteredApplications.length}
+                  />
                 )}
               </CardContent>
             </Card>

@@ -39,6 +39,7 @@ import {
   Filter,
   ExternalLink,
 } from "lucide-react";
+import { Pagination } from "@/components/common/pagination";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type RecordTypeFilter = "ALL" | "APPLICATION" | "AWARDING";
@@ -93,6 +94,8 @@ export default function BlockchainPage() {
   const [records, setRecords] = useState<SupabaseBlockchainRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -199,6 +202,19 @@ export default function BlockchainPage() {
       );
     });
   }, [records, debouncedSearchTerm, typeFilter]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
+  const paginatedRecords = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredRecords.slice(startIndex, endIndex);
+  }, [filteredRecords, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter, debouncedSearchTerm]);
 
   const totalRecords = records.length;
   const applicationCount = records.filter(
@@ -406,7 +422,7 @@ export default function BlockchainPage() {
                             Loading blockchain records…
                           </TableCell>
                         </TableRow>
-                      ) : filteredRecords.length === 0 ? (
+                      ) : paginatedRecords.length === 0 ? (
                         <TableRow>
                           <TableCell
                             colSpan={5}
@@ -416,7 +432,7 @@ export default function BlockchainPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredRecords.map((record) => {
+                        paginatedRecords.map((record) => {
                           const displayName = getApplicantName(record);
                           return (
                             <TableRow key={record.id}>
@@ -616,6 +632,15 @@ export default function BlockchainPage() {
                     </TableBody>
                   </Table>
                 </div>
+                {filteredRecords.length > 0 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={filteredRecords.length}
+                  />
+                )}
               </CardContent>
             </Card>
           </motion.div>

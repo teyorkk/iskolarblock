@@ -49,6 +49,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Pagination } from "@/components/common/pagination";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AwardingStatus = "APPROVED" | "GRANTED";
@@ -165,6 +166,8 @@ export default function AwardingPage() {
   );
   const [levelFilters, setLevelFilters] = useState<Set<LevelFilter>>(new Set());
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchPeriods = async () => {
@@ -303,6 +306,19 @@ export default function AwardingPage() {
       );
     });
   }, [applications, statusFilters, levelFilters, debouncedSearchTerm]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
+  const paginatedApplications = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredApplications.slice(startIndex, endIndex);
+  }, [filteredApplications, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilters, levelFilters, debouncedSearchTerm]);
 
   const handleGrantScholarship = async (applicationId: string) => {
     setUpdatingId(applicationId);
@@ -577,7 +593,7 @@ export default function AwardingPage() {
                   <div className="text-center py-12 text-gray-600">
                     No approved scholars found for this period.
                   </div>
-                ) : filteredApplications.length === 0 ? (
+                ) : paginatedApplications.length === 0 ? (
                   <div className="text-center py-12 text-gray-600">
                     No scholars match the selected filters.
                   </div>
@@ -595,7 +611,7 @@ export default function AwardingPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredApplications.map((application) => {
+                        {paginatedApplications.map((application) => {
                           const level = deriveLevel(application);
                           const amount = getScholarAmount(level);
                           const currentStatus =
@@ -759,6 +775,15 @@ export default function AwardingPage() {
                       </TableBody>
                     </Table>
                   </div>
+                )}
+                {filteredApplications.length > 0 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={filteredApplications.length}
+                  />
                 )}
               </CardContent>
             </Card>

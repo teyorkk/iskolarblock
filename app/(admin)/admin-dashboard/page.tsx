@@ -11,7 +11,13 @@ import { ApplicationPeriodBanner } from "@/components/common/application-period-
 import { RecentApplicants } from "@/components/admin-dashboard/recent-applicants";
 import { QuickActions } from "@/components/admin-dashboard/quick-actions";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import type { StatsCard } from "@/types";
 
@@ -40,7 +46,9 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<StatsCard[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [pieData, setPieData] = useState<Array<{ name: string; value: number; color: string }>>([]);
+  const [pieData, setPieData] = useState<
+    Array<{ name: string; value: number; color: string }>
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
@@ -90,19 +98,24 @@ export default function AdminDashboard() {
           .order("createdAt", { ascending: false });
 
         if (selectedPeriodId) {
-          applicationsQuery = applicationsQuery.eq("applicationPeriodId", selectedPeriodId);
+          applicationsQuery = applicationsQuery.eq(
+            "applicationPeriodId",
+            selectedPeriodId
+          );
         }
 
-        const { data: applications, error: appsError } = await applicationsQuery;
+        const { data: applications, error: appsError } =
+          await applicationsQuery;
 
         if (appsError) {
           console.error("Error fetching applications:", appsError);
         }
 
         // Fetch user data for applications
-        const userIds = applications?.map((app) => app.userId).filter((id) => id) || [];
+        const userIds =
+          applications?.map((app) => app.userId).filter((id) => id) || [];
         let userMap = new Map();
-        
+
         if (userIds.length > 0) {
           const { data: users, error: usersError } = await supabase
             .from("User")
@@ -144,34 +157,46 @@ export default function AdminDashboard() {
 
         // Calculate statistics
         const totalApplicants = applications?.length || 0;
-        const pendingCount = applications?.filter((app) => app.status === "PENDING").length || 0;
-        const approvedCount = applications?.filter((app) => app.status === "APPROVED").length || 0;
-        const rejectedCount = applications?.filter((app) => app.status === "REJECTED").length || 0;
+        const pendingCount =
+          applications?.filter((app) => app.status === "PENDING").length || 0;
+        const approvedCount =
+          applications?.filter((app) => app.status === "APPROVED").length || 0;
+        const rejectedCount =
+          applications?.filter((app) => app.status === "REJECTED").length || 0;
+        const grantedCount =
+          applications?.filter((app) => app.status === "GRANTED").length || 0;
 
         // Calculate this month's applicants
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const thisMonthApps = applications?.filter(
-          (app) => new Date(app.createdAt) >= startOfMonth
-        ).length || 0;
+        const thisMonthApps =
+          applications?.filter((app) => new Date(app.createdAt) >= startOfMonth)
+            .length || 0;
 
         // Calculate last month's applicants for trend
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-        const lastMonthApps = applications?.filter(
-          (app) =>
-            new Date(app.createdAt) >= lastMonth && new Date(app.createdAt) <= lastMonthEnd
-        ).length || 0;
+        const lastMonthApps =
+          applications?.filter(
+            (app) =>
+              new Date(app.createdAt) >= lastMonth &&
+              new Date(app.createdAt) <= lastMonthEnd
+          ).length || 0;
 
         const monthTrend =
           lastMonthApps > 0
-            ? (((thisMonthApps - lastMonthApps) / lastMonthApps) * 100).toFixed(1)
+            ? (((thisMonthApps - lastMonthApps) / lastMonthApps) * 100).toFixed(
+                1
+              )
             : "0";
         const trendUp = thisMonthApps >= lastMonthApps;
 
         // Format budget values
         const formatCurrency = (amount: number) => {
-          return `₱${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          return `₱${amount.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`;
         };
 
         // Set stats
@@ -200,17 +225,23 @@ export default function AdminDashboard() {
             description: "Available funds",
             icon: Coins,
             color: "bg-orange-500",
-            trend: totalBudget > 0 ? `${((remainingBudget / totalBudget) * 100).toFixed(1)}% remaining` : "N/A",
+            trend:
+              totalBudget > 0
+                ? `${((remainingBudget / totalBudget) * 100).toFixed(
+                    1
+                  )}% remaining`
+                : "N/A",
             trendUp: remainingBudget > 0,
           },
           {
-            title: "Pending Reviews",
-            value: pendingCount.toString(),
-            description: "Awaiting approval",
-            icon: FileText,
+            title: "Granted Scholars",
+            value: grantedCount.toString(),
+            description: "Scholarships granted",
+            icon: Award,
             color: "bg-purple-500",
-            trend: pendingCount > 0 ? `${pendingCount} pending` : "All reviewed",
-            trendUp: pendingCount > 0,
+            trend:
+              grantedCount > 0 ? `${grantedCount} granted` : "None granted",
+            trendUp: grantedCount > 0,
           },
         ]);
 
@@ -219,25 +250,58 @@ export default function AdminDashboard() {
           { name: "Approved", value: approvedCount, color: "#10b981" },
           { name: "Pending", value: pendingCount, color: "#f97316" },
           { name: "Rejected", value: rejectedCount, color: "#ef4444" },
+          { name: "Granted", value: grantedCount, color: "#a855f7" }, // Purple color
         ]);
 
-        // Generate chart data (last 6 months)
+        // Generate week-by-week chart data from application period start to end date
         const chartDataPoints: ChartDataPoint[] = [];
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-        for (let i = 5; i >= 0; i--) {
-          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        if (selectedPeriodId && periods.length > 0) {
+          const currentPeriod = periods.find((p) => p.id === selectedPeriodId);
+          if (currentPeriod) {
+            const periodStart = new Date(currentPeriod.startDate);
+            const periodEnd = new Date(currentPeriod.endDate);
 
-          const monthApps = applications?.filter(
-            (app) =>
-              new Date(app.createdAt) >= monthStart && new Date(app.createdAt) <= monthEnd
-          ).length || 0;
+            // Calculate weeks from start to end
+            let weekStart = new Date(periodStart);
+            let weekNumber = 1;
 
+            while (weekStart <= periodEnd) {
+              // Calculate week end (6 days after week start, or period end if earlier)
+              const weekEnd = new Date(weekStart);
+              weekEnd.setDate(weekEnd.getDate() + 6);
+              if (weekEnd > periodEnd) {
+                weekEnd.setTime(periodEnd.getTime());
+              }
+
+              // Count applications in this week
+              const weekApps =
+                applications?.filter((app) => {
+                  const appDate = new Date(app.createdAt);
+                  return appDate >= weekStart && appDate <= weekEnd;
+                }).length || 0;
+
+              // Format week label (e.g., "Week 1", "Nov 1-7")
+              const weekLabel = `Week ${weekNumber}`;
+
+              chartDataPoints.push({
+                month: weekLabel,
+                applications: weekApps,
+              });
+
+              // Move to next week
+              weekStart = new Date(weekEnd);
+              weekStart.setDate(weekStart.getDate() + 1);
+              weekNumber++;
+            }
+          }
+        }
+
+        // If no period selected or no data, show empty chart
+        if (chartDataPoints.length === 0) {
           chartDataPoints.push({
-            month: monthNames[date.getMonth()],
-            applications: monthApps,
+            month: "No Data",
+            applications: 0,
           });
         }
 
@@ -255,11 +319,14 @@ export default function AdminDashboard() {
               email: user?.email || "",
               type: app.applicationType === "NEW" ? "New" : "Renewal",
               status: app.status,
-              submittedDate: new Date(app.createdAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              }),
+              submittedDate: new Date(app.createdAt).toLocaleDateString(
+                "en-US",
+                {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }
+              ),
             };
           }) || [];
 
@@ -306,6 +373,11 @@ export default function AdminDashboard() {
             <AdminDashboardHeader
               title="Admin Dashboard"
               description="Manage scholarship applications, budget allocation, and blockchain records for Barangay San Miguel."
+              reportData={{
+                stats,
+                pieData,
+                period: periods.find((p) => p.id === selectedPeriodId) || null,
+              }}
             />
 
             {/* Application Period Selector */}
@@ -325,10 +397,13 @@ export default function AdminDashboard() {
                     {periods.map((period) => (
                       <SelectItem key={period.id} value={period.id}>
                         {period.title} (
-                        {new Date(period.startDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          year: "numeric",
-                        })}{" "}
+                        {new Date(period.startDate).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )}{" "}
                         -{" "}
                         {new Date(period.endDate).toLocaleDateString("en-US", {
                           month: "short",

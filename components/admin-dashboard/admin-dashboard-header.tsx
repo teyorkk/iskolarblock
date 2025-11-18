@@ -1,15 +1,37 @@
 "use client";
 
-import { FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ApplicationPeriodDialog } from "./application-period-dialog";
+import { GenerateReportButton } from "./generate-report-button";
 import type { DashboardHeaderProps } from "@/types/components";
+import type { StatsCard } from "@/types";
+
+interface PieData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface ApplicationPeriod {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface AdminDashboardHeaderProps extends DashboardHeaderProps {
+  reportData?: {
+    stats: StatsCard[];
+    pieData: PieData[];
+    period: ApplicationPeriod | null;
+  };
+}
 
 export function AdminDashboardHeader({
   title,
   description,
   actions,
-}: DashboardHeaderProps): React.JSX.Element {
+  reportData,
+}: AdminDashboardHeaderProps): React.JSX.Element {
   return (
     <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-6 md:p-8 text-white mb-6">
       <div className="max-w-2xl">
@@ -19,13 +41,13 @@ export function AdminDashboardHeader({
           {actions || (
             <>
               <ApplicationPeriodDialog />
-              <Button
-                variant="outline"
-                className="border-white text-red-600 hover:bg-gray-100"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Generate Report
-              </Button>
+              {reportData ? (
+                <GenerateReportButton
+                  stats={reportData.stats}
+                  pieData={reportData.pieData}
+                  period={reportData.period}
+                />
+              ) : null}
             </>
           )}
         </div>
