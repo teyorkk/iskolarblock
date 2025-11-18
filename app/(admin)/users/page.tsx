@@ -22,7 +22,6 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSendingOTP, setIsSendingOTP] = useState(false);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
 
   useEffect(() => {
@@ -144,30 +143,6 @@ export default function UsersPage() {
     }
   };
 
-  const handleSendPasswordResetOTP = async (user: User): Promise<void> => {
-    try {
-      setIsSendingOTP(true);
-      const res = await fetch(`/api/admin/users/${user.id}/reset-password`, {
-        method: "POST",
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        toast.error(json.error || "Failed to send password reset OTP");
-        return;
-      }
-
-      toast.success(`Password reset OTP sent to ${user.email}`);
-    } catch (error) {
-      toast.error("An error occurred while sending password reset OTP");
-      console.error("Error:", error);
-    } finally {
-      setIsSendingOTP(false);
-    }
-  };
-
-
   const roleStats = useMemo(() => {
     return users.reduce(
       (acc, user) => {
@@ -199,7 +174,9 @@ export default function UsersPage() {
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                User Management
+              </h1>
               <p className="text-gray-600">
                 View and manage all registered users
               </p>
@@ -231,8 +208,6 @@ export default function UsersPage() {
         applications={userApplications}
         isLoadingApplications={isLoadingApplications}
         onDelete={handleDeleteUser}
-        onSendPasswordReset={handleSendPasswordResetOTP}
-        isSendingOTP={isSendingOTP}
       />
 
       <DeleteUserDialog

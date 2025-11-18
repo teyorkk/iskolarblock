@@ -139,8 +139,6 @@ export interface UserProfileDialogProps {
   applications: Application[];
   isLoadingApplications: boolean;
   onDelete: (user: User) => void;
-  onSendPasswordReset: (user: User) => void;
-  isSendingOTP: boolean;
 }
 
 export interface UserApplicationsTableProps {

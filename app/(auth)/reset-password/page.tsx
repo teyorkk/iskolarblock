@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { Eye, EyeOff, ArrowLeft, Lock, CheckCircle } from "lucide-react";
@@ -23,12 +23,15 @@ import {
   type ResetPasswordFormData,
 } from "@/lib/validations";
 import { toast } from "sonner";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSessionInitializing, setIsSessionInitializing] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
     register,
@@ -41,9 +44,56 @@ export default function ResetPasswordPage() {
 
   const password = watch("password", "");
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncRecoverySession = async () => {
+      const url = new URL(window.location.href);
+      const accessToken = url.searchParams.get("access_token");
+      const refreshToken = url.searchParams.get("refresh_token");
+      const type = url.searchParams.get("type");
+
+      if (accessToken && refreshToken && type === "recovery") {
+        const supabase = getSupabaseBrowserClient();
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error && isMounted) {
+          const message =
+            error.message ||
+            "We couldn't validate your reset link. Please request a new one.";
+          setErrorMessage(message);
+          toast.error(message);
+        }
+
+        if (isMounted) {
+          url.searchParams.delete("access_token");
+          url.searchParams.delete("refresh_token");
+          url.searchParams.delete("token_type");
+          url.searchParams.delete("expires_at");
+          url.searchParams.delete("type");
+          window.history.replaceState({}, "", url.pathname);
+        }
+      }
+
+      if (isMounted) {
+        setIsSessionInitializing(false);
+      }
+    };
+
+    syncRecoverySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const onSubmit = async (data: ResetPasswordFormData) => {
     try {
       setIsLoading(true);
+      setErrorMessage(null);
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -51,15 +101,22 @@ export default function ResetPasswordPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error || "Reset failed");
-        setIsLoading(false);
+        const message = json.error || "Reset failed";
+        setErrorMessage(
+          res.status === 401
+            ? "Your reset session has expired or is invalid. Please request a new reset link."
+            : message
+        );
+        toast.error(message);
         return;
       }
       setIsSuccess(true);
       toast.success("Password reset successful!");
     } catch (e) {
       const error = e as Error;
-      toast.error(error.message || "Unexpected error");
+      const message = error.message || "Unexpected error";
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +198,7 @@ export default function ResetPasswordPage() {
         className="w-full max-w-md"
       >
         <Card className="shadow-lg">
-          <CardHeader className="text-center pb-4">
+          <CardHeader className="text-center pb-4 space-y-4">
             <div className="flex justify-center mb-4">
               <div className="relative w-12 h-12 rounded-xl overflow-hidden">
                 <NextImage
@@ -159,6 +216,19 @@ export default function ResetPasswordPage() {
             <CardDescription className="text-gray-600">
               Create a new password for your IskolarBlock account
             </CardDescription>
+            {errorMessage && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 text-left">
+                {errorMessage}
+                <div className="mt-2">
+                  <Link
+                    href="/forgot-password"
+                    className="font-medium underline underline-offset-2"
+                  >
+                    Request a new reset link
+                  </Link>
+                </div>
+              </div>
+            )}
           </CardHeader>
 
           <CardContent>
@@ -239,7 +309,7 @@ export default function ResetPasswordPage() {
               <Button
                 type="submit"
                 className="w-full bg-orange-500 hover:bg-orange-600"
-                disabled={isLoading}
+                disabled={isLoading || isSessionInitializing}
               >
                 {isLoading ? (
                   <motion.div
@@ -251,6 +321,8 @@ export default function ResetPasswordPage() {
                     }}
                     className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                   />
+                ) : isSessionInitializing ? (
+                  "Preparing..."
                 ) : (
                   "Reset Password"
                 )}

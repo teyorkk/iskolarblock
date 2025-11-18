@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { UserSidebar } from "@/components/user-sidebar";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   renewalApplicationSchema,
@@ -399,6 +399,33 @@ export default function RenewalApplicationPage() {
     }
   };
 
+  const getFirstErrorMessage = (
+    validationErrors: FieldErrors<RenewalApplicationFormData>
+  ): string | null => {
+    for (const candidate of Object.values(validationErrors)) {
+      if (
+        candidate &&
+        typeof candidate === "object" &&
+        "message" in candidate &&
+        candidate.message
+      ) {
+        return String(candidate.message);
+      }
+    }
+    return null;
+  };
+
+  const handleValidationErrors = (
+    validationErrors: FieldErrors<RenewalApplicationFormData>
+  ): void => {
+    const message =
+      getFirstErrorMessage(validationErrors) ||
+      "Please review your information and correct any highlighted fields.";
+    toast.error("Unable to submit application", {
+      description: message,
+    });
+  };
+
   const nextStep = (): void => {
     if (currentStep < renewalApplicationSteps.length) {
       setCurrentStep(currentStep + 1);
@@ -588,7 +615,11 @@ export default function RenewalApplicationPage() {
               </Button>
 
               <Button
-                onClick={isLastStep ? handleSubmit(onSubmit) : nextStep}
+                onClick={
+                  isLastStep
+                    ? handleSubmit(onSubmit, handleValidationErrors)
+                    : nextStep
+                }
                 disabled={
                   isSubmitting ||
                   (currentStep === 1 &&

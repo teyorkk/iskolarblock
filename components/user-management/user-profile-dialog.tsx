@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Key,
   Trash2,
   Mail,
   Phone,
@@ -31,8 +30,6 @@ export function UserProfileDialog({
   applications,
   isLoadingApplications,
   onDelete,
-  onSendPasswordReset,
-  isSendingOTP,
 }: UserProfileDialogProps): React.JSX.Element | null {
   if (!user) return null;
 
@@ -79,16 +76,6 @@ export function UserProfileDialog({
               </Badge>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onSendPasswordReset(user)}
-                disabled={isSendingOTP}
-                className="w-full sm:w-auto"
-              >
-                <Key className="w-4 h-4 mr-2" />
-                {isSendingOTP ? "Sending..." : "Send Reset OTP"}
-              </Button>
               <Button
                 variant="outline"
                 size="sm"

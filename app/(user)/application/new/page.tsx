@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { UserSidebar } from "@/components/user-sidebar";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   newApplicationSchema,
@@ -473,6 +473,33 @@ export default function NewApplicationPage() {
     }
   };
 
+  const getFirstErrorMessage = (
+    validationErrors: FieldErrors<NewApplicationFormData>
+  ): string | null => {
+    for (const candidate of Object.values(validationErrors)) {
+      if (
+        candidate &&
+        typeof candidate === "object" &&
+        "message" in candidate &&
+        candidate.message
+      ) {
+        return String(candidate.message);
+      }
+    }
+    return null;
+  };
+
+  const handleValidationErrors = (
+    validationErrors: FieldErrors<NewApplicationFormData>
+  ): void => {
+    const message =
+      getFirstErrorMessage(validationErrors) ||
+      "Please review your information and correct any highlighted fields.";
+    toast.error("Unable to submit application", {
+      description: message,
+    });
+  };
+
   const nextStep = (): void => {
     if (currentStep < newApplicationSteps.length) {
       setCurrentStep(currentStep + 1);
@@ -632,10 +659,7 @@ export default function NewApplicationPage() {
                     console.log("📤 Submitting form...");
                     console.log("Form errors:", errors);
                     console.log("Form values:", watch());
-                    await handleSubmit(onSubmit, (errors) => {
-                      console.log("❌ Form validation errors:", errors);
-                      toast.error("Please fill in all required fields");
-                    })(e);
+                    await handleSubmit(onSubmit, handleValidationErrors)(e);
                   } else {
                     nextStep();
                   }
