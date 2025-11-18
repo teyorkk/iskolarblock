@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import {
   Card,
@@ -20,19 +21,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Users,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Eye,
-  FileSearch,
-  Filter,
-  Search,
-} from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { FileSearch, Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 import { ApplicationDetailsDialog } from "@/components/admin-screening/application-details-dialog";
 import {
   Select,
@@ -43,20 +33,16 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/common/pagination";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-
-interface Application {
-  id: string;
-  userId: string;
-  status: string;
-  applicationType: string;
-  createdAt: string;
-  User: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
+import {
+  useScreeningApplications,
+  type Application,
+} from "@/hooks/use-screening-applications";
+import { useScreeningFilters } from "@/hooks/use-screening-filters";
+import { useApplicationStatusUpdate } from "@/hooks/use-application-status-update";
+import { useApplicationPeriods } from "@/hooks/use-application-periods";
+import { getStatusColor, formatDate } from "@/lib/utils/screening-utils";
+import { ScreeningStatsCards } from "@/components/admin-screening/screening-stats-cards";
+import { ScreeningTableActions } from "@/components/admin-screening/screening-table-actions";
 
 interface ApplicationPeriod {
   id: string;
@@ -67,8 +53,6 @@ interface ApplicationPeriod {
 }
 
 export default function ScreeningPage() {
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedApplicationId, setSelectedApplicationId] = useState<
     string | null
   >(null);
@@ -77,69 +61,23 @@ export default function ScreeningPage() {
     new Set()
   );
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
-  const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
-  const [latestPeriodId, setLatestPeriodId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<
-    "ALL" | Application["status"]
-  >("ALL");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+
+  const { periods, latestPeriodId } = useApplicationPeriods();
 
   useEffect(() => {
-    const fetchPeriods = async () => {
-      try {
-        const supabase = getSupabaseBrowserClient();
-        const { data: periodsData, error: periodsError } = await supabase
-          .from("ApplicationPeriod")
-          .select("id, title, startDate, endDate, createdAt")
-          .order("createdAt", { ascending: false });
-
-        if (periodsError) {
-          console.error("Error fetching periods:", periodsError);
-        } else if (periodsData) {
-          setPeriods(periodsData);
-          // Set the first (latest) period as default
-          if (periodsData.length > 0) {
-            setLatestPeriodId(periodsData[0].id);
-            setSelectedPeriodId((prev) => prev || periodsData[0].id);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching periods:", error);
-      }
-    };
-
-    void fetchPeriods();
-  }, []);
-
-  useEffect(() => {
-    void fetchApplications();
-  }, [selectedPeriodId]);
-
-  const fetchApplications = async () => {
-    setIsLoading(true);
-    try {
-      const url = selectedPeriodId
-        ? `/api/admin/applications?periodId=${selectedPeriodId}`
-        : "/api/admin/applications";
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data.error || "Failed to fetch applications");
-        return;
-      }
-
-      setApplications(data.applications || []);
-    } catch (error) {
-      console.error("Error fetching applications:", error);
-      toast.error("An error occurred while fetching applications");
-    } finally {
-      setIsLoading(false);
+    if (periods.length > 0 && !selectedPeriodId) {
+      setSelectedPeriodId(periods[0].id);
     }
-  };
+  }, [periods, selectedPeriodId]);
+
+  const { applications, isLoading, refetch } =
+    useScreeningApplications(selectedPeriodId);
+
+  const filters = useScreeningFilters(applications);
+
+  const { updateStatus } = useApplicationStatusUpdate(() => {
+    void refetch();
+  });
 
   const handleViewDetails = (applicationId: string) => {
     setSelectedApplicationId(applicationId);
@@ -150,28 +88,7 @@ export default function ScreeningPage() {
     applicationId: string,
     newStatus: string
   ) => {
-    try {
-      const response = await fetch(`/api/admin/applications/${applicationId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data.error || "Failed to update application status");
-        return;
-      }
-
-      toast.success(`Application ${newStatus.toLowerCase()} successfully`);
-      void fetchApplications();
-    } catch (error) {
-      console.error("Error updating application:", error);
-      toast.error("An error occurred while updating application status");
-    }
+    await updateStatus(applicationId, newStatus);
   };
 
   const handleSelectAll = (checked: boolean, targetApps: Application[]) => {
@@ -196,88 +113,11 @@ export default function ScreeningPage() {
     setSelectedApplications(newSelected);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return "bg-green-100 text-green-700";
-      case "GRANTED":
-        return "bg-purple-100 text-purple-700";
-      case "REJECTED":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-orange-100 text-orange-700";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const stats = useMemo(() => {
-    return {
-      total: applications.length,
-      pending: applications.filter((app) => app.status === "PENDING").length,
-      approved: applications.filter((app) => app.status === "APPROVED").length,
-      granted: applications.filter((app) => app.status === "GRANTED").length,
-      rejected: applications.filter((app) => app.status === "REJECTED").length,
-    };
-  }, [applications]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm.trim().toLowerCase());
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
-
-  const filteredApplications = useMemo(() => {
-    return applications.filter((app) => {
-      const matchesStatus =
-        statusFilter === "ALL" || app.status === statusFilter;
-      if (!matchesStatus) return false;
-
-      if (!debouncedSearchTerm) return true;
-
-      const term = debouncedSearchTerm;
-      return (
-        app.User.name.toLowerCase().includes(term) ||
-        app.User.email.toLowerCase().includes(term) ||
-        app.applicationType.toLowerCase().includes(term)
-      );
-    });
-  }, [applications, statusFilter, debouncedSearchTerm]);
-
-  const statusFilters = [
-    { label: "All", value: "ALL" as const, count: stats.total },
-    { label: "Pending", value: "PENDING" as const, count: stats.pending },
-    { label: "Approved", value: "APPROVED" as const, count: stats.approved },
-    { label: "Granted", value: "GRANTED" as const, count: stats.granted },
-    { label: "Rejected", value: "REJECTED" as const, count: stats.rejected },
-  ];
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
-  const paginatedApplications = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredApplications.slice(startIndex, endIndex);
-  }, [filteredApplications, currentPage, itemsPerPage]);
-
-  const visibleApplications = paginatedApplications;
+  const visibleApplications = filters.paginatedApplications;
 
   const allVisibleSelected =
     visibleApplications.length > 0 &&
     visibleApplications.every((app) => selectedApplications.has(app.id));
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter, debouncedSearchTerm]);
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
@@ -345,15 +185,14 @@ export default function ScreeningPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                {selectedPeriodId &&
-                  selectedPeriodId !== latestPeriodId && (
-                    <Badge
-                      variant="outline"
-                      className="bg-yellow-50 text-yellow-700 border-yellow-200 w-full sm:w-auto text-center py-2"
-                    >
-                      View Only · Past Period
-                    </Badge>
-                  )}
+                {selectedPeriodId && selectedPeriodId !== latestPeriodId && (
+                  <Badge
+                    variant="outline"
+                    className="bg-yellow-50 text-yellow-700 border-yellow-200 w-full sm:w-auto text-center py-2"
+                  >
+                    View Only · Past Period
+                  </Badge>
+                )}
               </div>
             )}
 
@@ -363,96 +202,14 @@ export default function ScreeningPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search by name, email, or type..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={filters.searchTerm}
+                  onChange={(e) => filters.setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
 
-            {/* Stats Cards */}
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                {[1, 2, 3, 4].map((i) => (
-                  <Card key={i}>
-                    <CardContent className="p-4">
-                      <div className="animate-pulse space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-24"></div>
-                        <div className="h-8 bg-gray-200 rounded w-16"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">
-                          Total Applicants
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats.total}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Users className="w-5 h-5 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Pending</p>
-                        <p className="text-2xl font-bold text-orange-600">
-                          {stats.pending}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-orange-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Approved</p>
-                        <p className="text-2xl font-bold text-green-600">
-                          {stats.approved}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Rejected</p>
-                        <p className="text-2xl font-bold text-red-600">
-                          {stats.rejected}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <XCircle className="w-5 h-5 text-red-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            <ScreeningStatsCards stats={filters.stats} isLoading={isLoading} />
 
             {/* Status Filters */}
             <div className="mb-4">
@@ -462,19 +219,21 @@ export default function ScreeningPage() {
                   <span className="text-sm font-medium">Filter by status:</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {statusFilters.map((filter) => (
+                  {filters.statusFilters.map((filter) => (
                     <Button
                       key={filter.value}
                       variant={
-                        statusFilter === filter.value ? "default" : "outline"
+                        filters.statusFilter === filter.value
+                          ? "default"
+                          : "outline"
                       }
                       size="sm"
                       className={
-                        statusFilter === filter.value
+                        filters.statusFilter === filter.value
                           ? "bg-orange-500 hover:bg-orange-600 text-white"
                           : undefined
                       }
-                      onClick={() => setStatusFilter(filter.value)}
+                      onClick={() => filters.setStatusFilter(filter.value)}
                     >
                       {filter.label} ({filter.count})
                     </Button>
@@ -571,51 +330,13 @@ export default function ScreeningPage() {
                               {formatDate(application.createdAt)}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex justify-end space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleViewDetails(application.id)
-                                  }
-                                  title="View Details"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                {application.status === "PENDING" &&
-                                  selectedPeriodId === latestPeriodId && (
-                                    <>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                        onClick={() =>
-                                          handleStatusUpdate(
-                                            application.id,
-                                            "APPROVED"
-                                          )
-                                        }
-                                        title="Approve"
-                                      >
-                                        <CheckCircle className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() =>
-                                          handleStatusUpdate(
-                                            application.id,
-                                            "REJECTED"
-                                          )
-                                        }
-                                        title="Reject"
-                                      >
-                                        <XCircle className="w-4 h-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                              </div>
+                              <ScreeningTableActions
+                                applicationId={application.id}
+                                status={application.status}
+                                onViewDetails={handleViewDetails}
+                                onStatusUpdate={handleStatusUpdate}
+                                canEdit={selectedPeriodId === latestPeriodId}
+                              />
                             </TableCell>
                           </TableRow>
                         ))}
@@ -623,13 +344,13 @@ export default function ScreeningPage() {
                     </Table>
                   </div>
                 )}
-                {filteredApplications.length > 0 && (
+                {filters.filteredApplications.length > 0 && (
                   <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    itemsPerPage={itemsPerPage}
-                    totalItems={filteredApplications.length}
+                    currentPage={filters.currentPage}
+                    totalPages={filters.totalPages}
+                    onPageChange={filters.setCurrentPage}
+                    itemsPerPage={filters.itemsPerPage}
+                    totalItems={filters.filteredApplications.length}
                   />
                 )}
               </CardContent>
@@ -647,7 +368,7 @@ export default function ScreeningPage() {
           setSelectedApplicationId(null);
         }}
         onStatusUpdate={() => {
-          void fetchApplications();
+          void refetch();
         }}
       />
     </div>

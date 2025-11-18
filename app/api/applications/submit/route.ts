@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { randomUUID } from "crypto";
-import type { GradeSubject } from "@/lib/services/document-extraction";
 import { logApplicationToBlockchain } from "@/lib/services/blockchain";
+import type { GradeSubject } from "@/lib/services/document-extraction";
+import {
+  uploadDocumentFromBase64,
+  resolveStoredDocumentUrl,
+} from "@/lib/services/document-upload";
+import { createOCRRecords } from "@/lib/services/ocr-records";
+import { createCertificateRecords } from "@/lib/services/certificate-records";
 
 interface SubmitApplicationRequest {
   // Form data
@@ -70,54 +76,6 @@ interface SubmitApplicationRequest {
   // Note: Files are sent as base64 strings, not File objects
 }
 
-interface DocumentUploadParams {
-  base64: string;
-  fileName: string;
-  userId: string;
-  applicationId: string;
-  type: "cog" | "cor";
-}
-
-const uploadDocumentFromBase64 = async (
-  supabase: ReturnType<typeof getSupabaseServerClient>,
-  { base64, fileName, userId, applicationId, type }: DocumentUploadParams
-): Promise<string | null> => {
-  try {
-    const cleaned = base64.replace(/^data:.*;base64,/, "");
-    const buffer = Buffer.from(cleaned, "base64");
-    const filePath = `applications/${userId}/${applicationId}/${type}-${Date.now()}-${fileName}`;
-    const { error: uploadError } = await supabase.storage
-      .from("documents")
-      .upload(filePath, buffer, {
-        contentType: fileName.endsWith(".pdf")
-          ? "application/pdf"
-          : "image/jpeg",
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error(`${type.toUpperCase()} upload error:`, uploadError);
-      return null;
-    }
-
-    const { data } = supabase.storage.from("documents").getPublicUrl(filePath);
-    return data.publicUrl;
-  } catch (error) {
-    console.error(`Failed to upload ${type} document:`, error);
-    return null;
-  }
-};
-
-const resolveStoredDocumentUrl = (
-  supabase: ReturnType<typeof getSupabaseServerClient>,
-  path?: string | null
-): string | null => {
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
-  const { data } = supabase.storage.from("documents").getPublicUrl(path);
-  return data.publicUrl ?? null;
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -172,29 +130,17 @@ export async function POST(request: NextRequest) {
 
     // Upload ID image
     if (body.idImage && body.idImage.trim() !== "") {
-      const idImageBuffer = Buffer.from(
-        body.idImage.replace(/^data:image\/\w+;base64,/, ""),
-        "base64"
-      );
-      const idFileName = `applications/${userId}/${applicationId}/id-${Date.now()}.jpg`;
-      const { error: idUploadError } = await supabase.storage
-        .from("documents")
-        .upload(idFileName, idImageBuffer, {
-          contentType: "image/jpeg",
-          cacheControl: "3600",
-        });
-
-      if (idUploadError) {
-        console.error("ID image upload error:", idUploadError);
-        // Continue without image URL if upload fails
-      } else {
-        const { data: idUrlData } = supabase.storage
-          .from("documents")
-          .getPublicUrl(idFileName);
-        idImageUrl = idUrlData.publicUrl;
-      }
+      idImageUrl =
+        (await uploadDocumentFromBase64(supabase, {
+          base64: body.idImage,
+          fileName: `id-${Date.now()}.jpg`,
+          userId,
+          applicationId,
+          type: "id",
+        })) || "";
     }
 
+    // Upload or resolve COG document
     if (body.cogFile && body.cogFileName) {
       cogDocumentUrl = await uploadDocumentFromBase64(supabase, {
         base64: body.cogFile,
@@ -207,6 +153,7 @@ export async function POST(request: NextRequest) {
       cogDocumentUrl = resolveStoredDocumentUrl(supabase, body.cogOcr.fileUrl);
     }
 
+    // Upload or resolve COR document
     if (body.corFile && body.corFileName) {
       corDocumentUrl = await uploadDocumentFromBase64(supabase, {
         base64: body.corFile,
@@ -252,132 +199,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create OCRRaw records
-    const ocrRawRecords = [];
+    // Create OCR records
+    await createOCRRecords({
+      supabase,
+      userId,
+      applicationId,
+      idOcr: body.idOcr,
+      cogOcr: body.cogOcr,
+      corOcr: body.corOcr,
+    });
 
-    // ID OCR
-    if (body.idOcr?.rawText) {
-      const idOcrRawId = randomUUID();
-      ocrRawRecords.push({
-        id: idOcrRawId,
-        userId: userId,
-        applicationId: applicationId,
-        rawText: body.idOcr.rawText,
-        file_type: "id",
-      });
-
-      // Create OCRProcessed if processed text exists
-      if (body.idOcr.processedText) {
-        const idOcrProcessedId = randomUUID();
-        await supabase.from("OCRProcessed").insert({
-          id: idOcrProcessedId,
-          ocrRawId: idOcrRawId,
-          cleanedText: body.idOcr.processedText,
-          accuracyPercent: 100, // You can calculate this if needed
-        });
-      }
-    }
-
-    // COG OCR
-    if (body.cogOcr?.rawText) {
-      const cogOcrRawId = randomUUID();
-      ocrRawRecords.push({
-        id: cogOcrRawId,
-        userId: userId,
-        applicationId: applicationId,
-        rawText: body.cogOcr.rawText,
-        file_type: "cog",
-      });
-
-      if (body.cogOcr.processedText) {
-        const cogOcrProcessedId = randomUUID();
-        await supabase.from("OCRProcessed").insert({
-          id: cogOcrProcessedId,
-          ocrRawId: cogOcrRawId,
-          cleanedText: body.cogOcr.processedText,
-          accuracyPercent: 100,
-        });
-      }
-    }
-
-    // COR OCR
-    if (body.corOcr?.rawText) {
-      const corOcrRawId = randomUUID();
-      ocrRawRecords.push({
-        id: corOcrRawId,
-        userId: userId,
-        applicationId: applicationId,
-        rawText: body.corOcr.rawText,
-        file_type: "cor",
-      });
-
-      if (body.corOcr.processedText) {
-        const corOcrProcessedId = randomUUID();
-        await supabase.from("OCRProcessed").insert({
-          id: corOcrProcessedId,
-          ocrRawId: corOcrRawId,
-          cleanedText: body.corOcr.processedText,
-          accuracyPercent: 100,
-        });
-      }
-    }
-
-    // Insert all OCRRaw records
-    if (ocrRawRecords.length > 0) {
-      const { error: ocrError } = await supabase
-        .from("OCRRaw")
-        .insert(ocrRawRecords);
-
-      if (ocrError) {
-        console.error("OCRRaw creation error:", ocrError);
-      }
-    }
-
-    // Create CertificateOfGrades record
-    if (body.cogOcr?.extractedData) {
-      const cogId = randomUUID();
-      const { error: cogError } = await supabase
-        .from("CertificateOfGrades")
-        .insert({
-          id: cogId,
-          applicationId: applicationId,
-          school: body.cogOcr.extractedData.school || "",
-          schoolYear: body.cogOcr.extractedData.school_year || "",
-          semester: body.cogOcr.extractedData.semester || "",
-          course: body.cogOcr.extractedData.course || "",
-          name: body.cogOcr.extractedData.name || "",
-          gwa: body.cogOcr.extractedData.gwa || 0,
-          totalUnits: body.cogOcr.extractedData.total_units || 0,
-          subjects: body.cogOcr.extractedData.subjects || [],
-          fileUrl: cogDocumentUrl,
-        });
-
-      if (cogError) {
-        console.error("CertificateOfGrades creation error:", cogError);
-      }
-    }
-
-    // Create CertificateOfRegistration record (no subjects)
-    if (body.corOcr?.extractedData) {
-      const corId = randomUUID();
-      const { error: corError } = await supabase
-        .from("CertificateOfRegistration")
-        .insert({
-          id: corId,
-          applicationId: applicationId,
-          school: body.corOcr.extractedData.school || "",
-          schoolYear: body.corOcr.extractedData.school_year || "",
-          semester: body.corOcr.extractedData.semester || "",
-          course: body.corOcr.extractedData.course || "",
-          name: body.corOcr.extractedData.name || "",
-          totalUnits: body.corOcr.extractedData.total_units || 0,
-          fileUrl: corDocumentUrl,
-        });
-
-      if (corError) {
-        console.error("CertificateOfRegistration creation error:", corError);
-      }
-    }
+    // Create certificate records
+    await createCertificateRecords({
+      supabase,
+      applicationId,
+      cogData: body.cogOcr?.extractedData || undefined,
+      corData: body.corOcr?.extractedData || undefined,
+      cogDocumentUrl,
+      corDocumentUrl,
+    });
 
     let transactionHash: string | null = null;
     try {

@@ -125,10 +125,11 @@ export function DocumentsUploadStep<
   });
 
   const hasErrors = Boolean(cogProcessing.ocrError || corProcessing.ocrError);
-  const bothFilesUploaded = Boolean(certificateOfGrades && certificateOfRegistration);
+  const bothFilesUploaded = Boolean(
+    certificateOfGrades && certificateOfRegistration
+  );
   const bothProcessingDone = isCogProcessingDone && isCorProcessingDone;
   const missingDocuments = !certificateOfGrades || !certificateOfRegistration;
-
 
   return (
     <Card>
