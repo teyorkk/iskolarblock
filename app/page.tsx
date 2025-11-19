@@ -7,6 +7,7 @@ import { Loading } from "@/components/loading";
 import { LandingNavigation } from "@/components/landing/landing-navigation";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { LandingFeatures } from "@/components/landing/landing-features";
+import { LandingLiveStats } from "@/components/landing/landing-live-stats";
 import { LandingAbout } from "@/components/landing/landing-about";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { landingFeatures } from "@/lib/constants/landing-features";
@@ -38,6 +39,7 @@ export default function Home() {
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
       <LandingHero />
+      <LandingLiveStats />
       <LandingFeatures features={landingFeatures} />
       <LandingAbout />
       <LandingFooter />
