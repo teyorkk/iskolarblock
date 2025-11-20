@@ -8,15 +8,17 @@ import { LandingNavigation } from "@/components/landing/landing-navigation";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { LandingFeatures } from "@/components/landing/landing-features";
 import { LandingLiveImpact } from "@/components/landing/landing-live-impact";
+import { LandingBlockchainFeed } from "@/components/landing/landing-blockchain-feed";
 import { LandingAbout } from "@/components/landing/landing-about";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { landingFeatures } from "@/lib/constants/landing-features";
 import { landingLiveImpactStats } from "@/lib/constants/landing-live-impact";
-import type { LiveImpactStat } from "@/types";
+import type { LiveBlockchainRecord, LiveImpactStat } from "@/types";
 import type { LiveImpactAggregates } from "@/lib/services/live-impact";
 
 interface LandingPageClientProps {
   initialLiveImpactValues: LiveImpactAggregates;
+  initialBlockchainFeed: LiveBlockchainRecord[];
 }
 
 const numberFormatter = new Intl.NumberFormat("en-PH", {
@@ -51,6 +53,7 @@ const formatLiveImpactStats = (
 
 export function LandingPageClient({
   initialLiveImpactValues,
+  initialBlockchainFeed,
 }: LandingPageClientProps): React.JSX.Element {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
@@ -58,6 +61,9 @@ export function LandingPageClient({
   const hydrated = ready && typeof window !== "undefined";
   const [liveImpactValues, setLiveImpactValues] = useState(
     initialLiveImpactValues
+  );
+  const [blockchainFeed, setBlockchainFeed] = useState<LiveBlockchainRecord[]>(
+    initialBlockchainFeed
   );
 
   useEffect(() => {
@@ -73,27 +79,36 @@ export function LandingPageClient({
 
     let isMounted = true;
 
-    const fetchLiveImpactStats = async () => {
+    const fetchLandingData = async () => {
       try {
-        const response = await fetch("/api/live-impact");
-        if (!response.ok) {
-          throw new Error("Failed to fetch live impact stats");
+        const [impactResponse, feedResponse] = await Promise.all([
+          fetch("/api/live-impact"),
+          fetch("/api/live-blockchain-feed"),
+        ]);
+
+        if (impactResponse.ok) {
+          const impactData: LiveImpactAggregates = await impactResponse.json();
+          if (isMounted) {
+            setLiveImpactValues({
+              totalBudgetReimbursed: impactData.totalBudgetReimbursed ?? 0,
+              totalApplicants: impactData.totalApplicants ?? 0,
+              grantedApplicants: impactData.grantedApplicants ?? 0,
+            });
+          }
         }
 
-        const data: LiveImpactAggregates = await response.json();
-        if (!isMounted) return;
-
-        setLiveImpactValues({
-          totalBudgetReimbursed: data.totalBudgetReimbursed ?? 0,
-          totalApplicants: data.totalApplicants ?? 0,
-          grantedApplicants: data.grantedApplicants ?? 0,
-        });
+        if (feedResponse.ok) {
+          const feedData: LiveBlockchainRecord[] = await feedResponse.json();
+          if (isMounted) {
+            setBlockchainFeed(feedData ?? []);
+          }
+        }
       } catch (error) {
-        console.error("Error loading live impact stats:", error);
+        console.error("Error loading landing data:", error);
       }
     };
 
-    void fetchLiveImpactStats();
+    void fetchLandingData();
 
     return () => {
       isMounted = false;
@@ -117,6 +132,7 @@ export function LandingPageClient({
       />
       <LandingHero />
       <LandingLiveImpact stats={liveImpactStats} />
+      <LandingBlockchainFeed records={blockchainFeed} />
       <LandingFeatures features={landingFeatures} />
       <LandingAbout />
       <LandingFooter />

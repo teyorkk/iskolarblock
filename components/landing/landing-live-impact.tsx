@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -13,6 +14,54 @@ import type { LandingLiveImpactProps } from "@/types/components";
 export function LandingLiveImpact({
   stats,
 }: LandingLiveImpactProps): React.JSX.Element {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(containerRef, { once: true, margin: "-50px" });
+
+  const [displayValues, setDisplayValues] = useState(
+    stats.map((stat) => ({ id: stat.id, value: stat.value }))
+  );
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    const duration = 1000;
+    const startTime = performance.now();
+
+    const parsedTargets = stats.map((stat) => ({
+      id: stat.id,
+      target: Number(stat.value.replace(/[^0-9.-]/g, "")) || 0,
+      prefix: stat.prefix ?? "",
+      suffix: stat.suffix ?? "",
+    }));
+
+    const frame = () => {
+      const now = performance.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+
+      setDisplayValues(
+        parsedTargets.map(({ id, target, prefix, suffix }) => {
+          const currentValue = Math.round(target * progress);
+          return {
+            id,
+            value: `${prefix}${currentValue.toLocaleString("en-PH")}${suffix}`,
+          };
+        })
+      );
+
+      if (progress < 1) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    requestAnimationFrame(frame);
+  }, [isInView, stats]);
+
+  const valueLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    displayValues.forEach((item) => map.set(item.id, item.value));
+    return map;
+  }, [displayValues]);
+
   return (
     <section
       id="live-impact"
@@ -38,7 +87,7 @@ export function LandingLiveImpact({
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div ref={containerRef} className="grid md:grid-cols-3 gap-8">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.id}
@@ -58,9 +107,7 @@ export function LandingLiveImpact({
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl font-bold text-gray-900 mb-2">
-                    {stat.prefix}
-                    {stat.value}
-                    {stat.suffix}
+                    {valueLookup.get(stat.id) ?? `${stat.prefix ?? ""}${stat.value}${stat.suffix ?? ""}`}
                   </p>
                   <CardDescription className="text-gray-600">
                     {stat.description}

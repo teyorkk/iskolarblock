@@ -508,29 +508,14 @@ export default function AwardingPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Approved Scholars</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {stats.totalApproved}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Pending Release</p>
                       <p className="text-2xl font-bold text-orange-600">
-                        {stats.pending}
+                        {isLoading ? "--" : stats.pending}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -545,7 +530,7 @@ export default function AwardingPage() {
                     <div>
                       <p className="text-sm text-gray-600">Granted Scholars</p>
                       <p className="text-2xl font-bold text-green-600">
-                        {stats.granted}
+                        {isLoading ? "--" : stats.granted}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -559,10 +544,12 @@ export default function AwardingPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">
-                        Projected Disbursement
+                        Projected Disbursement Amount
                       </p>
                       <p className="text-2xl font-bold text-purple-600">
-                        {currencyFormatter.format(stats.totalAmount)}
+                        {isLoading
+                          ? "--"
+                          : currencyFormatter.format(stats.totalAmount)}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">

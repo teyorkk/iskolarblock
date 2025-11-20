@@ -42,6 +42,16 @@ export function LandingNavigation({
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
             <Link
+              href="#blockchain-feed"
+              className="text-gray-600 hover:text-orange-500 transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                handleSmoothScroll("blockchain-feed");
+              }}
+            >
+              Blockchain Feed
+            </Link>
+            <Link
               href="#live-impact"
               className="text-gray-600 hover:text-orange-500 transition-colors"
               onClick={(e) => {
@@ -107,6 +117,17 @@ export function LandingNavigation({
             className="md:hidden mt-4 pb-4"
           >
             <div className="flex flex-col space-y-3">
+              <Link
+                href="#blockchain-feed"
+                className="text-gray-600 hover:text-orange-500 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onMobileMenuToggle();
+                  handleSmoothScroll("blockchain-feed");
+                }}
+              >
+                Blockchain Feed
+              </Link>
               <Link
                 href="#live-impact"
                 className="text-gray-600 hover:text-orange-500 transition-colors"

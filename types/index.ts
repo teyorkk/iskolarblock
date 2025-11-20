@@ -73,6 +73,14 @@ export interface LiveImpactStat {
   suffix?: string;
 }
 
+export interface LiveBlockchainRecord {
+  id: string;
+  transactionHash: string;
+  applicationType: string;
+  recordType: "APPLICATION" | "AWARDING";
+  timestamp: string;
+}
+
 // Application form types
 export interface ApplicationStep {
   id: number;
