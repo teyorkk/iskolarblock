@@ -8,6 +8,7 @@ import type {
   ChartDataPoint,
   PieChartData,
   Feature,
+  LiveImpactStat,
   ApplicationStep,
 } from "./index";
 import type {
@@ -34,6 +35,10 @@ export type LandingHeroProps = Record<string, never>;
 
 export interface LandingFeaturesProps {
   features: Feature[];
+}
+
+export interface LandingLiveImpactProps {
+  stats: LiveImpactStat[];
 }
 
 export type LandingAboutProps = Record<string, never>;

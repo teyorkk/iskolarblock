@@ -62,6 +62,17 @@ export interface Feature {
   description: string;
 }
 
+// Live impact stats type for landing page
+export interface LiveImpactStat {
+  id: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  value: string;
+  description: string;
+  prefix?: string;
+  suffix?: string;
+}
+
 // Application form types
 export interface ApplicationStep {
   id: number;
