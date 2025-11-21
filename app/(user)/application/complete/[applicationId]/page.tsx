@@ -344,7 +344,7 @@ export default function CompleteApplicationPage() {
             <CardTitle>Complete Your Application</CardTitle>
             <CardDescription>
               Upload the missing documents below. You can upload one file at a time. 
-              We'll run OCR automatically and your application will be approved once both documents are uploaded.
+              We&apos;ll run OCR automatically and your application will be approved once both documents are uploaded.
             </CardDescription>
           </CardHeader>
         </Card>
