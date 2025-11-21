@@ -315,9 +315,20 @@ async function callExtractionWebhook(
   console.log("Raw Response:", responseText.substring(0, 1000));
 
   const rawData = JSON.parse(responseText) as
-    | N8NWebhookResponse
-    | N8NWebhookResponse[];
+    | (N8NWebhookResponse & { Id?: boolean })
+    | (N8NWebhookResponse & { Id?: boolean })[];
   console.log("Parsed Raw Data:", JSON.stringify(rawData, null, 2));
+
+  // Check if the uploaded file is actually an ID
+  const dataObject = Array.isArray(rawData) ? rawData[0] : rawData;
+  if (dataObject && "Id" in dataObject && dataObject.Id === false) {
+    console.error(
+      "Invalid file type: Uploaded file is not a valid ID document"
+    );
+    throw new Error(
+      "Invalid file type: Uploaded file is not a valid ID document"
+    );
+  }
 
   // Transform N8N format to our expected format
   const data = transformN8NResponse(rawData);
@@ -404,8 +415,16 @@ export async function POST(request: NextRequest) {
 
       // Determine appropriate status code
       let statusCode = 502;
-      if (errorMessage.includes("temporarily unavailable")) statusCode = 503;
-      if (errorMessage.includes("Network error")) statusCode = 503;
+      if (
+        errorMessage.includes("Invalid file type") ||
+        errorMessage.includes("not a valid ID document")
+      ) {
+        statusCode = 400; // Bad Request - invalid file type
+      } else if (errorMessage.includes("temporarily unavailable")) {
+        statusCode = 503;
+      } else if (errorMessage.includes("Network error")) {
+        statusCode = 503;
+      }
 
       return NextResponse.json({ error: errorMessage }, { status: statusCode });
     }
