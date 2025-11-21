@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,15 +29,15 @@ export function UserQuickActions({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {actions.map((action, index) => (
-              <Link key={index} href={action.href || "#"}>
-                <Button
-                  variant="outline"
-                  className="w-full h-20 flex flex-col items-center justify-center hover:bg-orange-50 hover:border-orange-200"
-                >
-                  <action.icon className="w-6 h-6 mb-2 text-orange-500" />
-                  <span className="text-sm">{action.label}</span>
-                </Button>
-              </Link>
+              <Button
+                key={index}
+                variant="outline"
+                className="w-full h-20 flex flex-col items-center justify-center hover:bg-orange-50 hover:border-orange-200"
+                onClick={action.onClick}
+              >
+                <action.icon className="w-6 h-6 mb-2 text-orange-500" />
+                <span className="text-sm">{action.label}</span>
+              </Button>
             ))}
           </div>
         </CardContent>

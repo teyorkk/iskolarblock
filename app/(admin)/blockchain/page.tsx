@@ -436,8 +436,8 @@ export default function BlockchainPage() {
                           const displayName = getApplicantName(record);
                           return (
                             <TableRow key={record.id}>
-                              <TableCell>
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                              <TableCell className="max-w-[200px]">
+                                <div className="flex items-center gap-2">
                                   <a
                                     href={
                                       buildExplorerUrl(
@@ -446,25 +446,25 @@ export default function BlockchainPage() {
                                     }
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 font-mono text-xs text-orange-700 hover:text-orange-800 min-w-0 flex-1"
+                                    className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 font-mono text-xs text-orange-700 hover:text-orange-800 max-w-[160px]"
                                     title={record.transactionHash}
                                   >
                                     <span className="truncate">
-                                      {record.transactionHash.slice(0, 10)}...
-                                      {record.transactionHash.slice(-8)}
+                                      {record.transactionHash.slice(0, 6)}...
+                                      {record.transactionHash.slice(-6)}
                                     </span>
                                     <ExternalLink className="w-3 h-3 flex-shrink-0" />
                                   </a>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 flex-shrink-0"
+                                    className="h-7 w-7 flex-shrink-0"
                                     onClick={() =>
                                       copyToClipboard(record.transactionHash)
                                     }
                                     title="Copy transaction hash"
                                   >
-                                    <Copy className="w-3 h-3" />
+                                    <Copy className="w-3.5 h-3.5" />
                                   </Button>
                                 </div>
                               </TableCell>
