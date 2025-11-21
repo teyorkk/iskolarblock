@@ -66,6 +66,8 @@ interface DocumentsUploadStepProps<
   corUploadLocked?: boolean;
   onUnlockCogUpload?: () => void;
   onUnlockCorUpload?: () => void;
+  onCogInvalidFileTypeChange?: (isInvalid: boolean) => void;
+  onCorInvalidFileTypeChange?: (isInvalid: boolean) => void;
 }
 
 export function DocumentsUploadStep<
@@ -98,11 +100,17 @@ export function DocumentsUploadStep<
   corUploadLocked,
   onUnlockCogUpload,
   onUnlockCorUpload,
+  onCogInvalidFileTypeChange,
+  onCorInvalidFileTypeChange,
 }: DocumentsUploadStepProps<T>): React.JSX.Element {
   const { user } = useSession();
   // Certificate of Grades state
   const [_cogOcrText, setCogOcrText] = useState<string>("");
   const [cogOcrError, setCogOcrError] = useState<string>("");
+  const [isCogInvalidFileType, setIsCogInvalidFileType] =
+    useState<boolean>(false);
+  const [cogInvalidFileTypeError, setCogInvalidFileTypeError] =
+    useState<string>("");
   const [isCogProcessing, setIsCogProcessing] = useState<boolean>(false);
   const [cogProgress, setCogProgress] = useState<number>(0);
   const [cogStatusMessage, setCogStatusMessage] = useState<string>("");
@@ -112,6 +120,10 @@ export function DocumentsUploadStep<
   // Certificate of Registration state
   const [_corOcrText, setCorOcrText] = useState<string>("");
   const [corOcrError, setCorOcrError] = useState<string>("");
+  const [isCorInvalidFileType, setIsCorInvalidFileType] =
+    useState<boolean>(false);
+  const [corInvalidFileTypeError, setCorInvalidFileTypeError] =
+    useState<string>("");
   const [isCorProcessing, setIsCorProcessing] = useState<boolean>(false);
   const [corProgress, setCorProgress] = useState<number>(0);
   const [corStatusMessage, setCorStatusMessage] = useState<string>("");
@@ -141,9 +153,23 @@ export function DocumentsUploadStep<
 
     async function runCOGOCR() {
       if (!certificateOfGrades) {
+        // Clear invalid file type state when file is removed to enable submit button
+        // But keep the error message visible via Alert component
+        // Check if there's an invalid file type error message to preserve it
+        if (
+          cogInvalidFileTypeError &&
+          cogInvalidFileTypeError.includes("Invalid file type")
+        ) {
+          setIsCogInvalidFileType(false);
+          onCogInvalidFileTypeChange?.(false);
+          // Don't clear cogInvalidFileTypeError - keep it visible in the Alert
+        } else {
+          // Only clear errors if it's not an invalid file type error
+          setCogOcrError("");
+          setCogInvalidFileTypeError("");
+        }
         setCogOcrText("");
         onCogOcrChange?.("", null);
-        setCogOcrError("");
         setCogProgress(0);
         setCogStatusMessage("");
         setIsCogProcessing(false);
@@ -151,6 +177,17 @@ export function DocumentsUploadStep<
         setIsCogProcessingDone(false);
         setProcessedCogFile("");
         return;
+      }
+
+      // Clear invalid file type error when a new file is uploaded
+      if (
+        isCogInvalidFileType &&
+        certificateOfGrades.name !== processedCogFile
+      ) {
+        setIsCogInvalidFileType(false);
+        onCogInvalidFileTypeChange?.(false);
+        setCogOcrError("");
+        setCogInvalidFileTypeError("");
       }
 
       // Skip if we've already processed this exact file
@@ -215,6 +252,11 @@ export function DocumentsUploadStep<
             setCogStatusMessage("Extraction complete!");
             setProcessedCogFile(certificateOfGrades.name); // Mark as processed in parent
             setIsCogProcessingDone(true); // Mark processing as complete
+            // Clear invalid file type error if data was successfully extracted
+            setIsCogInvalidFileType(false);
+            setCogInvalidFileTypeError("");
+            setCogOcrError("");
+            onCogInvalidFileTypeChange?.(false);
             toast.success("Certificate of Grades processed successfully", {
               description: `Extracted data for ${
                 extractedData.name || "student"
@@ -232,11 +274,41 @@ export function DocumentsUploadStep<
 
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error";
-          setCogOcrError(errorMessage);
-          setCogProgress(0);
-          toast.error("Failed to extract data from Certificate of Grades", {
-            description: errorMessage,
-          });
+
+          // Check if the uploaded file is not a valid Certificate of Grades
+          if (
+            errorMessage.includes("Invalid file type") ||
+            errorMessage.includes("not a valid Certificate of Grades") ||
+            errorMessage.includes("Certificate of Grades document")
+          ) {
+            const fullErrorMessage = `${errorMessage}. Please remove this file and upload a valid Certificate of Grades document.`;
+            // Set the state BEFORE removing file so useEffect knows to preserve the error
+            setIsCogInvalidFileType(true);
+            setCogInvalidFileTypeError(fullErrorMessage);
+            setCogOcrError(fullErrorMessage);
+            toast.error(errorMessage, { duration: 8000 });
+            // Clear the uploaded file to force re-upload
+            onRemoveGradesFile?.();
+            setCogOcrText("");
+            onCogOcrChange?.("", null);
+            setCogExtractedData(null);
+            setIsCogProcessingDone(false);
+            setProcessedCogFile("");
+            setCogProgress(0);
+            // Clear invalid file type state after removing file to enable submit button
+            // The error message will still be shown via Alert component
+            setIsCogInvalidFileType(false);
+            onCogInvalidFileTypeChange?.(false);
+            return;
+          } else {
+            setIsCogInvalidFileType(false);
+            onCogInvalidFileTypeChange?.(false);
+            setCogOcrError(errorMessage);
+            setCogProgress(0);
+            toast.error("Failed to extract data from Certificate of Grades", {
+              description: errorMessage,
+            });
+          }
         }
       } else {
         setCogOcrError("No text could be extracted from the image");
@@ -266,9 +338,23 @@ export function DocumentsUploadStep<
 
     async function runCOROCR() {
       if (!certificateOfRegistration) {
+        // Clear invalid file type state when file is removed to enable submit button
+        // But keep the error message visible via Alert component
+        // Check if there's an invalid file type error message to preserve it
+        if (
+          corInvalidFileTypeError &&
+          corInvalidFileTypeError.includes("Invalid file type")
+        ) {
+          setIsCorInvalidFileType(false);
+          onCorInvalidFileTypeChange?.(false);
+          // Don't clear corInvalidFileTypeError - keep it visible in the Alert
+        } else {
+          // Only clear errors if it's not an invalid file type error
+          setCorOcrError("");
+          setCorInvalidFileTypeError("");
+        }
         setCorOcrText("");
         onCorOcrChange?.("", null);
-        setCorOcrError("");
         setCorProgress(0);
         setCorStatusMessage("");
         setIsCorProcessing(false);
@@ -276,6 +362,17 @@ export function DocumentsUploadStep<
         setIsCorProcessingDone(false);
         setProcessedCorFile("");
         return;
+      }
+
+      // Clear invalid file type error when a new file is uploaded
+      if (
+        isCorInvalidFileType &&
+        certificateOfRegistration.name !== processedCorFile
+      ) {
+        setIsCorInvalidFileType(false);
+        onCorInvalidFileTypeChange?.(false);
+        setCorOcrError("");
+        setCorInvalidFileTypeError("");
       }
 
       // Skip if we've already processed this exact file
@@ -343,6 +440,11 @@ export function DocumentsUploadStep<
             setCorStatusMessage("Extraction complete!");
             setProcessedCorFile(certificateOfRegistration.name); // Mark as processed in parent
             setIsCorProcessingDone(true); // Mark processing as complete
+            // Clear invalid file type error if data was successfully extracted
+            setIsCorInvalidFileType(false);
+            setCorInvalidFileTypeError("");
+            setCorOcrError("");
+            onCorInvalidFileTypeChange?.(false);
             toast.success(
               "Certificate of Registration processed successfully",
               {
@@ -367,14 +469,44 @@ export function DocumentsUploadStep<
 
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error";
-          setCorOcrError(errorMessage);
-          setCorProgress(0);
-          toast.error(
-            "Failed to extract data from Certificate of Registration",
-            {
-              description: errorMessage,
-            }
-          );
+
+          // Check if the uploaded file is not a valid Certificate of Registration
+          if (
+            errorMessage.includes("Invalid file type") ||
+            errorMessage.includes("not a valid Certificate of Registration") ||
+            errorMessage.includes("Certificate of Registration document")
+          ) {
+            const fullErrorMessage = `${errorMessage}. Please remove this file and upload a valid Certificate of Registration document.`;
+            // Set the state BEFORE removing file so useEffect knows to preserve the error
+            setIsCorInvalidFileType(true);
+            setCorInvalidFileTypeError(fullErrorMessage);
+            setCorOcrError(fullErrorMessage);
+            toast.error(errorMessage, { duration: 8000 });
+            // Clear the uploaded file to force re-upload
+            onRemoveRegistrationFile?.();
+            setCorOcrText("");
+            onCorOcrChange?.("", null);
+            setCorExtractedData(null);
+            setIsCorProcessingDone(false);
+            setProcessedCorFile("");
+            setCorProgress(0);
+            // Clear invalid file type state after removing file to enable submit button
+            // The error message will still be shown via Alert component
+            setIsCorInvalidFileType(false);
+            onCorInvalidFileTypeChange?.(false);
+            return;
+          } else {
+            setIsCorInvalidFileType(false);
+            onCorInvalidFileTypeChange?.(false);
+            setCorOcrError(errorMessage);
+            setCorProgress(0);
+            toast.error(
+              "Failed to extract data from Certificate of Registration",
+              {
+                description: errorMessage,
+              }
+            );
+          }
         }
       } else {
         setCorOcrError("No text could be extracted from the image");
@@ -406,7 +538,7 @@ export function DocumentsUploadStep<
           Upload Required Documents
         </CardTitle>
         <CardDescription>
-          Upload your certificate of grades and certificate of registration
+          Upload your certificate of grades and/or certificate of registration
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -427,7 +559,7 @@ export function DocumentsUploadStep<
               Documents Verified
             </AlertTitle>
             <AlertDescription className="text-green-600">
-              Both documents have been successfully processed.
+              Document(s) have been successfully processed.
             </AlertDescription>
           </Alert>
         )}
@@ -446,14 +578,23 @@ export function DocumentsUploadStep<
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Submit now, finish later</AlertTitle>
             <AlertDescription>
-              You may submit even if one document is missing. Your application
-              stays in Pending until both COG and COR are uploaded.
+              You may submit with at least one document. Upload the other
+              document later if needed.
             </AlertDescription>
           </Alert>
         )}
 
         {/* Certificate of Grades Upload */}
         <div className="space-y-3">
+          {/* Invalid File Type Error Alert for COG */}
+          {cogInvalidFileTypeError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Invalid File Type</AlertTitle>
+              <AlertDescription>{cogInvalidFileTypeError}</AlertDescription>
+            </Alert>
+          )}
+
           {cogUploadLocked && !certificateOfGrades ? (
             <div className="flex items-center justify-between rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
               <span>
@@ -530,7 +671,7 @@ export function DocumentsUploadStep<
           )}
 
           {/* COG Error Display */}
-          {cogOcrError && !isCogProcessing && (
+          {cogOcrError && !isCogProcessing && !isCogInvalidFileType && (
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
               <div className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
@@ -547,6 +688,15 @@ export function DocumentsUploadStep<
 
         {/* Certificate of Registration Upload */}
         <div className="space-y-3">
+          {/* Invalid File Type Error Alert for COR */}
+          {corInvalidFileTypeError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Invalid File Type</AlertTitle>
+              <AlertDescription>{corInvalidFileTypeError}</AlertDescription>
+            </Alert>
+          )}
+
           {corUploadLocked && !certificateOfRegistration ? (
             <div className="flex items-center justify-between rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
               <span>
@@ -632,7 +782,7 @@ export function DocumentsUploadStep<
           )}
 
           {/* COR Error Display */}
-          {corOcrError && !isCorProcessing && (
+          {corOcrError && !isCorProcessing && !isCorInvalidFileType && (
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
               <div className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />

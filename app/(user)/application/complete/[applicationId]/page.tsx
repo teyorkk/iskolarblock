@@ -107,6 +107,8 @@ export default function CompleteApplicationPage() {
     useState<File | null>(null);
   const [isCogProcessingDone, setIsCogProcessingDone] = useState(false);
   const [isCorProcessingDone, setIsCorProcessingDone] = useState(false);
+  const [isCogInvalidFileType, setIsCogInvalidFileType] = useState(false);
+  const [isCorInvalidFileType, setIsCorInvalidFileType] = useState(false);
   const [processedCogFile, setProcessedCogFile] = useState("");
   const [processedCorFile, setProcessedCorFile] = useState("");
   const [cogExtractedData, setCogExtractedData] =
@@ -214,13 +216,12 @@ export default function CompleteApplicationPage() {
     event.preventDefault();
     if (!applicationId) return;
 
-    if (!certificateOfGrades && !existingCogDocument?.fileUrl) {
-      toast.error("Please upload your Certificate of Grades.");
-      return;
-    }
+    // Check if at least one file is provided (either new upload or existing)
+    const hasCog = certificateOfGrades || existingCogDocument?.fileUrl;
+    const hasCor = certificateOfRegistration || existingCorDocument?.fileUrl;
 
-    if (!certificateOfRegistration && !existingCorDocument?.fileUrl) {
-      toast.error("Please upload your Certificate of Registration.");
+    if (!hasCog && !hasCor) {
+      toast.error("Please upload at least one document (Certificate of Grades or Certificate of Registration).");
       return;
     }
 
@@ -276,7 +277,15 @@ export default function CompleteApplicationPage() {
         throw new Error(result.error || "Failed to update application");
       }
 
-      toast.success("Documents uploaded! Application has been approved.");
+      // Show appropriate message based on status
+      const message = result.message || 
+        (result.status === "APPROVED" 
+          ? "Documents uploaded! Application has been approved."
+          : "Document uploaded! Application remains pending until both documents are uploaded.");
+      
+      toast.success(message);
+      
+      // Always redirect to history page after submission
       router.push("/history");
     } catch (error) {
       console.error("Completion error:", error);
@@ -334,8 +343,8 @@ export default function CompleteApplicationPage() {
           <CardHeader>
             <CardTitle>Complete Your Application</CardTitle>
             <CardDescription>
-              Upload the missing documents below. We’ll run OCR automatically
-              and approve your application once everything is complete.
+              Upload the missing documents below. You can upload one file at a time. 
+              We'll run OCR automatically and your application will be approved once both documents are uploaded.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -386,12 +395,14 @@ export default function CompleteApplicationPage() {
             corUploadLocked={corUploadLocked}
             onUnlockCogUpload={() => setCogUploadLocked(false)}
             onUnlockCorUpload={() => setCorUploadLocked(false)}
+            onCogInvalidFileTypeChange={setIsCogInvalidFileType}
+            onCorInvalidFileTypeChange={setIsCorInvalidFileType}
           />
 
           <div className="flex justify-end">
             <Button
               type="submit"
-              disabled={isSubmitting || documentsProcessing}
+              disabled={isSubmitting || documentsProcessing || isCogInvalidFileType || isCorInvalidFileType}
             >
               {isSubmitting ? (
                 <>
