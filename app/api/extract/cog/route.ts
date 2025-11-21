@@ -325,6 +325,18 @@ export async function POST(request: NextRequest) {
         | N8NWebhookResponse[];
       console.log("Parsed Raw Data:", JSON.stringify(rawData, null, 2));
 
+      // Check if the uploaded file is actually a Certificate of Grades
+      const dataObject = Array.isArray(rawData) ? rawData[0] : rawData;
+      if (dataObject && "Certificate of Grades" in dataObject && dataObject["Certificate of Grades"] === false) {
+        console.error(
+          "Invalid file type: Uploaded file is not a valid Certificate of Grades document"
+        );
+        return NextResponse.json(
+          { error: "Invalid file type: Uploaded file is not a valid Certificate of Grades document" },
+          { status: 400 }
+        );
+      }
+
       // Transform N8N format to our expected format
       data = transformN8NResponse(rawData);
       console.log("=== Transformed COG Response Data ===");

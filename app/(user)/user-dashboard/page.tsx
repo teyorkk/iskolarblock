@@ -2,6 +2,7 @@
 
 import { FileText, History, Users } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { UserSidebar } from "@/components/user-sidebar";
 import { StatsGrid } from "@/components/common/stats-grid";
 import { UserDashboardHeader } from "@/components/user-dashboard/user-dashboard-header";
@@ -34,6 +35,7 @@ interface UserData {
 }
 
 export default function UserDashboard() {
+  const router = useRouter();
   const { user } = useSession();
   const [applications, setApplications] = useState<Application[]>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -150,9 +152,21 @@ export default function UserDashboard() {
   };
 
   const quickActions = [
-    { label: "Application", icon: FileText, href: "/application" },
-    { label: "View History", icon: History, href: "/history" },
-    { label: "Update Profile", icon: Users, href: "/user-settings" },
+    {
+      label: "Application",
+      icon: FileText,
+      onClick: () => router.push("/application"),
+    },
+    {
+      label: "View History",
+      icon: History,
+      onClick: () => router.push("/history"),
+    },
+    {
+      label: "Update Profile",
+      icon: Users,
+      onClick: () => router.push("/user-settings"),
+    },
   ];
 
   const pendingCount = applications.filter((app) => app.status === "PENDING").length;

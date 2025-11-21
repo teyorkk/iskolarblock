@@ -11,8 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { User, FileText, ExternalLink, MapPin, Phone } from "lucide-react";
+import {
+  User,
+  FileText,
+  ExternalLink,
+  MapPin,
+  Phone,
+  Edit,
+} from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle, XCircle } from "lucide-react";
 
@@ -114,6 +122,7 @@ export function ApplicationDetailsDialog({
   onClose,
   onStatusUpdate,
 }: ApplicationDetailsDialogProps) {
+  const router = useRouter();
   const [application, setApplication] = useState<ApplicationData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -229,10 +238,28 @@ export function ApplicationDetailsDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Application Details</DialogTitle>
-          <DialogDescription>
-            Review application information and update status
-          </DialogDescription>
+          <div className="flex items-center justify-between pr-8">
+            <div>
+              <DialogTitle>Application Details</DialogTitle>
+              <DialogDescription>
+                Review application information and update status
+              </DialogDescription>
+            </div>
+            {applicationId && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 mr-2"
+                onClick={() => {
+                  onClose();
+                  router.push(`/screening/edit/${applicationId}`);
+                }}
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         {isLoading ? (

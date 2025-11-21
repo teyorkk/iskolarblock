@@ -1,6 +1,6 @@
 "use client";
 
-import { Upload, CheckCircle2 } from "lucide-react";
+import { Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { DropzoneRootProps, DropzoneInputProps } from "react-dropzone";
 import { FileUploadZone } from "./file-upload-zone";
 import type { ApplicationStepProps } from "@/types/components";
@@ -15,7 +16,7 @@ import type {
   NewApplicationFormData,
   RenewalApplicationFormData,
 } from "@/lib/validations";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Progress } from "@/components/ui/progress";
 import { extractText } from "@/lib/services/ocr";
 import {
@@ -38,6 +39,7 @@ interface IdUploadStepProps<T extends IdForm> extends ApplicationStepProps<T> {
   processedIdFile: string;
   setProcessedIdFile: (filename: string) => void;
   onOcrTextChange?: (text: string) => void;
+  onInvalidFileTypeChange?: (isInvalid: boolean) => void;
 }
 
 export function IdUploadStep<T extends IdForm>({
@@ -53,15 +55,19 @@ export function IdUploadStep<T extends IdForm>({
   processedIdFile,
   setProcessedIdFile,
   onOcrTextChange,
+  onInvalidFileTypeChange,
 }: IdUploadStepProps<T>): React.JSX.Element {
   const [ocrText, setOcrText] = useState<string>("");
   const [ocrError, setOcrError] = useState<string>("");
+  const [isInvalidFileType, setIsInvalidFileType] = useState<boolean>(false);
+  const [invalidFileTypeError, setInvalidFileTypeError] = useState<string>("");
+  const invalidFileTypeRef = useRef<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [extractedData, setExtractedData] =
     useState<IDExtractionResponse | null>(null);
-  const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
+const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
 
   // Auto-fill form fields with extracted data
   const autoFillFormFields = (data: IDExtractionResponse): void => {
@@ -127,8 +133,20 @@ export function IdUploadStep<T extends IdForm>({
 
     async function runOCR() {
       if (!uploadedFile) {
+        // Clear invalid file type state when file is removed to enable submit button
+        // But keep the error message visible via Alert component
+        // Check if there's an invalid file type error message to preserve it
+        if (invalidFileTypeRef.current || (invalidFileTypeError && invalidFileTypeError.includes("Invalid file type"))) {
+          invalidFileTypeRef.current = false;
+          setIsInvalidFileType(false);
+          onInvalidFileTypeChange?.(false);
+          // Don't clear invalidFileTypeError or ocrError - keep them visible in the Alert
+        } else {
+          // Only clear errors if it's not an invalid file type error
+          setOcrError("");
+          setInvalidFileTypeError("");
+        }
         setOcrText("");
-        setOcrError("");
         setProgress(0);
         setStatusMessage("");
         setIsProcessing(false);
@@ -136,6 +154,15 @@ export function IdUploadStep<T extends IdForm>({
         setIsProcessingDone(false);
         setProcessedIdFile("");
         return;
+      }
+
+      // Clear invalid file type error when a new file is uploaded
+      if (invalidFileTypeRef.current && uploadedFile.name !== processedIdFile) {
+        invalidFileTypeRef.current = false;
+        setIsInvalidFileType(false);
+        onInvalidFileTypeChange?.(false);
+        setOcrError("");
+        setInvalidFileTypeError("");
       }
 
       // Skip if we've already processed this exact file
@@ -193,6 +220,12 @@ export function IdUploadStep<T extends IdForm>({
               setExtractedData(extractedInfo);
               setProcessedIdFile(uploadedFile.name); // Mark as processed
               setIsProcessingDone(true); // Mark processing as complete
+              // Clear invalid file type error if data was successfully extracted
+              invalidFileTypeRef.current = false;
+              setIsInvalidFileType(false);
+              setInvalidFileTypeError("");
+              setOcrError("");
+              onInvalidFileTypeChange?.(false);
               autoFillFormFields(extractedInfo);
             } else {
               // No data extracted, but not an error
@@ -209,7 +242,7 @@ export function IdUploadStep<T extends IdForm>({
         } catch (extractError) {
           if (!cancelled) {
             setIsExtractingData(false);
-            setProgress(80); // Roll back to OCR complete state
+            setProgress(0); // Reset progress
 
             // Handle different error types
             const errorMessage =
@@ -219,8 +252,39 @@ export function IdUploadStep<T extends IdForm>({
 
             console.error("ID extraction error:", errorMessage);
 
-            // Provide user-friendly feedback
-            if (errorMessage.includes("timeout")) {
+            // Check if the uploaded file is not a valid ID
+            if (
+              errorMessage.includes("Invalid file type") ||
+              errorMessage.includes("not a valid ID document") ||
+              errorMessage.includes("wrong file") ||
+              errorMessage.includes("valid ID document")
+            ) {
+              console.log("Invalid file type detected, removing file");
+              const fullErrorMessage = `${errorMessage}. Please remove this file and upload a valid Student ID or Valid ID.`;
+              // Set the ref BEFORE removing file so useEffect knows to preserve the error
+              invalidFileTypeRef.current = true;
+              setInvalidFileTypeError(fullErrorMessage);
+              setOcrError(fullErrorMessage);
+              toast.error(errorMessage, { duration: 8000 });
+              // Clear the uploaded file to force re-upload
+              onRemoveFile?.();
+              setOcrText("");
+              onOcrTextChange?.("");
+              setExtractedData(null);
+              setIsProcessingDone(false);
+              setProcessedIdFile("");
+              // Clear invalid file type state after removing file to enable submit button
+              // The error message will still be shown via Alert component
+              setIsInvalidFileType(false);
+              onInvalidFileTypeChange?.(false);
+              console.log("File removed, invalid file type state cleared, error preserved");
+              return;
+            } else if (errorMessage.includes("timeout")) {
+              invalidFileTypeRef.current = false;
+              setIsInvalidFileType(false);
+              onInvalidFileTypeChange?.(false);
+              invalidFileTypeRef.current = false;
+              setIsInvalidFileType(false);
               toast.error(
                 "Extraction timed out. Please try uploading your document again.",
                 { duration: 6000 }
@@ -229,6 +293,9 @@ export function IdUploadStep<T extends IdForm>({
                 "Extraction service timed out. Your OCR text is still available below."
               );
             } else if (errorMessage.includes("Network error")) {
+              invalidFileTypeRef.current = false;
+              setIsInvalidFileType(false);
+              onInvalidFileTypeChange?.(false);
               toast.error(
                 "Network error. Please check your connection and try again.",
                 { duration: 6000 }
@@ -237,12 +304,18 @@ export function IdUploadStep<T extends IdForm>({
                 "Network error occurred during extraction. Please try again."
               );
             } else if (errorMessage.includes("not configured")) {
+              invalidFileTypeRef.current = false;
+              setIsInvalidFileType(false);
+              onInvalidFileTypeChange?.(false);
               toast.warning(
                 "Auto-fill is not configured. Please fill the form manually.",
                 { duration: 5000 }
               );
               console.warn("Extraction service not configured");
             } else if (errorMessage.includes("temporarily unavailable")) {
+              invalidFileTypeRef.current = false;
+              setIsInvalidFileType(false);
+              onInvalidFileTypeChange?.(false);
               toast.error(
                 "Extraction service is temporarily unavailable. Please try again in a few minutes.",
                 { duration: 6000 }
@@ -252,6 +325,9 @@ export function IdUploadStep<T extends IdForm>({
               );
             } else {
               // Generic error
+              invalidFileTypeRef.current = false;
+              setIsInvalidFileType(false);
+              onInvalidFileTypeChange?.(false);
               toast.error(
                 `Failed to extract data: ${errorMessage}. Please fill the form manually.`,
                 { duration: 6000 }
@@ -319,8 +395,17 @@ export function IdUploadStep<T extends IdForm>({
           onRemove={onRemoveFile}
         />
 
+        {/* Invalid File Type Error Alert - Show even when file is removed */}
+        {invalidFileTypeError && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Invalid File Type</AlertTitle>
+            <AlertDescription>{invalidFileTypeError}</AlertDescription>
+          </Alert>
+        )}
+
         {/* OCR Status */}
-        {uploadedFile && (
+        {uploadedFile && !isInvalidFileType && (
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-700">
@@ -338,7 +423,9 @@ export function IdUploadStep<T extends IdForm>({
             </div>
             {isProcessing && <Progress value={progress} />}
 
-            {ocrError && <p className="text-sm text-red-600">{ocrError}</p>}
+            {ocrError && !isInvalidFileType && (
+              <p className="text-sm text-red-600">{ocrError}</p>
+            )}
 
             {extractedData && (
               <div className="border rounded-md bg-green-50 p-4 space-y-2">

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import {
 import type { RecentApplicantsProps } from "@/types/components";
 
 export function RecentApplicants({ applicants }: RecentApplicantsProps): React.JSX.Element {
+  const router = useRouter();
   const statusClassMap: Record<
     string,
     { variant: "default" | "secondary" | "destructive"; className: string }
@@ -26,6 +28,10 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
 
   const getStatusConfig = (status: string) =>
     statusClassMap[status] ?? { variant: "secondary", className: "bg-gray-100 text-gray-700" };
+
+  const handleViewAll = () => {
+    router.push("/screening");
+  };
 
   return (
     <motion.div
@@ -46,7 +52,7 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
                 Latest scholarship applications submitted
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleViewAll}>
               View All
             </Button>
           </div>
@@ -86,7 +92,7 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
             ))}
           </div>
           <div className="mt-4 text-center">
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={handleViewAll}>
               View All Applicants
             </Button>
           </div>

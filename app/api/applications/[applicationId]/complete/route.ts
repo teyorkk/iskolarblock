@@ -209,21 +209,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    if (!willUploadCog && !existingCog?.fileUrl) {
-      return NextResponse.json(
-        { error: "Certificate of Grades is required" },
-        { status: 400 }
-      );
-    }
+    // Check if at least one file is provided (either new upload or existing)
+    const hasCog = willUploadCog || existingCog?.fileUrl;
+    const hasCor = willUploadCor || existingCor?.fileUrl;
 
-    if (!willUploadCor && !existingCor?.fileUrl) {
-      return NextResponse.json(
-        { error: "Certificate of Registration is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!willUploadCog && !willUploadCor) {
+    if (!hasCog && !hasCor) {
       return NextResponse.json(
         { error: "Upload at least one document to complete your application" },
         { status: 400 }
@@ -312,10 +302,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     }
 
+    // Check if both files exist after processing
+    const finalCogUrl = cogFileUrl || existingCog?.fileUrl;
+    const finalCorUrl = corFileUrl || existingCor?.fileUrl;
+    const hasBothFiles = Boolean(finalCogUrl && finalCorUrl);
+
+    // Set status: APPROVED if both files exist, PENDING if only one
+    const newStatus = hasBothFiles ? "APPROVED" : "PENDING";
+
     const { error: updateError } = await supabase
       .from("Application")
       .update({
-        status: "APPROVED",
+        status: newStatus,
         updatedAt: new Date().toISOString(),
       })
       .eq("id", applicationId);
@@ -330,8 +328,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({
       success: true,
-      status: "APPROVED",
+      status: newStatus,
       applicationId,
+      message: hasBothFiles
+        ? "Documents uploaded! Application has been approved."
+        : "Document uploaded! Application remains pending until both documents are uploaded.",
     });
   } catch (error) {
     console.error("Error completing application:", error);

@@ -311,6 +311,18 @@ export async function POST(request: NextRequest) {
         | N8NWebhookResponse[];
       console.log("Parsed Raw Data:", JSON.stringify(rawData, null, 2));
 
+      // Check if the uploaded file is actually a Certificate of Registration
+      const dataObject = Array.isArray(rawData) ? rawData[0] : rawData;
+      if (dataObject && "Certificate of Registration" in dataObject && dataObject["Certificate of Registration"] === false) {
+        console.error(
+          "Invalid file type: Uploaded file is not a valid Certificate of Registration document"
+        );
+        return NextResponse.json(
+          { error: "Invalid file type: Uploaded file is not a valid Certificate of Registration document" },
+          { status: 400 }
+        );
+      }
+
       // Transform N8N format to our expected format
       data = transformN8NResponse(rawData);
       console.log("=== Transformed COR Response Data ===");

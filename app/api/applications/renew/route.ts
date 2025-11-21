@@ -3,6 +3,11 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { randomUUID } from "crypto";
 import type { GradeSubject } from "@/lib/services/document-extraction";
 import { logApplicationToBlockchain } from "@/lib/services/blockchain";
+import {
+  capitalizeFormData,
+  capitalizeName,
+  capitalizeText,
+} from "@/lib/utils";
 
 interface RenewApplicationRequest {
   // Images (base64 strings)
@@ -228,6 +233,11 @@ export async function POST(request: NextRequest) {
         ? "APPROVED"
         : "PENDING";
 
+    // Capitalize personal info data before saving (even if from previous application)
+    const capitalizedPersonalInfo = personalInfoData
+      ? capitalizeFormData(personalInfoData as Record<string, unknown>)
+      : {};
+
     // Create Application record using personal info from previous application
     const now = new Date().toISOString();
     const { error: appError } = await supabase.from("Application").insert({
@@ -236,7 +246,7 @@ export async function POST(request: NextRequest) {
       applicationPeriodId: periodData.id,
       status: applicationStatus,
       applicationType: "RENEWAL",
-      applicationDetails: { personalInfo: personalInfoData ?? {} }, // Reuse personal info
+      applicationDetails: { personalInfo: capitalizedPersonalInfo },
       id_image: idImageUrl,
       createdAt: now,
       updatedAt: now,
@@ -342,11 +352,19 @@ export async function POST(request: NextRequest) {
         .insert({
           id: cogId,
           applicationId: applicationId,
-          school: body.cogOcr.extractedData.school || "",
+          school: body.cogOcr.extractedData.school
+            ? capitalizeText(body.cogOcr.extractedData.school)
+            : "",
           schoolYear: body.cogOcr.extractedData.school_year || "",
-          semester: body.cogOcr.extractedData.semester || "",
-          course: body.cogOcr.extractedData.course || "",
-          name: body.cogOcr.extractedData.name || "",
+          semester: body.cogOcr.extractedData.semester
+            ? capitalizeText(body.cogOcr.extractedData.semester)
+            : "",
+          course: body.cogOcr.extractedData.course
+            ? capitalizeText(body.cogOcr.extractedData.course)
+            : "",
+          name: body.cogOcr.extractedData.name
+            ? capitalizeName(body.cogOcr.extractedData.name)
+            : "",
           gwa: body.cogOcr.extractedData.gwa || 0,
           totalUnits: body.cogOcr.extractedData.total_units || 0,
           subjects: body.cogOcr.extractedData.subjects || [],
@@ -366,11 +384,19 @@ export async function POST(request: NextRequest) {
         .insert({
           id: corId,
           applicationId: applicationId,
-          school: body.corOcr.extractedData.school || "",
+          school: body.corOcr.extractedData.school
+            ? capitalizeText(body.corOcr.extractedData.school)
+            : "",
           schoolYear: body.corOcr.extractedData.school_year || "",
-          semester: body.corOcr.extractedData.semester || "",
-          course: body.corOcr.extractedData.course || "",
-          name: body.corOcr.extractedData.name || "",
+          semester: body.corOcr.extractedData.semester
+            ? capitalizeText(body.corOcr.extractedData.semester)
+            : "",
+          course: body.corOcr.extractedData.course
+            ? capitalizeText(body.corOcr.extractedData.course)
+            : "",
+          name: body.corOcr.extractedData.name
+            ? capitalizeName(body.corOcr.extractedData.name)
+            : "",
           totalUnits: body.corOcr.extractedData.total_units || 0,
           fileUrl: corDocumentUrl,
         });
@@ -401,7 +427,7 @@ export async function POST(request: NextRequest) {
       success: true,
       applicationId: applicationId,
       status: applicationStatus,
-      personalInfo: personalInfoData,
+      personalInfo: capitalizedPersonalInfo,
       transactionHash,
     });
   } catch (error) {

@@ -53,15 +53,18 @@ export default function NewApplicationPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
+  const [isIdInvalidFileType, setIsIdInvalidFileType] = useState<boolean>(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
   const [isCogProcessingDone, setIsCogProcessingDone] =
     useState<boolean>(false);
+  const [isCogInvalidFileType, setIsCogInvalidFileType] = useState<boolean>(false);
   const [certificateOfRegistration, setCertificateOfRegistration] =
     useState<File | null>(null);
   const [isCorProcessingDone, setIsCorProcessingDone] =
     useState<boolean>(false);
+  const [isCorInvalidFileType, setIsCorInvalidFileType] = useState<boolean>(false);
 
   // Track processed files to prevent reprocessing
   const [processedCogFile, setProcessedCogFile] = useState<string>("");
@@ -570,6 +573,7 @@ export default function NewApplicationPage() {
                     processedIdFile={processedIdFile}
                     setProcessedIdFile={setProcessedIdFile}
                     onOcrTextChange={setIdOcrText}
+                    onInvalidFileTypeChange={setIsIdInvalidFileType}
                   />
                 </StepErrorBoundary>
               )}
@@ -631,6 +635,8 @@ export default function NewApplicationPage() {
                       setCorExtractedData(data);
                       setCorFileUrl(fileUrl || "");
                     }}
+                    onCogInvalidFileTypeChange={setIsCogInvalidFileType}
+                    onCorInvalidFileTypeChange={setIsCorInvalidFileType}
                   />
                 </StepErrorBoundary>
               )}
@@ -666,6 +672,9 @@ export default function NewApplicationPage() {
                 }}
                 disabled={
                   isSubmitting ||
+                  isIdInvalidFileType ||
+                  isCogInvalidFileType ||
+                  isCorInvalidFileType ||
                   (currentStep === 1 &&
                     (!uploadedFile || !isIdProcessingDone)) ||
                   (currentStep === 2 &&

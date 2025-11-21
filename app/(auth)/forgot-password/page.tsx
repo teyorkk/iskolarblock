@@ -30,6 +30,7 @@ export default function ForgotPasswordPage() {
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [apiError, setApiError] = useState<string | null>(null);
   const router = useRouter();
 
   const {
@@ -43,23 +44,75 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
       setIsLoading(true);
+      setApiError(null);
       setUserEmail(data.email);
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        toast.error(json.error || "Failed to send code");
+
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: data.email }),
+        });
+      } catch (fetchError) {
+        // Network error
+        const errorMsg =
+          "Network error. Please check your connection and try again.";
+        setApiError(errorMsg);
+        toast.error(errorMsg);
         setIsLoading(false);
         return;
       }
+
+      let json;
+      try {
+        const text = await res.text();
+        if (text) {
+          json = JSON.parse(text);
+        } else {
+          json = {};
+        }
+      } catch (parseError) {
+        // Invalid JSON response
+        console.error("Failed to parse response:", parseError);
+        const errorMsg = "Server error. Please try again later.";
+        setApiError(errorMsg);
+        toast.error(errorMsg, {
+          duration: 5000,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!res.ok) {
+        const errorMessage =
+          json?.error ||
+          `Request failed with status ${res.status}. Please try again.`;
+        console.error("Forgot password API error:", {
+          status: res.status,
+          statusText: res.statusText,
+          error: json?.error,
+          fullResponse: json,
+        });
+        setApiError(errorMessage);
+        toast.error(errorMessage, {
+          duration: 5000,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      setApiError(null);
       setShowOTPModal(true);
-      toast.info("Check your email for a verification code.");
+      toast.success(
+        json?.message || "Check your email for a verification code."
+      );
     } catch (e) {
       const error = e as Error;
-      toast.error(error.message || "Unexpected error");
+      console.error("Unexpected error in forgot password:", error);
+      const errorMsg = "An unexpected error occurred. Please try again.";
+      setApiError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -68,27 +121,61 @@ export default function ForgotPasswordPage() {
   const handleOTPVerify = async (otp: string) => {
     try {
       setIsVerifyingOTP(true);
-      const res = await fetch("/api/auth/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: userEmail,
-          code: otp,
-          context: "forgot",
-        }),
-      });
-      const json = await res.json();
+
+      if (!userEmail) {
+        toast.error("Email address is missing. Please start over.");
+        setShowOTPModal(false);
+        return;
+      }
+
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: userEmail,
+            code: otp,
+            context: "forgot",
+          }),
+        });
+      } catch (fetchError) {
+        toast.error(
+          "Network error. Please check your connection and try again."
+        );
+        throw new Error("Network error");
+      }
+
+      let json;
+      try {
+        json = await res.json();
+      } catch (parseError) {
+        toast.error("Server error. Please try again later.");
+        throw new Error("Invalid server response");
+      }
+
       if (!res.ok) {
-        const errorMsg = json.error || "Verification failed";
+        const errorMsg =
+          json?.error ||
+          "Verification failed. Please check your code and try again.";
         toast.error(errorMsg);
         throw new Error(errorMsg);
       }
+
       setShowOTPModal(false);
-      toast.success("Email verified! You can now reset your password.");
+      toast.success("Email verified! Redirecting to password reset...");
       router.push("/reset-password");
     } catch (e) {
       const error = e as Error;
-      toast.error(error.message || "Unexpected error");
+      // Only show toast if it's not already shown
+      if (
+        !error.message.includes("Network") &&
+        !error.message.includes("Invalid")
+      ) {
+        toast.error(
+          error.message || "An unexpected error occurred. Please try again."
+        );
+      }
       throw error;
     } finally {
       setIsVerifyingOTP(false);
@@ -96,17 +183,50 @@ export default function ForgotPasswordPage() {
   };
 
   const handleResendOTP = async () => {
-    const res = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: userEmail }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      toast.error(json.error || "Failed to resend code");
+    if (!userEmail) {
+      toast.error("Email address is missing. Please start over.");
       return;
     }
-    toast.info("Verification code resent.");
+
+    try {
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: userEmail }),
+        });
+      } catch (fetchError) {
+        toast.error(
+          "Network error. Please check your connection and try again."
+        );
+        return;
+      }
+
+      let json;
+      try {
+        json = await res.json();
+      } catch (parseError) {
+        toast.error("Server error. Please try again later.");
+        return;
+      }
+
+      if (!res.ok) {
+        const errorMessage =
+          json?.error ||
+          "Failed to resend verification code. Please try again.";
+        toast.error(errorMessage);
+        return;
+      }
+
+      toast.success(
+        json?.message || "Verification code has been resent to your email."
+      );
+    } catch (e) {
+      const error = e as Error;
+      console.error("Error resending OTP:", error);
+      toast.error("An unexpected error occurred. Please try again.");
+    }
   };
 
   return (
@@ -155,6 +275,11 @@ export default function ForgotPasswordPage() {
                 </div>
                 {errors.email && (
                   <p className="text-sm text-red-500">{errors.email.message}</p>
+                )}
+                {apiError && (
+                  <div className="rounded-md bg-red-50 border border-red-200 p-3">
+                    <p className="text-sm text-red-800">{apiError}</p>
+                  </div>
                 )}
               </div>
 

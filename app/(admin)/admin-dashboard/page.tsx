@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Calendar, FileText, Users, Coins, Shield, Award } from "lucide-react";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { StatsGrid } from "@/components/common/stats-grid";
@@ -43,6 +44,7 @@ interface ApplicationPeriod {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<StatsCard[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
@@ -54,10 +56,26 @@ export default function AdminDashboard() {
   const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
 
   const quickActions = [
-    { label: "Review Applications", icon: Users, href: "/screening" },
-    { label: "Manage Budget", icon: Coins, href: "/admin-settings" },
-    { label: "Blockchain Records", icon: Shield, href: "/blockchain" },
-    { label: "Award Scholarships", icon: Award, href: "/awarding" },
+    {
+      label: "Manage Users",
+      icon: Users,
+      onClick: () => router.push("/users"),
+    },
+    {
+      label: "Review Applications",
+      icon: FileText,
+      onClick: () => router.push("/screening"),
+    },
+    {
+      label: "Blockchain Records",
+      icon: Shield,
+      onClick: () => router.push("/blockchain"),
+    },
+    {
+      label: "Award Scholarships",
+      icon: Award,
+      onClick: () => router.push("/awarding"),
+    },
   ];
 
   useEffect(() => {
