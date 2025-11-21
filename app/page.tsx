@@ -3,6 +3,9 @@ import { getLiveImpactAggregates } from "@/lib/services/live-impact";
 import { getLiveBlockchainFeed } from "@/lib/services/live-blockchain";
 import type { LiveBlockchainRecord } from "@/types";
 
+// Force dynamic rendering since we're fetching live data from Supabase
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   let initialLiveImpactValues = {
     totalBudgetReimbursed: 0,
