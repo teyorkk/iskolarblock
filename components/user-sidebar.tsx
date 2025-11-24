@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   FileText,
@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSession } from "./session-provider";
 import { useMobile } from "@/hooks/use-mobile";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const navigation = [
   { name: "Dashboard", href: "/user-dashboard", icon: Home },
@@ -47,6 +48,8 @@ export function UserSidebar(): React.JSX.Element {
   const pathname = usePathname();
   const { user } = useSession();
   const isMobile = useMobile();
+  const router = useRouter();
+  const [isApplicationNavLoading, setIsApplicationNavLoading] = useState(false);
 
   // Fetch user profile data from User table
   useEffect(() => {
@@ -162,6 +165,72 @@ export function UserSidebar(): React.JSX.Element {
     }
   };
 
+  const handleApplicationNavigation = async (
+    closeMobileMenu: boolean
+  ): Promise<void> => {
+    if (isApplicationNavLoading) return;
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    setIsApplicationNavLoading(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: periodData, error: periodError } = await supabase
+        .from("ApplicationPeriod")
+        .select("id")
+        .eq("isOpen", true)
+        .order("createdAt", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (periodError) {
+        console.error("Error fetching application period:", periodError);
+      }
+
+      const { data: applications, error: applicationsError } = await supabase
+        .from("Application")
+        .select("id, applicationPeriodId")
+        .eq("userId", user.id);
+
+      if (applicationsError) {
+        throw applicationsError;
+      }
+
+      const hasPastApplication = Boolean(applications?.length);
+      const currentApplication =
+        periodData && applications
+          ? applications.find(
+              (app) => app.applicationPeriodId === periodData.id
+            )
+          : null;
+
+      let target = "/application/new";
+
+      if (!periodData) {
+        target = "/application";
+      } else if (currentApplication) {
+        target = "/application";
+      } else if (hasPastApplication) {
+        target = "/application/renewal";
+      }
+
+      if (closeMobileMenu) {
+        setIsSidebarOpen(false);
+      }
+      router.push(target);
+    } catch (error) {
+      console.error("Failed to determine application destination:", error);
+      toast.error(
+        "Unable to open your application form right now. Please try again."
+      );
+    } finally {
+      setIsApplicationNavLoading(false);
+    }
+  };
+
   // Mobile bottom navigation
   if (isMobile) {
     return (
@@ -248,21 +317,41 @@ export function UserSidebar(): React.JSX.Element {
             </div>
 
             <nav className="space-y-2">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                    pathname === item.href
-                      ? "bg-orange-50 text-orange-600"
-                      : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.name}</span>
-                </Link>
-              ))}
+              {navigation.map((item) => {
+                const isActive = pathname === item.href;
+                const commonClasses = `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-orange-50 text-orange-600"
+                    : "text-gray-600 hover:bg-gray-50"
+                } ${isApplicationNavLoading && item.href === "/application" ? "opacity-60 cursor-wait" : ""}`;
+
+                if (item.href === "/application") {
+                  return (
+                    <button
+                      key={item.name}
+                      type="button"
+                      className={commonClasses}
+                      onClick={() => handleApplicationNavigation(true)}
+                      disabled={isApplicationNavLoading}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span>{item.name}</span>
+                    </button>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={commonClasses}
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
             </nav>
 
             <div className="mt-6 pt-6 border-t">
@@ -418,25 +507,46 @@ export function UserSidebar(): React.JSX.Element {
 
           {/* Navigation */}
           <nav className="space-y-1">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center ${
-                  isCollapsed ? "justify-center" : "space-x-3"
-                } px-3 py-2 rounded-lg transition-colors ${
-                  pathname === item.href
-                    ? "bg-orange-50 text-orange-600"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-                title={isCollapsed ? item.name : ""}
-              >
-                <item.icon className="w-5 h-5" />
-                {!isCollapsed && (
-                  <span className="font-medium">{item.name}</span>
-                )}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              const commonClasses = `flex items-center ${
+                isCollapsed ? "justify-center" : "space-x-3"
+              } px-3 py-2 rounded-lg transition-colors ${
+                isActive ? "bg-orange-50 text-orange-600" : "text-gray-600 hover:bg-gray-50"
+              } ${isApplicationNavLoading && item.href === "/application" ? "opacity-60 cursor-wait" : ""}`;
+
+              if (item.href === "/application") {
+                return (
+                  <button
+                    key={item.name}
+                    type="button"
+                    className={commonClasses}
+                    title={isCollapsed ? item.name : ""}
+                    onClick={() => handleApplicationNavigation(false)}
+                    disabled={isApplicationNavLoading}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {!isCollapsed && (
+                      <span className="font-medium">{item.name}</span>
+                    )}
+                  </button>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={commonClasses}
+                  title={isCollapsed ? item.name : ""}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {!isCollapsed && (
+                    <span className="font-medium">{item.name}</span>
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Logout */}
@@ -472,4 +582,8 @@ export function UserSidebar(): React.JSX.Element {
       </motion.header>
     </>
   );
+}
+
+async function handleApplicationNavigation(closeMobileMenu: boolean): Promise<void> {
+  // placeholder
 }

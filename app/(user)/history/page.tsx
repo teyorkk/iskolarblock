@@ -127,11 +127,9 @@ export default function HistoryPage() {
 
             {/* Loading State */}
             {loading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-                <span className="ml-3 text-gray-600">
-                  Loading applications...
-                </span>
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-600">
+                <div className="h-12 w-12 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
+                <p className="text-sm">Loading application history…</p>
               </div>
             )}
 
