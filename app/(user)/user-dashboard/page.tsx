@@ -141,7 +141,7 @@ export default function UserDashboard() {
       case "APPROVED":
         return "Your have completed your application. It has been approved. Congratulations!";
       case "GRANTED":
-        return "Your scholarship has been granted. Please monitor updates for the release schedule.";
+        return "Your scholarship has been granted.";
       case "PENDING":
         return "Your application is incomplete. Please provide the missing files and information.";
       case "REJECTED":
