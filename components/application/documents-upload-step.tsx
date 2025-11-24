@@ -142,7 +142,11 @@ export function DocumentsUploadStep<
   const registrationErrorText =
     typeof registrationMessage === "string" ? registrationMessage : undefined;
 
-  const hasErrors = cogOcrError || corOcrError;
+  const hasCogProcessingError =
+    Boolean(cogOcrError) && !Boolean(cogInvalidFileTypeError);
+  const hasCorProcessingError =
+    Boolean(corOcrError) && !Boolean(corInvalidFileTypeError);
+  const hasProcessingErrors = hasCogProcessingError || hasCorProcessingError;
   const bothFilesUploaded = certificateOfGrades && certificateOfRegistration;
   const bothProcessingDone = isCogProcessingDone && isCorProcessingDone;
   const missingDocuments = !certificateOfGrades || !certificateOfRegistration;
@@ -285,7 +289,7 @@ export function DocumentsUploadStep<
             // Set the state BEFORE removing file so useEffect knows to preserve the error
             setIsCogInvalidFileType(true);
             setCogInvalidFileTypeError(fullErrorMessage);
-            setCogOcrError(fullErrorMessage);
+            setCogOcrError("");
             toast.error(errorMessage, { duration: 8000 });
             // Clear the uploaded file to force re-upload
             onRemoveGradesFile?.();
@@ -480,7 +484,7 @@ export function DocumentsUploadStep<
             // Set the state BEFORE removing file so useEffect knows to preserve the error
             setIsCorInvalidFileType(true);
             setCorInvalidFileTypeError(fullErrorMessage);
-            setCorOcrError(fullErrorMessage);
+            setCorOcrError("");
             toast.error(errorMessage, { duration: 8000 });
             // Clear the uploaded file to force re-upload
             onRemoveRegistrationFile?.();
@@ -552,7 +556,7 @@ export function DocumentsUploadStep<
             </AlertDescription>
           </Alert>
         )}
-        {bothFilesUploaded && bothProcessingDone && !hasErrors && (
+        {bothFilesUploaded && bothProcessingDone && !hasProcessingErrors && (
           <Alert className="border-green-200 bg-green-50">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertTitle className="text-green-600">
@@ -563,7 +567,7 @@ export function DocumentsUploadStep<
             </AlertDescription>
           </Alert>
         )}
-        {hasErrors && (
+        {hasProcessingErrors && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertTitle>Processing Errors</AlertTitle>
@@ -573,7 +577,7 @@ export function DocumentsUploadStep<
             </AlertDescription>
           </Alert>
         )}
-        {!hasErrors && missingDocuments && (
+        {!hasProcessingErrors && missingDocuments && (
           <Alert className="border-blue-200 bg-blue-50 text-blue-700">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Submit now, finish later</AlertTitle>

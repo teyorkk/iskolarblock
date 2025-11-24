@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Download } from "lucide-react";
+import { Eye } from "lucide-react";
 
 interface Application {
   id: string;
@@ -76,16 +76,6 @@ export function ApplicationDetailsDialog({
           <div>
             <p className="text-sm text-gray-600">Remarks</p>
             <p className="font-medium">{application.remarks}</p>
-          </div>
-
-          <div className="pt-4 border-t">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-600">Documents</p>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </Button>
-            </div>
           </div>
         </div>
       </DialogContent>

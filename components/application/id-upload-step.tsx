@@ -57,6 +57,8 @@ export function IdUploadStep<T extends IdForm>({
   onOcrTextChange,
   onInvalidFileTypeChange,
 }: IdUploadStepProps<T>): React.JSX.Element {
+  const DEFAULT_INVALID_FILE_MESSAGE =
+    "Invalid file type: Uploaded file is not a valid ID document. Please remove this file and upload a valid Student ID or Valid ID.";
   const [ocrText, setOcrText] = useState<string>("");
   const [ocrError, setOcrError] = useState<string>("");
   const [isInvalidFileType, setIsInvalidFileType] = useState<boolean>(false);
@@ -68,6 +70,28 @@ export function IdUploadStep<T extends IdForm>({
   const [extractedData, setExtractedData] =
     useState<IDExtractionResponse | null>(null);
 const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
+
+  const showInvalidFileTypeError = (
+    alertMessage = DEFAULT_INVALID_FILE_MESSAGE,
+    toastMessage?: string
+  ): void => {
+    invalidFileTypeRef.current = true;
+    setInvalidFileTypeError(alertMessage);
+    setOcrError(alertMessage);
+    toast.error(toastMessage ?? alertMessage, { duration: 8000 });
+    onRemoveFile?.();
+    setOcrText("");
+    onOcrTextChange?.("");
+    setExtractedData(null);
+    setIsProcessingDone(false);
+    setProcessedIdFile("");
+    setIsInvalidFileType(false);
+    onInvalidFileTypeChange?.(false);
+    setIsProcessing(false);
+    setIsExtractingData(false);
+    setStatusMessage("");
+    setProgress(0);
+  };
 
   // Auto-fill form fields with extracted data
   const autoFillFormFields = (data: IDExtractionResponse): void => {
@@ -261,23 +285,10 @@ const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
             ) {
               console.log("Invalid file type detected, removing file");
               const fullErrorMessage = `${errorMessage}. Please remove this file and upload a valid Student ID or Valid ID.`;
-              // Set the ref BEFORE removing file so useEffect knows to preserve the error
-              invalidFileTypeRef.current = true;
-              setInvalidFileTypeError(fullErrorMessage);
-              setOcrError(fullErrorMessage);
-              toast.error(errorMessage, { duration: 8000 });
-              // Clear the uploaded file to force re-upload
-              onRemoveFile?.();
-              setOcrText("");
-              onOcrTextChange?.("");
-              setExtractedData(null);
-              setIsProcessingDone(false);
-              setProcessedIdFile("");
-              // Clear invalid file type state after removing file to enable submit button
-              // The error message will still be shown via Alert component
-              setIsInvalidFileType(false);
-              onInvalidFileTypeChange?.(false);
-              console.log("File removed, invalid file type state cleared, error preserved");
+              showInvalidFileTypeError(fullErrorMessage, errorMessage);
+              console.log(
+                "File removed, invalid file type state cleared, error preserved"
+              );
               return;
             } else if (errorMessage.includes("timeout")) {
               invalidFileTypeRef.current = false;
@@ -324,17 +335,11 @@ const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
                 "Extraction service is currently unavailable. You can still view the OCR text below."
               );
             } else {
-              // Generic error
-              invalidFileTypeRef.current = false;
-              setIsInvalidFileType(false);
-              onInvalidFileTypeChange?.(false);
-              toast.error(
-                `Failed to extract data: ${errorMessage}. Please fill the form manually.`,
-                { duration: 6000 }
+              console.error(
+                "Extraction failed with unhandled error, defaulting to invalid file message:",
+                errorMessage
               );
-              setOcrError(
-                `Extraction failed: ${errorMessage}. OCR text is still available below.`
-              );
+              showInvalidFileTypeError();
             }
           }
         }

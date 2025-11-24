@@ -18,12 +18,13 @@ interface OTPVerificationProps {
   isOpen: boolean;
   onClose: () => void;
   onVerify: (otp: string) => Promise<void>;
-  onResend: () => void;
+  onResend: () => void | Promise<void>;
   isLoading?: boolean;
   title?: string;
   description?: string;
   email?: string;
   length?: number;
+  resendCooldownSeconds?: number;
 }
 
 export function OTPVerification({
@@ -36,9 +37,11 @@ export function OTPVerification({
   description = "Enter the 8-digit verification code sent to your email address.",
   email,
   length = 8,
+  resendCooldownSeconds = 60,
 }: OTPVerificationProps) {
   const [otpCode, setOtpCode] = useState(Array.from({ length }, () => ""));
   const [error, setError] = useState<string>("");
+  const [cooldown, setCooldown] = useState(0);
 
   const handleOTPChange = (index: number, value: string) => {
     if (value.length > 1) return;
@@ -95,10 +98,16 @@ export function OTPVerification({
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
+    if (cooldown > 0 || isLoading) return;
     setOtpCode(Array.from({ length }, () => ""));
     setError("");
-    onResend();
+    setCooldown(resendCooldownSeconds);
+    try {
+      await onResend();
+    } catch {
+      setCooldown(0);
+    }
   };
 
   // Reset OTP and error when modal opens/closes
@@ -106,8 +115,19 @@ export function OTPVerification({
     if (!isOpen) {
       setOtpCode(Array.from({ length }, () => ""));
       setError("");
+      setCooldown(0);
+    } else {
+      setCooldown(resendCooldownSeconds);
     }
-  }, [isOpen, length]);
+  }, [isOpen, length, resendCooldownSeconds]);
+
+  React.useEffect(() => {
+    if (!isOpen || cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown, isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -164,9 +184,9 @@ export function OTPVerification({
               <button
                 onClick={handleResend}
                 className="text-orange-500 hover:text-orange-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading}
+                disabled={isLoading || cooldown > 0}
               >
-                Resend OTP
+                {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
               </button>
             </p>
           </div>
