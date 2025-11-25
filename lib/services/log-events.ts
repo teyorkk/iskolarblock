@@ -75,3 +75,4 @@ export async function fetchLogEvents(
 
   return { events: data ?? [], total: count ?? 0 };
 }
+

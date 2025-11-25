@@ -52,6 +52,7 @@ export default function AdminDashboard() {
     Array<{ name: string; value: number; color: string }>
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [totalApplicants, setTotalApplicants] = useState(0);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
 
@@ -174,7 +175,7 @@ export default function AdminDashboard() {
         }
 
         // Calculate statistics
-        const totalApplicants = applications?.length || 0;
+        const totalApplicantsCount = applications?.length || 0;
         const pendingCount =
           applications?.filter((app) => app.status === "PENDING").length || 0;
         const approvedCount =
@@ -221,7 +222,7 @@ export default function AdminDashboard() {
         setStats([
           {
             title: "Total Applicants",
-            value: totalApplicants.toString(),
+            value: totalApplicantsCount.toString(),
             description: "This month",
             icon: Users,
             color: "bg-blue-500",
@@ -349,6 +350,7 @@ export default function AdminDashboard() {
           }) || [];
 
         setApplicants(recentApps);
+        setTotalApplicants(totalApplicantsCount);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -456,6 +458,7 @@ export default function AdminDashboard() {
 
               <PieChart
                 data={pieData}
+                total={totalApplicants}
                 title={
                   <div className="flex items-center">
                     <FileText className="w-5 h-5 mr-2 text-red-500" />

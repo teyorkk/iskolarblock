@@ -191,6 +191,7 @@ export interface PieChartProps {
   data: PieChartData[];
   title?: React.ReactNode;
   description?: string;
+  total?: number; // Optional total for percentage calculation
 }
 
 export interface RecentApplicantsProps {

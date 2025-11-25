@@ -21,7 +21,20 @@ export function PieChart({
   data,
   title,
   description,
+  total: providedTotal,
 }: PieChartProps): React.JSX.Element {
+  // Use provided total or calculate from all values
+  const total =
+    providedTotal !== undefined
+      ? providedTotal
+      : data.reduce((sum, item) => sum + item.value, 0);
+
+  // Calculate percentage for each item
+  const getPercentage = (value: number): number => {
+    if (total === 0) return 0;
+    return Math.round((value / total) * 100);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -57,18 +70,21 @@ export function PieChart({
             </ResponsiveContainer>
           </div>
           <div className="space-y-2 mt-4">
-            {data.map((item, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div
-                    className="w-3 h-3 rounded-full mr-2"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm text-gray-600">{item.name}</span>
+            {data.map((item, index) => {
+              const percentage = getPercentage(item.value);
+              return (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div
+                      className="w-3 h-3 rounded-full mr-2"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-sm text-gray-600">{item.name}</span>
+                  </div>
+                  <span className="text-sm font-medium">{percentage}%</span>
                 </div>
-                <span className="text-sm font-medium">{item.value}%</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
