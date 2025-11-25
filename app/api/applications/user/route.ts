@@ -42,7 +42,8 @@ export async function GET() {
         createdAt,
         updatedAt,
         id_image,
-        applicationPeriodId
+        applicationPeriodId,
+        remarks
       `
       )
       .eq("userId", userId)
@@ -69,7 +70,7 @@ export async function GET() {
           ? "New Application"
           : "Renewal Application",
       status: app.status,
-      remarks: getStatusRemarks(app.status),
+      remarks: app.remarks ?? getStatusRemarks(app.status),
       details: app.applicationDetails,
       id_image: app.id_image,
       createdAt: app.createdAt,

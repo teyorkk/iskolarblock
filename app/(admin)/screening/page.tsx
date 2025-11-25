@@ -51,6 +51,7 @@ interface Application {
   status: string;
   applicationType: string;
   createdAt: string;
+  remarks: string | null;
   User: {
     id: string;
     name: string;
@@ -216,6 +217,25 @@ export default function ScreeningPage() {
       day: "numeric",
     });
   };
+
+const getRemarksBadgeClass = (remarks?: string | null) => {
+  const base =
+    "inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border";
+  if (!remarks) {
+    return `${base} bg-gray-50 text-gray-500 border-gray-200`;
+  }
+  const normalized = remarks.toLowerCase();
+  if (normalized.includes("complete")) {
+    return `${base} bg-green-50 text-green-700 border-green-100`;
+  }
+  if (
+    normalized.includes("missing") ||
+    normalized.includes("no document")
+  ) {
+    return `${base} bg-red-50 text-red-700 border-red-100`;
+  }
+  return `${base} bg-yellow-50 text-yellow-700 border-yellow-100`;
+};
 
   const stats = useMemo(() => {
     return {
@@ -513,7 +533,7 @@ export default function ScreeningPage() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="min-w-full text-sm">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12">
@@ -528,10 +548,16 @@ export default function ScreeningPage() {
                             />
                           </TableHead>
                           <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Type</TableHead>
+                          <TableHead className="hidden lg:table-cell">
+                            Type
+                          </TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Submitted</TableHead>
+                          <TableHead className="hidden md:table-cell">
+                            Remarks
+                          </TableHead>
+                          <TableHead className="hidden sm:table-cell">
+                            Submitted
+                          </TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -552,10 +578,26 @@ export default function ScreeningPage() {
                               />
                             </TableCell>
                             <TableCell className="font-medium">
-                              {application.User.name}
+                              <div className="flex flex-col">
+                                <span>{application.User.name}</span>
+                                <span className="text-xs text-gray-500 xl:hidden">
+                                  {application.User.email}
+                                </span>
+                                <span className="md:hidden mt-1">
+                                  <span
+                                    className={getRemarksBadgeClass(
+                                      application.remarks
+                                    )}
+                                  >
+                                    {application.remarks || "—"}
+                                  </span>
+                                </span>
+                                <span className="text-xs text-gray-400 sm:hidden">
+                                  Submitted {formatDate(application.createdAt)}
+                                </span>
+                              </div>
                             </TableCell>
-                            <TableCell>{application.User.email}</TableCell>
-                            <TableCell>
+                            <TableCell className="hidden lg:table-cell">
                               <Badge variant="outline">
                                 {application.applicationType}
                               </Badge>
@@ -567,7 +609,16 @@ export default function ScreeningPage() {
                                 {application.status}
                               </Badge>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden md:table-cell max-w-xs">
+                              <span
+                                className={getRemarksBadgeClass(
+                                  application.remarks
+                                )}
+                              >
+                                {application.remarks || "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
                               {formatDate(application.createdAt)}
                             </TableCell>
                             <TableCell className="text-right">

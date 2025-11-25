@@ -8,6 +8,7 @@ import {
   capitalizeName,
   capitalizeText,
 } from "@/lib/utils";
+import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 
 interface RenewApplicationRequest {
   // Images (base64 strings)
@@ -225,13 +226,10 @@ export async function POST(request: NextRequest) {
       corDocumentUrl = resolveStoredDocumentUrl(supabase, body.corOcr.fileUrl);
     }
 
-    const hasIdDocument = Boolean(idImageUrl);
     const hasCogDocument = Boolean(cogDocumentUrl);
     const hasCorDocument = Boolean(corDocumentUrl);
-    const applicationStatus: "APPROVED" | "PENDING" =
-      hasIdDocument && hasCogDocument && hasCorDocument
-        ? "APPROVED"
-        : "PENDING";
+    const applicationStatus = "PENDING" as const;
+    const remarks = getDocumentRemarks(hasCogDocument, hasCorDocument);
 
     // Capitalize personal info data before saving (even if from previous application)
     const capitalizedPersonalInfo = personalInfoData
@@ -248,6 +246,7 @@ export async function POST(request: NextRequest) {
       applicationType: "RENEWAL",
       applicationDetails: { personalInfo: capitalizedPersonalInfo },
       id_image: idImageUrl,
+      remarks,
       createdAt: now,
       updatedAt: now,
     });
@@ -427,6 +426,7 @@ export async function POST(request: NextRequest) {
       success: true,
       applicationId: applicationId,
       status: applicationStatus,
+      remarks,
       personalInfo: capitalizedPersonalInfo,
       transactionHash,
     });

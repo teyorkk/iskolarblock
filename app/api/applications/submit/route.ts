@@ -9,6 +9,7 @@ import {
   capitalizeName,
   capitalizeText,
 } from "@/lib/utils";
+import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 
 interface SubmitApplicationRequest {
   // Form data
@@ -225,13 +226,10 @@ export async function POST(request: NextRequest) {
       corDocumentUrl = resolveStoredDocumentUrl(supabase, body.corOcr.fileUrl);
     }
 
-    const hasIdDocument = Boolean(idImageUrl);
     const hasCogDocument = Boolean(cogDocumentUrl);
     const hasCorDocument = Boolean(corDocumentUrl);
-    const applicationStatus: "APPROVED" | "PENDING" =
-      hasIdDocument && hasCogDocument && hasCorDocument
-        ? "APPROVED"
-        : "PENDING";
+    const applicationStatus = "PENDING" as const;
+    const remarks = getDocumentRemarks(hasCogDocument, hasCorDocument);
 
     // Capitalize form data before saving
     const capitalizedFormData = capitalizeFormData(body.formData);
@@ -246,6 +244,7 @@ export async function POST(request: NextRequest) {
       applicationType: "NEW",
       applicationDetails: { personalInfo: capitalizedFormData },
       id_image: idImageUrl,
+      remarks,
       createdAt: now,
       updatedAt: now,
     });
@@ -433,6 +432,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           applicationId,
           status: applicationStatus,
+          remarks,
         },
       },
       supabase
@@ -442,6 +442,7 @@ export async function POST(request: NextRequest) {
       success: true,
       applicationId: applicationId,
       status: applicationStatus,
+      remarks,
       transactionHash,
     });
   } catch (error) {

@@ -731,7 +731,7 @@ export function DocumentsUploadStep<
             />
           )}
 
-          {existingCorFileUrl && !certificateOfRegistration && (
+          {!corUploadLocked && existingCorFileUrl && !certificateOfRegistration && (
             <div className="flex items-center justify-between text-sm text-blue-700 bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
               <span>An existing Certificate of Registration is on file.</span>
               <Button

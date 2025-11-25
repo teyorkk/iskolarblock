@@ -32,6 +32,7 @@ export async function GET(request: Request) {
         updatedAt,
         applicationDetails,
         applicationPeriodId,
+        remarks,
         User!Application_userId_fkey (
           id,
           name,

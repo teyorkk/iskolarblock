@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { expirePendingApplications } from "@/lib/services/application-status";
 import { randomUUID } from "crypto";
 import { logEvent } from "@/lib/services/log-events";
+import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 interface RouteContext {
@@ -318,15 +319,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Check if both files exist after processing
     const finalCogUrl = cogFileUrl || existingCog?.fileUrl;
     const finalCorUrl = corFileUrl || existingCor?.fileUrl;
-    const hasBothFiles = Boolean(finalCogUrl && finalCorUrl);
-
-    // Set status: APPROVED if both files exist, PENDING if only one
-    const newStatus = hasBothFiles ? "APPROVED" : "PENDING";
+    const hasCogDocument = Boolean(finalCogUrl);
+    const hasCorDocument = Boolean(finalCorUrl);
+    const remarks = getDocumentRemarks(hasCogDocument, hasCorDocument);
+    const newStatus = "PENDING" as const;
 
     const { error: updateError } = await supabase
       .from("Application")
       .update({
         status: newStatus,
+        remarks,
         updatedAt: new Date().toISOString(),
       })
       .eq("id", applicationId);
@@ -351,18 +353,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
         metadata: {
           applicationId,
           status: newStatus,
+          remarks,
         },
       },
       supabase
     );
 
+    const responseMessage =
+      remarks === "Complete document"
+        ? "Documents uploaded! Await admin screening for approval."
+        : `Document status: ${remarks}.`;
+
     return NextResponse.json({
       success: true,
       status: newStatus,
       applicationId,
-      message: hasBothFiles
-        ? "Documents uploaded! Application has been approved."
-        : "Document uploaded! Application remains pending until both documents are uploaded.",
+      remarks,
+      message: responseMessage,
     });
   } catch (error) {
     console.error("Error completing application:", error);
