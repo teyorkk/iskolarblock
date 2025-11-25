@@ -75,16 +75,39 @@ function transformN8NResponse(
     return null;
   };
 
+  const dataRecord = dataObject as unknown as Record<string, unknown>;
+
+  const getFieldValue = (
+    ...keys: string[]
+  ): N8NFieldResponse | string | number | null => {
+    for (const key of keys) {
+      if (key in dataRecord) {
+        return dataRecord[key] as N8NFieldResponse | string | number | null;
+      }
+    }
+    return null;
+  };
+
   const transformed: COGExtractionResponse = {
     "Certificate of Grades": dataObject["Certificate of Grades"] ?? true,
-    school: extractValue(dataObject.school) as string | null,
-    school_year: extractValue(dataObject.school_year) as string | null,
-    semester: extractValue(dataObject.semester) as string | null,
-    course: extractValue(dataObject.course) as string | null,
-    name: extractValue(dataObject.name) as string | null,
-    gwa: extractValue(dataObject.total_gwa) as number | null,
-    total_units: extractValue(dataObject.total_units) as number | null,
-    subjects: extractValue(dataObject.subjects) as GradeSubject[] | null,
+    school: extractValue(getFieldValue("school", "School")) as string | null,
+    school_year: extractValue(getFieldValue("school_year", "schoolYear")) as
+      | string
+      | null,
+    semester: extractValue(getFieldValue("semester", "Semester")) as
+      | string
+      | null,
+    course: extractValue(getFieldValue("course", "Course")) as string | null,
+    name: extractValue(getFieldValue("name", "Name")) as string | null,
+    gwa: extractValue(getFieldValue("total_gwa", "totalGwa", "GWA")) as
+      | number
+      | null,
+    total_units: extractValue(getFieldValue("total_units", "totalUnits")) as
+      | number
+      | null,
+    subjects: extractValue(getFieldValue("subjects", "Subjects")) as
+      | GradeSubject[]
+      | null,
   };
 
   // Log accuracy information if available
@@ -222,11 +245,9 @@ export async function POST(request: NextRequest) {
     let token: string;
     try {
       const payload = {
-        ocrText,
         name: applicantName || "",
-        timestamp: Date.now(),
+        ocrText,
       };
-
       token = sign(payload, jwtSecret as string, {
         expiresIn: "5m",
       });
@@ -338,6 +359,24 @@ export async function POST(request: NextRequest) {
           {
             error:
               "Invalid file type: Uploaded file is not a valid Certificate of Grades document",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Handle name mismatch error similar to COR
+      if (
+        dataObject &&
+        "Match name" in dataObject &&
+        dataObject["Match name"] === false
+      ) {
+        console.error(
+          "Name mismatch: The name on the COG does not match the application form."
+        );
+        return NextResponse.json(
+          {
+            error:
+              "Name mismatch: The name on your Certificate of Grades does not match the name entered in the application form. Please upload the correct COG.",
           },
           { status: 400 }
         );

@@ -642,7 +642,9 @@ export function DocumentsUploadStep<
                 <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-red-800">
-                    Processing error
+                    {cogOcrError.toLowerCase().includes("name mismatch")
+                      ? "Name does not match"
+                      : "Processing error"}
                   </p>
                   <p className="text-xs text-red-700 mt-1">{cogOcrError}</p>
                 </div>

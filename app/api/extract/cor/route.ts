@@ -42,6 +42,17 @@ interface RequestBody {
  * N8N returns: { field: { value: "X", accuracy: 0.9 } }
  * We need: { field: "X" }
  */
+const toTitleCase = (input: string | null): string | null => {
+  if (typeof input !== "string") return null;
+  const normalized = input
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*/g, ", ")
+    .toLowerCase();
+
+  return normalized.replace(/\b([a-z])/g, (match) => match.toUpperCase());
+};
+
 function transformN8NResponse(
   n8nData: N8NWebhookResponse | N8NWebhookResponse[]
 ): CORExtractionResponse {
@@ -67,11 +78,13 @@ function transformN8NResponse(
   const transformed: CORExtractionResponse = {
     "Certificate of Registration":
       dataObject["Certificate of Registration"] ?? true,
-    school: extractValue(dataObject.school) as string | null,
-    school_year: extractValue(dataObject.school_year) as string | null,
-    semester: extractValue(dataObject.semester) as string | null,
-    course: extractValue(dataObject.course) as string | null,
-    name: extractValue(dataObject.name) as string | null,
+    school: toTitleCase(extractValue(dataObject.school) as string | null),
+    school_year: toTitleCase(
+      extractValue(dataObject.school_year) as string | null
+    ),
+    semester: toTitleCase(extractValue(dataObject.semester) as string | null),
+    course: toTitleCase(extractValue(dataObject.course) as string | null),
+    name: toTitleCase(extractValue(dataObject.name) as string | null),
     total_units: extractValue(dataObject.total_units) as number | null,
   };
 
