@@ -18,6 +18,7 @@ import { Pagination } from "@/components/common/pagination";
 import { Loader2, RefreshCcw, Search } from "lucide-react";
 import type { LogEventRecord } from "@/types/log-event";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 10;
 
@@ -53,6 +54,7 @@ export default function AdminLogEventsPage(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [hasRealtimeUpdates, setHasRealtimeUpdates] = useState(false);
+  const [shouldNotify, setShouldNotify] = useState(false);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -81,13 +83,63 @@ export default function AdminLogEventsPage(): React.JSX.Element {
           throw new Error(data.error || "Failed to load log events");
         }
 
-        setEvents(data.events ?? []);
+        let fetchedEvents: LogEventRecord[] = data.events ?? [];
+
+        // Fetch profile pictures for events missing avatar URLs
+        const missingAvatarIds = Array.from(
+          new Set(
+            fetchedEvents
+              .filter((event) => !event.actor_avatar_url && event.actor_id)
+              .map((event) => event.actor_id as string)
+          )
+        );
+
+        if (missingAvatarIds.length > 0) {
+          const supabase = getSupabaseBrowserClient();
+          const { data: users } = await supabase
+            .from("User")
+            .select("id, profilePicture")
+            .in("id", missingAvatarIds);
+
+          if (users && users.length > 0) {
+            const avatarMap = new Map(
+              users
+                .filter((user) => Boolean(user.profilePicture))
+                .map((user) => [user.id, user.profilePicture as string])
+            );
+
+            if (avatarMap.size > 0) {
+              fetchedEvents = fetchedEvents.map((event) => {
+                if (!event.actor_avatar_url && event.actor_id) {
+                  const profilePicture = avatarMap.get(event.actor_id);
+                  if (profilePicture) {
+                    return { ...event, actor_avatar_url: profilePicture };
+                  }
+                }
+                return event;
+              });
+            }
+          }
+        }
+
+        setEvents(fetchedEvents);
         setTotal(data.total ?? 0);
+
+        if (shouldNotify) {
+          toast.success("Log events refreshed.");
+        }
       } catch (error) {
         console.error("Failed to fetch log events:", error);
         setEvents([]);
         setTotal(0);
+
+        if (shouldNotify) {
+          toast.error("Failed to refresh log events. Please try again.");
+        }
       } finally {
+        if (shouldNotify) {
+          setShouldNotify(false);
+        }
         setIsLoading(false);
       }
     };
@@ -146,7 +198,10 @@ export default function AdminLogEventsPage(): React.JSX.Element {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setRefreshKey((prev) => prev + 1)}
+                    onClick={() => {
+                      setShouldNotify(true);
+                      setRefreshKey((prev) => prev + 1);
+                    }}
                     disabled={isLoading}
                   >
                     <RefreshCcw className="w-4 h-4 mr-2" />

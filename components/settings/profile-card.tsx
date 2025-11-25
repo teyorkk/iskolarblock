@@ -64,17 +64,12 @@ export function ProfileCard({
     const file = event.target.files?.[0];
     if (!file || !userData?.email) return;
 
-    // Validate file type - only PNG and JPG allowed
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
-    const allowedExtensions = ["png", "jpg", "jpeg"];
+    // Validate file type - allow any image format
+    const isImageFile = file.type?.startsWith("image/");
     const fileExt = file.name.split(".").pop()?.toLowerCase();
 
-    if (
-      !allowedTypes.includes(file.type) ||
-      !fileExt ||
-      !allowedExtensions.includes(fileExt)
-    ) {
-      toast.error("Please upload a PNG or JPG image file only");
+    if (!isImageFile) {
+      toast.error("Please upload a valid image file.");
       return;
     }
 
@@ -102,9 +97,11 @@ export function ProfileCard({
         return;
       }
 
+      const safeExtension =
+        fileExt || file.type.split("/").pop()?.toLowerCase() || "jpg";
       const fileName = `profile-pictures/${
         userRecord.id
-      }/${Date.now()}.${fileExt}`;
+      }/${Date.now()}.${safeExtension}`;
 
       // Upload to avatars bucket (has RLS policy for profile pictures)
       const { error: uploadError } = await supabase.storage
@@ -232,7 +229,7 @@ export function ProfileCard({
             <input
               type="file"
               className="hidden"
-              accept="image/png,image/jpeg,image/jpg"
+              accept="image/*"
               onChange={handleImageUpload}
               disabled={isUploading}
             />
