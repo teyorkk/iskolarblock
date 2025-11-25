@@ -26,9 +26,22 @@ export function PersonalInfoStepPart2({
   errors,
   setValue,
 }: ApplicationStepProps<NewApplicationFormData>): React.JSX.Element {
-  const step2Errors = ["houseNumber", "purok", "barangay", "municipality", "province", "citizenship", "contactNumber", "religion", "course", "yearLevel"];
-  const relevantErrors = step2Errors.filter(field => errors[field as keyof typeof errors]);
-  
+  const step2Errors = [
+    "houseNumber",
+    "purok",
+    "barangay",
+    "municipality",
+    "province",
+    "citizenship",
+    "contactNumber",
+    "religion",
+    "course",
+    "yearLevel",
+  ];
+  const relevantErrors = step2Errors.filter(
+    (field) => errors[field as keyof typeof errors]
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -45,7 +58,8 @@ export function PersonalInfoStepPart2({
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Please fix {relevantErrors.length} error{relevantErrors.length > 1 ? 's' : ''} before proceeding.
+              Please fix {relevantErrors.length} error
+              {relevantErrors.length > 1 ? "s" : ""} before proceeding.
             </AlertDescription>
           </Alert>
         )}
@@ -64,16 +78,18 @@ export function PersonalInfoStepPart2({
                   placeholder="Enter house number"
                 />
                 {errors.houseNumber && (
-                  <p className="text-sm text-red-500">{errors.houseNumber.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.houseNumber.message}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="purok">Purok</Label>
+                <Label htmlFor="purok">Purok/Street</Label>
                 <Input
                   id="purok"
                   {...register("purok")}
-                  placeholder="Enter purok"
+                  placeholder="Enter purok/street"
                 />
                 {errors.purok && (
                   <p className="text-sm text-red-500">{errors.purok.message}</p>
@@ -88,7 +104,9 @@ export function PersonalInfoStepPart2({
                   placeholder="Enter barangay"
                 />
                 {errors.barangay && (
-                  <p className="text-sm text-red-500">{errors.barangay.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.barangay.message}
+                  </p>
                 )}
               </div>
 
@@ -100,7 +118,9 @@ export function PersonalInfoStepPart2({
                   placeholder="Enter municipality"
                 />
                 {errors.municipality && (
-                  <p className="text-sm text-red-500">{errors.municipality.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.municipality.message}
+                  </p>
                 )}
               </div>
 
@@ -135,14 +155,18 @@ export function PersonalInfoStepPart2({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contactNumber">Contact Number</Label>
+                <Label htmlFor="contactNumber">
+                  Contact Number (N/A if not available)
+                </Label>
                 <Input
                   id="contactNumber"
                   {...register("contactNumber")}
                   placeholder="Enter contact number"
                 />
                 {errors.contactNumber && (
-                  <p className="text-sm text-red-500">{errors.contactNumber.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.contactNumber.message}
+                  </p>
                 )}
               </div>
 
@@ -154,7 +178,9 @@ export function PersonalInfoStepPart2({
                   placeholder="Enter religion"
                 />
                 {errors.religion && (
-                  <p className="text-sm text-red-500">{errors.religion.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.religion.message}
+                  </p>
                 )}
               </div>
 
@@ -166,7 +192,9 @@ export function PersonalInfoStepPart2({
                   placeholder="Enter course or strand"
                 />
                 {errors.course && (
-                  <p className="text-sm text-red-500">{errors.course.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.course.message}
+                  </p>
                 )}
               </div>
 
@@ -174,7 +202,10 @@ export function PersonalInfoStepPart2({
                 <Label htmlFor="yearLevel">Year Level</Label>
                 <Select
                   onValueChange={(value) =>
-                    setValue("yearLevel", value as NewApplicationFormData["yearLevel"])
+                    setValue(
+                      "yearLevel",
+                      value as NewApplicationFormData["yearLevel"]
+                    )
                   }
                 >
                   <SelectTrigger>
@@ -190,7 +221,9 @@ export function PersonalInfoStepPart2({
                   </SelectContent>
                 </Select>
                 {errors.yearLevel && (
-                  <p className="text-sm text-red-500">{errors.yearLevel.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.yearLevel.message}
+                  </p>
                 )}
               </div>
             </div>

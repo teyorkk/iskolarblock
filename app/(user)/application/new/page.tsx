@@ -53,18 +53,21 @@ export default function NewApplicationPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isIdProcessingDone, setIsIdProcessingDone] = useState<boolean>(false);
   const [processedIdFile, setProcessedIdFile] = useState<string>("");
-  const [isIdInvalidFileType, setIsIdInvalidFileType] = useState<boolean>(false);
+  const [isIdInvalidFileType, setIsIdInvalidFileType] =
+    useState<boolean>(false);
   const [certificateOfGrades, setCertificateOfGrades] = useState<File | null>(
     null
   );
   const [isCogProcessingDone, setIsCogProcessingDone] =
     useState<boolean>(false);
-  const [isCogInvalidFileType, setIsCogInvalidFileType] = useState<boolean>(false);
+  const [isCogInvalidFileType, setIsCogInvalidFileType] =
+    useState<boolean>(false);
   const [certificateOfRegistration, setCertificateOfRegistration] =
     useState<File | null>(null);
   const [isCorProcessingDone, setIsCorProcessingDone] =
     useState<boolean>(false);
-  const [isCorInvalidFileType, setIsCorInvalidFileType] = useState<boolean>(false);
+  const [isCorInvalidFileType, setIsCorInvalidFileType] =
+    useState<boolean>(false);
 
   // Track processed files to prevent reprocessing
   const [processedCogFile, setProcessedCogFile] = useState<string>("");
@@ -179,6 +182,46 @@ export default function NewApplicationPage() {
       citizenship: "Filipino",
     },
   });
+
+  const stepFieldErrorMap: Record<
+    number,
+    Array<keyof NewApplicationFormData>
+  > = {
+    2: [
+      "lastName",
+      "firstName",
+      "middleName",
+      "dateOfBirth",
+      "placeOfBirth",
+      "age",
+      "sex",
+    ],
+    3: [
+      "houseNumber",
+      "purok",
+      "barangay",
+      "municipality",
+      "province",
+      "citizenship",
+      "contactNumber",
+      "religion",
+      "course",
+      "yearLevel",
+    ],
+  };
+
+  const stepHasErrors = (stepNumber: number): boolean => {
+    const fields = stepFieldErrorMap[stepNumber];
+    if (!fields) return false;
+    return fields.some((field) => Boolean(errors[field]));
+  };
+
+  const isContactNumberValid = (): boolean => {
+    const contactNumber = (watch("contactNumber") || "").trim();
+    if (!contactNumber) return false;
+    if (contactNumber.toLowerCase() === "n/a") return true;
+    return contactNumber.startsWith("09") && /^\d{11}$/.test(contactNumber);
+  };
 
   const onDrop = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
@@ -683,7 +726,8 @@ export default function NewApplicationPage() {
                       !watch("dateOfBirth") ||
                       !watch("placeOfBirth") ||
                       !watch("age") ||
-                      !watch("sex"))) ||
+                      !watch("sex") ||
+                      stepHasErrors(2))) ||
                   (currentStep === 3 &&
                     (!watch("houseNumber") ||
                       !watch("purok") ||
@@ -692,7 +736,9 @@ export default function NewApplicationPage() {
                       !watch("contactNumber") ||
                       !watch("religion") ||
                       !watch("course") ||
-                      !watch("yearLevel"))) ||
+                      !watch("yearLevel") ||
+                      !isContactNumberValid() ||
+                      stepHasErrors(3))) ||
                   (currentStep === 4 && documentsProcessing)
                 }
               >

@@ -82,7 +82,15 @@ export const newApplicationSchema = z.object({
   municipality: z.string().min(1, "Municipality is required"),
   province: z.string().min(1, "Province is required"),
   citizenship: z.string().min(1, "Citizenship is required"),
-  contactNumber: z.string().min(10, "Contact number is required"),
+  contactNumber: z
+    .string()
+    .transform((val) => val.trim())
+    .refine(
+      (val) =>
+        val.toLowerCase() === "n/a" ||
+        (/^\d{11}$/.test(val) && val.startsWith("09")),
+      "Please enter a valid contact number or just leave it N/A"
+    ),
   religion: z.string().min(2, "Religion is required"),
   course: z.string().min(2, "Course/Strand is required"),
   yearLevel: z.enum(["G11", "G12", "1", "2", "3", "4"]),
