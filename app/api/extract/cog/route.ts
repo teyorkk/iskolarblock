@@ -45,6 +45,7 @@ interface RequestBody {
   fileData?: string; // Base64 file data
   fileName?: string;
   userId?: string;
+  applicantName?: string | null;
 }
 
 /**
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ocrText, fileData, fileName, userId } = body;
+    const { ocrText, fileData, fileName, userId, applicantName } = body;
 
     // Upload file to Supabase storage if provided
     let fileUrl: string | null = null;
@@ -200,8 +201,7 @@ export async function POST(request: NextRequest) {
       console.error("JWT_SECRET validation failed:", jwtValidation.error);
       return NextResponse.json(
         {
-          error:
-            jwtValidation.error || "Authentication service not configured",
+          error: jwtValidation.error || "Authentication service not configured",
         },
         { status: 503 }
       );
@@ -223,6 +223,7 @@ export async function POST(request: NextRequest) {
     try {
       const payload = {
         ocrText,
+        name: applicantName || "",
         timestamp: Date.now(),
       };
 
@@ -240,7 +241,6 @@ export async function POST(request: NextRequest) {
     // Send to N8N webhook
     let response: Response;
     try {
-      const requestBody = { ocrText };
       console.log("=== N8N COG Webhook Request ===");
       console.log("URL:", webhookUrl);
       console.log("OCR Text Length:", ocrText.length);
@@ -252,7 +252,6 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(requestBody),
       });
 
       console.log("=== N8N COG Webhook Response ===");
@@ -327,12 +326,19 @@ export async function POST(request: NextRequest) {
 
       // Check if the uploaded file is actually a Certificate of Grades
       const dataObject = Array.isArray(rawData) ? rawData[0] : rawData;
-      if (dataObject && "Certificate of Grades" in dataObject && dataObject["Certificate of Grades"] === false) {
+      if (
+        dataObject &&
+        "Certificate of Grades" in dataObject &&
+        dataObject["Certificate of Grades"] === false
+      ) {
         console.error(
           "Invalid file type: Uploaded file is not a valid Certificate of Grades document"
         );
         return NextResponse.json(
-          { error: "Invalid file type: Uploaded file is not a valid Certificate of Grades document" },
+          {
+            error:
+              "Invalid file type: Uploaded file is not a valid Certificate of Grades document",
+          },
           { status: 400 }
         );
       }

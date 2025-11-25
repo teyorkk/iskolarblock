@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ArrowRight, ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -216,12 +216,30 @@ export default function NewApplicationPage() {
     return fields.some((field) => Boolean(errors[field]));
   };
 
+  const watchedLastName = watch("lastName");
+  const watchedFirstName = watch("firstName");
+  const watchedMiddleName = watch("middleName");
+
   const isContactNumberValid = (): boolean => {
     const contactNumber = (watch("contactNumber") || "").trim();
     if (!contactNumber) return false;
     if (contactNumber.toLowerCase() === "n/a") return true;
     return contactNumber.startsWith("09") && /^\d{11}$/.test(contactNumber);
   };
+
+  const applicantName = useMemo(() => {
+    const lastName = (watchedLastName || "").trim();
+    const firstName = (watchedFirstName || "").trim();
+    const middleName = (watchedMiddleName || "").trim();
+
+    if (!lastName || !firstName) return null;
+    const middleInitial = middleName
+      ? `${middleName.charAt(0).toUpperCase()}.`
+      : "";
+    return `${lastName}, ${firstName}${
+      middleInitial ? ` ${middleInitial}` : ""
+    }`;
+  }, [watchedLastName, watchedFirstName, watchedMiddleName]);
 
   const onDrop = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
@@ -680,6 +698,7 @@ export default function NewApplicationPage() {
                     }}
                     onCogInvalidFileTypeChange={setIsCogInvalidFileType}
                     onCorInvalidFileTypeChange={setIsCorInvalidFileType}
+                    applicantName={applicantName || undefined}
                   />
                 </StepErrorBoundary>
               )}

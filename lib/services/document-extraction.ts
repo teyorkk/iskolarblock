@@ -48,7 +48,8 @@ export interface DocumentExtractionError {
 export async function extractCOGData(
   ocrText: string,
   file?: File,
-  userId?: string
+  userId?: string,
+  applicantName?: string
 ): Promise<COGExtractionResponse | null> {
   // Validate input
   if (!ocrText || typeof ocrText !== "string") {
@@ -88,6 +89,7 @@ export async function extractCOGData(
           fileData,
           fileName,
           userId,
+          applicantName,
         }),
       });
     } catch (fetchError) {
@@ -203,7 +205,8 @@ export async function extractCOGData(
 export async function extractCORData(
   ocrText: string,
   file?: File,
-  userId?: string
+  userId?: string,
+  applicantName?: string
 ): Promise<CORExtractionResponse | null> {
   // Validate input
   if (!ocrText || typeof ocrText !== "string") {
@@ -245,6 +248,7 @@ export async function extractCORData(
           fileData,
           fileName,
           userId,
+          applicantName,
         }),
       });
     } catch (fetchError) {

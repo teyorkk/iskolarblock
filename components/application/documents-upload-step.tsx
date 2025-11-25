@@ -68,6 +68,7 @@ interface DocumentsUploadStepProps<
   onUnlockCorUpload?: () => void;
   onCogInvalidFileTypeChange?: (isInvalid: boolean) => void;
   onCorInvalidFileTypeChange?: (isInvalid: boolean) => void;
+  applicantName?: string | null;
 }
 
 export function DocumentsUploadStep<
@@ -102,6 +103,7 @@ export function DocumentsUploadStep<
   onUnlockCorUpload,
   onCogInvalidFileTypeChange,
   onCorInvalidFileTypeChange,
+  applicantName,
 }: DocumentsUploadStepProps<T>): React.JSX.Element {
   const { user } = useSession();
   // Certificate of Grades state
@@ -240,7 +242,8 @@ export function DocumentsUploadStep<
           const extractedData = await extractCOGData(
             result.text,
             certificateOfGrades,
-            user?.id
+            user?.id,
+            applicantName || undefined
           );
 
           if (cancelled) return;
@@ -334,6 +337,7 @@ export function DocumentsUploadStep<
     isCogProcessingDone,
     setIsCogProcessingDone,
     setProcessedCogFile,
+    applicantName,
   ]);
 
   // Process Certificate of Registration
@@ -428,7 +432,8 @@ export function DocumentsUploadStep<
           const extractedData = await extractCORData(
             result.text,
             certificateOfRegistration,
-            user?.id
+            user?.id,
+            applicantName || undefined
           );
 
           if (cancelled) return;
@@ -499,6 +504,12 @@ export function DocumentsUploadStep<
             setIsCorInvalidFileType(false);
             onCorInvalidFileTypeChange?.(false);
             return;
+          } else if (errorMessage.includes("does not match the name entered")) {
+            setIsCorInvalidFileType(false);
+            onCorInvalidFileTypeChange?.(false);
+            setCorOcrError(errorMessage);
+            setCorProgress(0);
+            toast.error(errorMessage, { duration: 8000 });
           } else {
             setIsCorInvalidFileType(false);
             onCorInvalidFileTypeChange?.(false);
@@ -532,6 +543,7 @@ export function DocumentsUploadStep<
     isCorProcessingDone,
     setIsCorProcessingDone,
     setProcessedCorFile,
+    applicantName,
   ]);
 
   return (
@@ -564,26 +576,6 @@ export function DocumentsUploadStep<
             </AlertTitle>
             <AlertDescription className="text-green-600">
               Document(s) have been successfully processed.
-            </AlertDescription>
-          </Alert>
-        )}
-        {hasProcessingErrors && (
-          <Alert variant="destructive">
-            <XCircle className="h-4 w-4" />
-            <AlertTitle>Processing Errors</AlertTitle>
-            <AlertDescription>
-              Some documents encountered errors during processing. You can still
-              proceed, but please verify your information.
-            </AlertDescription>
-          </Alert>
-        )}
-        {!hasProcessingErrors && missingDocuments && (
-          <Alert className="border-blue-200 bg-blue-50 text-blue-700">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Submit now, finish later</AlertTitle>
-            <AlertDescription>
-              You may submit with at least one document. Upload the other
-              document later if needed.
             </AlertDescription>
           </Alert>
         )}
@@ -644,6 +636,20 @@ export function DocumentsUploadStep<
             </div>
           )}
 
+          {cogOcrError && !isCogProcessing && !isCogInvalidFileType && (
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <div className="flex items-start">
+                <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800">
+                    Processing error
+                  </p>
+                  <p className="text-xs text-red-700 mt-1">{cogOcrError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* COG Extracted Data Success */}
           {cogExtractedData && !isCogProcessing && (
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
@@ -669,21 +675,6 @@ export function DocumentsUploadStep<
                       </p>
                     )}
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* COG Error Display */}
-          {cogOcrError && !isCogProcessing && !isCogInvalidFileType && (
-            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-              <div className="flex items-start">
-                <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-800">
-                    Processing error
-                  </p>
-                  <p className="text-xs text-red-700 mt-1">{cogOcrError}</p>
                 </div>
               </div>
             </div>
@@ -733,7 +724,7 @@ export function DocumentsUploadStep<
               getRootProps={getRootPropsRegistration}
               getInputProps={getInputPropsRegistration}
               error={registrationErrorText}
-              label="Certificate of Registration"
+              label="Certificate of Registration / Enrollment"
               onRemove={onRemoveRegistrationFile}
             />
           )}
@@ -785,14 +776,13 @@ export function DocumentsUploadStep<
             </div>
           )}
 
-          {/* COR Error Display */}
           {corOcrError && !isCorProcessing && !isCorInvalidFileType && (
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
               <div className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-red-800">
-                    Processing error
+                    Name does not match
                   </p>
                   <p className="text-xs text-red-700 mt-1">{corOcrError}</p>
                 </div>

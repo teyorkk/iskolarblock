@@ -34,6 +34,7 @@ interface RequestBody {
   fileData?: string; // Base64 file data
   fileName?: string;
   userId?: string;
+  applicantName?: string | null;
 }
 
 /**
@@ -111,37 +112,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ocrText, fileData, fileName, userId } = body;
-    
+    const { ocrText, fileData, fileName, userId, applicantName } = body;
+
     // Upload file to Supabase storage if provided
     let fileUrl: string | null = null;
     if (fileData && fileName && userId) {
       try {
         const supabase = getSupabaseServerClient();
-        
+
         // Convert base64 to buffer
-        const base64Data = fileData.split(',')[1] || fileData;
-        const buffer = Buffer.from(base64Data, 'base64');
-        
+        const base64Data = fileData.split(",")[1] || fileData;
+        const buffer = Buffer.from(base64Data, "base64");
+
         // Generate unique file path
         const timestamp = Date.now();
         const filePath = `${userId}/cor/${timestamp}-${fileName}`;
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('documents')
+          .from("documents")
           .upload(filePath, buffer, {
-            contentType: fileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+            contentType: fileName.endsWith(".pdf")
+              ? "application/pdf"
+              : "image/jpeg",
             upsert: false,
           });
-        
+
         if (uploadError) {
-          console.error('COR file upload error:', uploadError);
+          console.error("COR file upload error:", uploadError);
         } else {
           fileUrl = uploadData.path;
-          console.log('✅ COR file uploaded to storage:', fileUrl);
+          console.log("✅ COR file uploaded to storage:", fileUrl);
         }
       } catch (storageError) {
-        console.error('COR storage error:', storageError);
+        console.error("COR storage error:", storageError);
         // Continue with OCR even if storage fails
       }
     }
@@ -186,8 +189,7 @@ export async function POST(request: NextRequest) {
       console.error("JWT_SECRET validation failed:", jwtValidation.error);
       return NextResponse.json(
         {
-          error:
-            jwtValidation.error || "Authentication service not configured",
+          error: jwtValidation.error || "Authentication service not configured",
         },
         { status: 503 }
       );
@@ -209,6 +211,7 @@ export async function POST(request: NextRequest) {
     try {
       const payload = {
         ocrText,
+        name: applicantName || "",
         timestamp: Date.now(),
       };
 
@@ -226,7 +229,6 @@ export async function POST(request: NextRequest) {
     // Send to N8N webhook
     let response: Response;
     try {
-      const requestBody = { ocrText };
       console.log("=== N8N COR Webhook Request ===");
       console.log("URL:", webhookUrl);
       console.log("OCR Text Length:", ocrText.length);
@@ -238,7 +240,6 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(requestBody),
       });
 
       console.log("=== N8N COR Webhook Response ===");
@@ -313,12 +314,36 @@ export async function POST(request: NextRequest) {
 
       // Check if the uploaded file is actually a Certificate of Registration
       const dataObject = Array.isArray(rawData) ? rawData[0] : rawData;
-      if (dataObject && "Certificate of Registration" in dataObject && dataObject["Certificate of Registration"] === false) {
+      if (
+        dataObject &&
+        "Certificate of Registration" in dataObject &&
+        dataObject["Certificate of Registration"] === false
+      ) {
         console.error(
           "Invalid file type: Uploaded file is not a valid Certificate of Registration document"
         );
         return NextResponse.json(
-          { error: "Invalid file type: Uploaded file is not a valid Certificate of Registration document" },
+          {
+            error:
+              "Invalid file type: Uploaded file is not a valid Certificate of Registration document",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (
+        dataObject &&
+        "Match name" in dataObject &&
+        dataObject["Match name"] === false
+      ) {
+        console.error(
+          "Name mismatch detected between application form and COR document"
+        );
+        return NextResponse.json(
+          {
+            error:
+              "The name on your Certificate of Registration does not match the name entered in the application form. Please upload the correct COR.",
+          },
           { status: 400 }
         );
       }
