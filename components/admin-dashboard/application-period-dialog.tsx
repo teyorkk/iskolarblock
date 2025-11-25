@@ -98,6 +98,27 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
       }
 
       toast.success("Application period and budget created successfully!");
+
+      try {
+        await fetch("/api/log-events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            eventType: "ADMIN_PERIOD_CREATED",
+            message: `Configured application period ${title.trim()}`,
+            metadata: {
+              startDate,
+              endDate,
+              budget: budgetAmount,
+              isAccepting,
+            },
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to log period creation:", error);
+      }
       setIsOpen(false);
       // Reset form
       setTitle("");

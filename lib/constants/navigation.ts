@@ -16,6 +16,7 @@ export const adminNavigation: NavigationItem[] = [
   { name: "Screening", href: "/screening", icon: Users },
   { name: "Blockchain Records", href: "/blockchain", icon: Shield },
   { name: "Awarding", href: "/awarding", icon: Award },
+  { name: "Log Events", href: "/log-events", icon: FileText },
   { name: "Settings", href: "/admin-settings", icon: Settings },
 ];
 

@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { randomUUID } from "crypto";
 import type { GradeSubject } from "@/lib/services/document-extraction";
 import { logApplicationToBlockchain } from "@/lib/services/blockchain";
+import { logEvent } from "@/lib/services/log-events";
 import {
   capitalizeFormData,
   capitalizeName,
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
     // Get user ID from User table
     const { data: userData, error: userError } = await supabase
       .from("User")
-      .select("id")
+      .select("id, name, email, role, profilePicture")
       .eq("email", user.email)
       .single();
 
@@ -419,6 +420,23 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error("Blockchain logging failed (new application):", error);
     }
+
+    await logEvent(
+      {
+        eventType: "USER_APPLICATION_SUBMITTED",
+        message: `Submitted application ${applicationId}`,
+        actorId: userData.id,
+        actorName: userData.name ?? user.email ?? "User",
+        actorUsername: userData.email ?? user.email ?? null,
+        actorRole: userData.role ?? "USER",
+        actorAvatarUrl: userData.profilePicture ?? null,
+        metadata: {
+          applicationId,
+          status: applicationStatus,
+        },
+      },
+      supabase
+    );
 
     return NextResponse.json({
       success: true,

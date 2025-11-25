@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { getSupabaseAdminClient } from "@/lib/supabase/admin"
+import { logEvent } from "@/lib/services/log-events"
 
 // POST /api/auth/register { name, email, password }
 // Triggers Supabase signUp which will send an email confirmation (OTP or link based on project settings).
@@ -78,6 +79,18 @@ export async function POST(request: Request) {
         )
       }
     }
+
+    await logEvent(
+      {
+        eventType: "USER_REGISTER",
+        message: `New user registered (${name})`,
+        actorId: data.user?.id ?? null,
+        actorName: name,
+        actorUsername: email,
+        actorRole: "USER",
+      },
+      supabase
+    )
 
     return NextResponse.json({ success: true, userId: data.user?.id })
   } catch (e) {

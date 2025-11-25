@@ -1,6 +1,34 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { logEvent } from "@/lib/services/log-events";
+
+const logSuccessfulLogin = async (
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  {
+    actorId,
+    actorName,
+    actorEmail,
+    actorRole,
+  }: {
+    actorId?: string | null;
+    actorName?: string | null;
+    actorEmail?: string | null;
+    actorRole?: string | null;
+  }
+) => {
+  await logEvent(
+    {
+      eventType: "USER_LOGIN",
+      message: "User signed in",
+      actorId: actorId ?? null,
+      actorRole: actorRole ?? "USER",
+      actorName: actorName ?? actorEmail ?? "User",
+      actorUsername: actorEmail ?? null,
+    },
+    supabase
+  );
+};
 
 // POST /api/auth/login { email, password }
 export async function POST(req: Request) {
@@ -73,6 +101,13 @@ export async function POST(req: Request) {
               .eq("email", retry.data.user.email.toLowerCase().trim())
               .maybeSingle();
 
+            await logSuccessfulLogin(supabase, {
+              actorId: userData?.id ?? retry.data.user?.id,
+              actorName: userData?.name ?? retry.data.user.email,
+              actorEmail: userData?.email ?? retry.data.user.email,
+              actorRole: userData?.role ?? "USER",
+            });
+
             return NextResponse.json({
               success: true,
               userId: retry.data.user?.id,
@@ -80,6 +115,12 @@ export async function POST(req: Request) {
               role: userData?.role || "USER",
             });
           }
+          await logSuccessfulLogin(supabase, {
+            actorId: retry.data.user?.id,
+            actorName: retry.data.user?.email ?? "User",
+            actorEmail: retry.data.user?.email ?? email,
+            actorRole: "USER",
+          });
           return NextResponse.json({
             success: true,
             userId: retry.data.user?.id,
@@ -104,11 +145,27 @@ export async function POST(req: Request) {
         // Still return success, but log the error
       }
 
+      await logSuccessfulLogin(supabase, {
+        actorId: userData?.id ?? data.user?.id,
+        actorName: userData?.name ?? data.user?.email ?? "User",
+        actorEmail: userData?.email ?? data.user?.email ?? email,
+        actorRole: userData?.role ?? "USER",
+      });
+
       return NextResponse.json({
         success: true,
         userId: data.user?.id,
         user: userData || null,
         role: userData?.role || "USER",
+      });
+    }
+
+    if (data.user) {
+      await logSuccessfulLogin(supabase, {
+        actorId: data.user.id,
+        actorName: data.user.email ?? "User",
+        actorEmail: data.user.email ?? email,
+        actorRole: "USER",
       });
     }
 

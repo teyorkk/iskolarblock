@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/auth-server";
+import { logEvent } from "@/lib/services/log-events";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
+  let adminInfo: { email: string; role: string } | null = null;
   try {
-    await requireAdmin();
+    adminInfo = await requireAdmin();
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unauthorized";
     const status = message.includes("Forbidden") ? 403 : 401;
@@ -45,6 +47,34 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
+    let adminProfile:
+      | { id: string; name: string | null; email: string | null; role: string | null; profilePicture: string | null }
+      | null = null;
+    if (adminInfo?.email) {
+      const { data: adminUser } = await supabase
+        .from("User")
+        .select("id, name, email, role, profilePicture")
+        .eq("email", adminInfo.email)
+        .maybeSingle();
+      adminProfile = adminUser ?? null;
+    }
+
+    const logCorUpdate = async () => {
+      await logEvent(
+        {
+          eventType: "ADMIN_APPLICATION_EDIT_COR",
+          message: `Admin updated COR for application ${id}`,
+          actorId: adminProfile?.id ?? null,
+          actorRole: adminProfile?.role ?? adminInfo?.role ?? "ADMIN",
+          actorName: adminProfile?.name ?? adminInfo?.email ?? "Admin",
+          actorUsername: adminProfile?.email ?? adminInfo?.email ?? null,
+          actorAvatarUrl: adminProfile?.profilePicture ?? null,
+          metadata: { applicationId: id },
+        },
+        supabase
+      );
+    };
+
     if (existingCor) {
       // Update existing COR
       const { data, error } = await supabase
@@ -69,6 +99,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         );
       }
 
+      await logCorUpdate();
       return NextResponse.json({ cor: data });
     } else if (corId) {
       // Update by ID if provided
@@ -94,6 +125,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         );
       }
 
+      await logCorUpdate();
       return NextResponse.json({ cor: data });
     } else {
       return NextResponse.json(

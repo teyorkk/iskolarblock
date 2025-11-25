@@ -114,9 +114,23 @@ export function GenerateReportButton({
           <Button
             variant="outline"
             className="border-white text-red-600 hover:bg-gray-100"
-            onClick={() => {
+            onClick={async () => {
               if (blob && !loading && !imagesLoading) {
                 handleDownload(blob);
+                try {
+                  await fetch("/api/log-events", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      eventType: "ADMIN_REPORT_GENERATED",
+                      message: "Generated dashboard PDF report",
+                    }),
+                  });
+                } catch (error) {
+                  console.error("Failed to log report generation:", error);
+                }
               }
             }}
             disabled={loading || !blob || imagesLoading}

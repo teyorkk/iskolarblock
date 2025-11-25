@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/utils/auth-server";
+import { logEvent } from "@/lib/services/log-events";
 
 // DELETE /api/admin/users/[userId]
 // Delete a user (admin only)
@@ -8,6 +10,7 @@ export async function DELETE(
   { params }: { params: Promise<{ userId: string }> | { userId: string } }
 ) {
   try {
+    const adminInfo = await requireAdmin();
     const admin = getSupabaseAdminClient();
     const resolvedParams = await Promise.resolve(params);
     const { userId } = resolvedParams;
@@ -18,6 +21,12 @@ export async function DELETE(
         { status: 400 }
       );
     }
+
+    const { data: deletedUser } = await admin
+      .from("User")
+      .select("id, name, email")
+      .eq("id", userId)
+      .maybeSingle();
 
     // Delete user from auth
     const { error: authError } = await admin.auth.admin.deleteUser(userId);
@@ -36,6 +45,23 @@ export async function DELETE(
       console.error("Error deleting User record:", dbError);
       // Don't fail if database delete fails, auth user is already deleted
     }
+
+    const { data: adminProfile } = await admin
+      .from("User")
+      .select("id, name, email, role, profilePicture")
+      .eq("email", adminInfo.email)
+      .maybeSingle();
+
+    await logEvent({
+      eventType: "ADMIN_USER_DELETED",
+      message: `Deleted user ${deletedUser?.email ?? userId}`,
+      actorId: adminProfile?.id ?? null,
+      actorRole: adminProfile?.role ?? "ADMIN",
+      actorName: adminProfile?.name ?? adminInfo.email ?? "Admin",
+      actorUsername: adminProfile?.email ?? adminInfo.email ?? null,
+      actorAvatarUrl: adminProfile?.profilePicture ?? null,
+      metadata: { deletedUserId: userId, deletedUserEmail: deletedUser?.email },
+    });
 
     return NextResponse.json({
       success: true,

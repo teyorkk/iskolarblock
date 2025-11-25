@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { expirePendingApplications } from "@/lib/services/application-status";
 import { randomUUID } from "crypto";
+import { logEvent } from "@/lib/services/log-events";
+import type { PostgrestError } from "@supabase/supabase-js";
 
 interface RouteContext {
   params: Promise<{ applicationId: string }>;
@@ -27,6 +29,14 @@ interface CompletionRequestBody {
   cogFileName?: string;
   corFileName?: string;
 }
+
+type UserRecord = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  role: string | null;
+  profilePicture: string | null;
+};
 
 const uploadDocument = async (
   supabase: ReturnType<typeof getSupabaseServerClient>,
@@ -81,7 +91,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { data: userRecord, error: userError } = await supabase
       .from("User")
-      .select("id")
+      .select("id, name, email, role, profilePicture")
       .eq("email", user.email)
       .single();
 
@@ -136,9 +146,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: userRecord, error: userError } = await supabase
+    const {
+      data: userRecord,
+      error: userError,
+    }: { data: UserRecord | null; error: PostgrestError | null } = await supabase
       .from("User")
-      .select("id")
+      .select("id, name, email, role, profilePicture")
       .eq("email", user.email)
       .single();
 
@@ -325,6 +338,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
         { status: 500 }
       );
     }
+
+    await logEvent(
+      {
+        eventType: "USER_APPLICATION_UPDATED",
+        message: `Updated application ${applicationId}`,
+        actorId: userRecord.id,
+        actorName: userRecord.name ?? user.email ?? "User",
+        actorUsername: userRecord.email ?? user.email ?? null,
+        actorRole: userRecord.role ?? "USER",
+        actorAvatarUrl: userRecord.profilePicture ?? null,
+        metadata: {
+          applicationId,
+          status: newStatus,
+        },
+      },
+      supabase
+    );
 
     return NextResponse.json({
       success: true,

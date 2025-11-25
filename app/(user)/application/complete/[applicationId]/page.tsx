@@ -27,12 +27,21 @@ interface ExistingCertificate {
   fileUrl: string | null;
 }
 
+interface PersonalInfoSummary {
+  firstName?: string;
+  middleName?: string | null;
+  lastName?: string;
+}
+
 interface ApplicationSummary {
   id: string;
   status: "PENDING" | "APPROVED" | "REJECTED" | "GRANTED";
   applicationType: string;
   CertificateOfGrades?: ExistingCertificate[];
   CertificateOfRegistration?: ExistingCertificate[];
+  applicationDetails?: {
+    personalInfo?: PersonalInfoSummary | null;
+  } | null;
 }
 
 const fileToBase64 = (file: File): Promise<string> =>
@@ -350,54 +359,80 @@ export default function CompleteApplicationPage() {
         </Card>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <DocumentsUploadStep<NewApplicationFormData>
-            register={register}
-            errors={errors}
-            setValue={setValue}
-            watch={watch}
-            certificateOfGrades={certificateOfGrades}
-            certificateOfRegistration={certificateOfRegistration}
-            getRootPropsGrades={getRootPropsGrades}
-            getInputPropsGrades={getInputPropsGrades}
-            isDragActiveGrades={isDragActiveGrades}
-            getRootPropsRegistration={getRootPropsRegistration}
-            getInputPropsRegistration={getInputPropsRegistration}
-            isDragActiveRegistration={isDragActiveRegistration}
-            onRemoveGradesFile={() => {
-              setCertificateOfGrades(null);
-              setIsCogProcessingDone(false);
-              setProcessedCogFile("");
-              setCogExtractedData(null);
-            }}
-            onRemoveRegistrationFile={() => {
-              setCertificateOfRegistration(null);
-              setIsCorProcessingDone(false);
-              setProcessedCorFile("");
-              setCorExtractedData(null);
-            }}
-            isCogProcessingDone={isCogProcessingDone}
-            setIsCogProcessingDone={setIsCogProcessingDone}
-            isCorProcessingDone={isCorProcessingDone}
-            setIsCorProcessingDone={setIsCorProcessingDone}
-            processedCogFile={processedCogFile}
-            setProcessedCogFile={setProcessedCogFile}
-            processedCorFile={processedCorFile}
-            setProcessedCorFile={setProcessedCorFile}
-            onCogOcrChange={(text, data) => {
-              setCogExtractedData(data);
-            }}
-            onCorOcrChange={(text, data) => {
-              setCorExtractedData(data);
-            }}
-            existingCogFileUrl={existingCogDocument?.fileUrl || null}
-            existingCorFileUrl={existingCorDocument?.fileUrl || null}
-            cogUploadLocked={cogUploadLocked}
-            corUploadLocked={corUploadLocked}
-            onUnlockCogUpload={() => setCogUploadLocked(false)}
-            onUnlockCorUpload={() => setCorUploadLocked(false)}
-            onCogInvalidFileTypeChange={setIsCogInvalidFileType}
-            onCorInvalidFileTypeChange={setIsCorInvalidFileType}
-          />
+          {(() => {
+            const personalInfo =
+              (application.applicationDetails?.personalInfo as
+                | {
+                    firstName?: string;
+                    middleName?: string;
+                    lastName?: string;
+                  }
+                | undefined) ?? null;
+            const applicantName = personalInfo
+              ? [
+                  personalInfo.lastName,
+                  personalInfo.firstName,
+                  personalInfo.middleName
+                    ? `${personalInfo.middleName.charAt(0).toUpperCase()}.`
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(", ")
+                  .replace(", ,", ",")
+              : null;
+
+            return (
+              <DocumentsUploadStep<NewApplicationFormData>
+                register={register}
+                errors={errors}
+                setValue={setValue}
+                watch={watch}
+                certificateOfGrades={certificateOfGrades}
+                certificateOfRegistration={certificateOfRegistration}
+                getRootPropsGrades={getRootPropsGrades}
+                getInputPropsGrades={getInputPropsGrades}
+                isDragActiveGrades={isDragActiveGrades}
+                getRootPropsRegistration={getRootPropsRegistration}
+                getInputPropsRegistration={getInputPropsRegistration}
+                isDragActiveRegistration={isDragActiveRegistration}
+                onRemoveGradesFile={() => {
+                  setCertificateOfGrades(null);
+                  setIsCogProcessingDone(false);
+                  setProcessedCogFile("");
+                  setCogExtractedData(null);
+                }}
+                onRemoveRegistrationFile={() => {
+                  setCertificateOfRegistration(null);
+                  setIsCorProcessingDone(false);
+                  setProcessedCorFile("");
+                  setCorExtractedData(null);
+                }}
+                isCogProcessingDone={isCogProcessingDone}
+                setIsCogProcessingDone={setIsCogProcessingDone}
+                isCorProcessingDone={isCorProcessingDone}
+                setIsCorProcessingDone={setIsCorProcessingDone}
+                processedCogFile={processedCogFile}
+                setProcessedCogFile={setProcessedCogFile}
+                processedCorFile={processedCorFile}
+                setProcessedCorFile={setProcessedCorFile}
+                onCogOcrChange={(text, data) => {
+                  setCogExtractedData(data);
+                }}
+                onCorOcrChange={(text, data) => {
+                  setCorExtractedData(data);
+                }}
+                existingCogFileUrl={existingCogDocument?.fileUrl || null}
+                existingCorFileUrl={existingCorDocument?.fileUrl || null}
+                cogUploadLocked={cogUploadLocked}
+                corUploadLocked={corUploadLocked}
+                onUnlockCogUpload={() => setCogUploadLocked(false)}
+                onUnlockCorUpload={() => setCorUploadLocked(false)}
+                onCogInvalidFileTypeChange={setIsCogInvalidFileType}
+                onCorInvalidFileTypeChange={setIsCorInvalidFileType}
+                applicantName={applicantName}
+              />
+            );
+          })()}
 
           <div className="flex justify-end">
             <Button

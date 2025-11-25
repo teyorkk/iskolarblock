@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { logEvent } from "@/lib/services/log-events";
 
 export async function GET() {
   try {
@@ -71,7 +72,7 @@ export async function PATCH(req: Request) {
     // Get user data from User table to verify ownership
     const { data: userData, error: userError } = await supabase
       .from("User")
-      .select("id, email")
+      .select("id, email, name, role, profilePicture")
       .eq("id", user.id)
       .single();
 
@@ -145,6 +146,25 @@ export async function PATCH(req: Request) {
         { status: 500 }
       );
     }
+
+    await logEvent(
+      {
+        eventType:
+          (userData.role as string) === "ADMIN"
+            ? "ADMIN_SETTINGS_UPDATE"
+            : "USER_SETTINGS_UPDATE",
+        message:
+          (userData.role as string) === "ADMIN"
+            ? "Admin updated account settings"
+            : "User updated profile information",
+        actorId: userData.id,
+        actorName: userData.name ?? userData.email ?? "User",
+        actorUsername: userData.email ?? null,
+        actorRole: userData.role ?? "USER",
+        actorAvatarUrl: userData.profilePicture ?? null,
+      },
+      supabase
+    );
 
     return NextResponse.json({
       success: true,

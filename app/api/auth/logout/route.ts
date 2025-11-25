@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { logEvent } from "@/lib/services/log-events";
 
 export async function POST() {
   try {
@@ -35,6 +36,23 @@ export async function POST() {
       },
     });
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    let profile:
+      | { id: string; name: string | null; email: string | null; role: string | null; profilePicture: string | null }
+      | null = null;
+
+    if (user?.id) {
+      const { data: userRecord } = await supabase
+        .from("User")
+        .select("id, name, email, role, profilePicture")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = userRecord ?? null;
+    }
+
     const { error } = await supabase.auth.signOut();
 
     // "Auth session missing" means already logged out, which is fine
@@ -50,6 +68,18 @@ export async function POST() {
         cookieStore.delete(cookie.name);
       }
     });
+
+    if (user) {
+      await logEvent({
+        eventType: "USER_LOGOUT",
+        message: "User signed out",
+        actorId: profile?.id ?? user.id,
+        actorRole: profile?.role ?? "USER",
+        actorName: profile?.name ?? user.email ?? "User",
+        actorUsername: profile?.email ?? user.email ?? null,
+        actorAvatarUrl: profile?.profilePicture ?? null,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (e) {
