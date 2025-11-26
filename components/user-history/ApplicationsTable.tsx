@@ -49,6 +49,22 @@ const statusIcons = {
   REJECTED: XCircle,
 };
 
+const getRemarksBadgeClass = (remarks?: string | null) => {
+  const base =
+    "inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border";
+  if (!remarks) {
+    return `${base} bg-gray-50 text-gray-500 border-gray-200`;
+  }
+  const normalized = remarks.toLowerCase();
+  if (normalized.includes("complete")) {
+    return `${base} bg-green-50 text-green-700 border-green-100`;
+  }
+  if (normalized.includes("missing") || normalized.includes("no document")) {
+    return `${base} bg-red-50 text-red-700 border-red-100`;
+  }
+  return `${base} bg-yellow-50 text-yellow-700 border-yellow-100`;
+};
+
 export function ApplicationsTable({
   applications,
   statusColors,
@@ -72,10 +88,10 @@ export function ApplicationsTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Application ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Remarks</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -88,9 +104,6 @@ export function ApplicationsTable({
                   transition={{ duration: 0.3, delay: index * 0.1 }}
                   className="border-b hover:bg-gray-50"
                 >
-                  <TableCell className="font-medium">
-                    SCH-{String(application.id).padStart(6, "0")}
-                  </TableCell>
                   <TableCell>
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-2 text-gray-400" />
@@ -119,6 +132,11 @@ export function ApplicationsTable({
                         <span className="ml-1">{application.status}</span>
                       </div>
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className={getRemarksBadgeClass(application.remarks)}>
+                      {application.remarks || "—"}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
