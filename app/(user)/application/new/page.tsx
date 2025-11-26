@@ -180,6 +180,8 @@ export default function NewApplicationPage() {
     defaultValues: {
       province: "Bulacan",
       citizenship: "Filipino",
+      barangay: "San Miguel",
+      municipality: "Hagonoy",
     },
   });
 
@@ -219,6 +221,8 @@ export default function NewApplicationPage() {
   const watchedLastName = watch("lastName");
   const watchedFirstName = watch("firstName");
   const watchedMiddleName = watch("middleName");
+  const watchedDateOfBirth = watch("dateOfBirth");
+  const watchedAge = watch("age");
 
   const isContactNumberValid = (): boolean => {
     const contactNumber = (watch("contactNumber") || "").trim();
@@ -240,6 +244,35 @@ export default function NewApplicationPage() {
       middleInitial ? ` ${middleInitial}` : ""
     }`;
   }, [watchedLastName, watchedFirstName, watchedMiddleName]);
+
+  useEffect(() => {
+    if (!watchedDateOfBirth) {
+      if (watchedAge) {
+        setValue("age", "", { shouldValidate: true });
+      }
+      return;
+    }
+
+    const birthDate = new Date(watchedDateOfBirth);
+    if (Number.isNaN(birthDate.getTime())) {
+      return;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age -= 1;
+    }
+
+    const ageString = Math.max(age, 0).toString();
+    if (watchedAge !== ageString) {
+      setValue("age", ageString, { shouldValidate: true });
+    }
+  }, [watchedDateOfBirth, watchedAge, setValue]);
 
   const onDrop = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {

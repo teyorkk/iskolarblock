@@ -101,7 +101,9 @@ export function PersonalInfoStepPart2({
                 <Input
                   id="barangay"
                   {...register("barangay")}
-                  placeholder="Enter barangay"
+                  value="San Miguel"
+                  readOnly
+                  className="bg-gray-100"
                 />
                 {errors.barangay && (
                   <p className="text-sm text-red-500">
@@ -115,7 +117,9 @@ export function PersonalInfoStepPart2({
                 <Input
                   id="municipality"
                   {...register("municipality")}
-                  placeholder="Enter municipality"
+                  value="Hagonoy"
+                  readOnly
+                  className="bg-gray-100"
                 />
                 {errors.municipality && (
                   <p className="text-sm text-red-500">
