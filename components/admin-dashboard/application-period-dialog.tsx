@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Settings, ToggleLeft, ToggleRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings, ToggleLeft, ToggleRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,15 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
+interface LatestPeriod {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  isOpen: boolean;
+  createdAt: string;
+}
+
 export function ApplicationPeriodDialog(): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -26,8 +35,77 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
   const [isAccepting, setIsAccepting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [budget, setBudget] = useState<string>("");
+  const [latestPeriod, setLatestPeriod] = useState<LatestPeriod | null>(null);
+  const [isCheckingPeriod, setIsCheckingPeriod] = useState(false);
+  const [minDate, setMinDate] = useState<string>("");
+
+  // Fetch latest application period when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchLatestPeriod = async () => {
+        setIsCheckingPeriod(true);
+        try {
+          const supabase = getSupabaseBrowserClient();
+          const { data, error } = await supabase
+            .from("ApplicationPeriod")
+            .select("id, title, startDate, endDate, isOpen, createdAt")
+            .order("createdAt", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (error && error.code !== "PGRST116") {
+            // PGRST116 is "no rows returned" which is fine
+            console.error("Error fetching latest period:", error);
+          }
+
+          if (data) {
+            setLatestPeriod(data);
+            // Set minimum date to be the day after the latest period's end date
+            const latestEndDate = new Date(data.endDate);
+            latestEndDate.setDate(latestEndDate.getDate() + 1);
+            const minDateStr = latestEndDate.toISOString().split("T")[0];
+            setMinDate(minDateStr);
+          } else {
+            // No existing periods, allow any future date
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            setMinDate(tomorrow.toISOString().split("T")[0]);
+          }
+        } catch (error) {
+          console.error("Error fetching latest period:", error);
+        } finally {
+          setIsCheckingPeriod(false);
+        }
+      };
+
+      void fetchLatestPeriod();
+    } else {
+      // Reset when dialog closes
+      setLatestPeriod(null);
+      setMinDate("");
+      setStartDate("");
+      setEndDate("");
+    }
+  }, [isOpen]);
+
+  // Check if current period is still active (not done)
+  const isCurrentPeriodActive = (): boolean => {
+    if (!latestPeriod) return false;
+    const now = new Date();
+    const periodEndDate = new Date(latestPeriod.endDate);
+    // Period is active if end date is in the future
+    return periodEndDate >= now;
+  };
 
   const handleSave = async (): Promise<void> => {
+    // Check if current period is still active
+    if (isCurrentPeriodActive()) {
+      toast.error(
+        "Cannot create a new application period while the current period is still active. Please wait until the current period ends."
+      );
+      return;
+    }
+
     if (!title.trim()) {
       toast.error("Please enter a title for the application period");
       return;
@@ -36,6 +114,22 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
     if (!startDate || !endDate) {
       toast.error("Please select both start and end dates");
       return;
+    }
+
+    // Validate that start date is after the latest period's end date
+    if (latestPeriod) {
+      const latestEndDate = new Date(latestPeriod.endDate);
+      const selectedStartDate = new Date(startDate);
+      latestEndDate.setDate(latestEndDate.getDate() + 1); // Day after end date
+
+      if (selectedStartDate < latestEndDate) {
+        toast.error(
+          `Start date must be after ${new Date(
+            latestPeriod.endDate
+          ).toLocaleDateString()}. The new period cannot overlap with the previous period.`
+        );
+        return;
+      }
     }
 
     if (new Date(startDate) >= new Date(endDate)) {
@@ -138,12 +232,20 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
     }
   };
 
+  const isPeriodActive = isCurrentPeriodActive();
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
           className="border-white text-red-600 hover:bg-gray-100"
+          disabled={isPeriodActive}
+          title={
+            isPeriodActive
+              ? "Cannot create new period while current period is active"
+              : "Set Application Period and Budget"
+          }
         >
           <Settings className="w-4 h-4 mr-2" />
           Set Application Period and Budget
@@ -155,6 +257,19 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           <DialogDescription>
             Define the start, end dates and the budget allocation for the
             scholarship application period.
+            {latestPeriod && (
+              <span className="block mt-2 text-sm text-amber-600">
+                Latest period: {latestPeriod.title} (ends{" "}
+                {new Date(latestPeriod.endDate).toLocaleDateString()})
+              </span>
+            )}
+            {isPeriodActive && (
+              <span className="flex items-center gap-2 mt-2 text-sm text-red-600 font-medium">
+                <AlertTriangle className="w-4 h-4" />
+                Cannot create a new period while the current period is still
+                active.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -193,6 +308,8 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              min={minDate || undefined}
+              disabled={isCheckingPeriod || isPeriodActive}
               className="col-span-3"
             />
           </div>
@@ -205,6 +322,8 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
+              min={startDate || minDate || undefined}
+              disabled={isCheckingPeriod || isPeriodActive}
               className="col-span-3"
             />
           </div>
@@ -267,8 +386,16 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           >
             Cancel
           </Button>
-          <Button type="submit" onClick={handleSave} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Period"}
+          <Button
+            type="submit"
+            onClick={handleSave}
+            disabled={isLoading || isPeriodActive || isCheckingPeriod}
+          >
+            {isLoading
+              ? "Saving..."
+              : isPeriodActive
+              ? "Current Period Active"
+              : "Save Period"}
           </Button>
         </DialogFooter>
       </DialogContent>

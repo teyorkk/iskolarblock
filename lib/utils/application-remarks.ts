@@ -17,3 +17,5 @@ export function getDocumentRemarks(hasCog: boolean, hasCor: boolean): string {
   return `Missing ${missingLabel}`;
 }
 
+
+
