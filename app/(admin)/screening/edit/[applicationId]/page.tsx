@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
@@ -22,6 +22,8 @@ import {
   capitalizeName,
   capitalizeText,
 } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface PersonalInfo {
   lastName: string;
@@ -127,6 +129,19 @@ export default function EditApplicationPage() {
     value: string
   ) => {
     if (!personalInfo) return;
+    const computedAge = useMemo(() => {
+      const dob = personalInfo?.dateOfBirth;
+      if (!dob) return personalInfo?.age || "";
+      const birthDate = new Date(dob);
+      if (Number.isNaN(birthDate.getTime())) return personalInfo?.age || "";
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return Math.max(age, 0).toString();
+    }, [personalInfo?.dateOfBirth, personalInfo?.age]);
     setPersonalInfo({ ...personalInfo, [field]: value });
   };
 
@@ -258,11 +273,20 @@ export default function EditApplicationPage() {
     );
   }
 
+  const statusBadgeClass =
+    application.status === "APPROVED"
+      ? "bg-green-100 text-green-700"
+      : application.status === "GRANTED"
+      ? "bg-purple-100 text-purple-700"
+      : application.status === "REJECTED"
+      ? "bg-red-100 text-red-700"
+      : "bg-yellow-100 text-yellow-700";
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <AdminSidebar />
       <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
-        <div className="p-4 md:p-6">
+        <div className="p-4 md:p-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -308,6 +332,53 @@ export default function EditApplicationPage() {
               </Button>
             </div>
 
+            {/* Overview */}
+            <Card className="mb-8 border border-orange-100 shadow-sm bg-gradient-to-br from-white to-orange-50/40">
+              <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <CardTitle className="text-xl">
+                    Application Overview
+                  </CardTitle>
+                  <CardDescription>
+                    Type: {capitalizeText(application.applicationType)} • ID:{" "}
+                    {applicationId.slice(0, 10)}
+                  </CardDescription>
+                </div>
+                <Badge className={statusBadgeClass}>
+                  Status: {capitalizeText(application.status)}
+                </Badge>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-3 text-sm text-gray-600">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Applicant
+                  </p>
+                  <p className="font-semibold text-gray-900">
+                    {personalInfo.firstName} {personalInfo.lastName}
+                  </p>
+                  <p>{personalInfo.contactNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Address
+                  </p>
+                  <p className="font-semibold text-gray-900">
+                    {personalInfo.barangay}, {personalInfo.municipality}
+                  </p>
+                  <p>{personalInfo.province}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Education
+                  </p>
+                  <p className="font-semibold text-gray-900">
+                    {personalInfo.course}
+                  </p>
+                  <p>Year Level: {personalInfo.yearLevel}</p>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Tabs */}
             <Tabs defaultValue="personal" className="space-y-4">
               <TabsList>
@@ -328,212 +399,251 @@ export default function EditApplicationPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input
-                          id="lastName"
-                          value={personalInfo.lastName || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange("lastName", e.target.value)
-                          }
-                        />
+                    <div className="space-y-6">
+                      <div className="rounded-lg border border-gray-200/60 bg-gray-50/60 p-4">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">
+                          Identity
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="lastName">Last Name</Label>
+                            <Input
+                              id="lastName"
+                              value={personalInfo.lastName || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "lastName",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="firstName">First Name</Label>
+                            <Input
+                              id="firstName"
+                              value={personalInfo.firstName || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "firstName",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="middleName">Middle Name</Label>
+                            <Input
+                              id="middleName"
+                              value={personalInfo.middleName || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "middleName",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="sex">Sex</Label>
+                            <select
+                              id="sex"
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                              value={personalInfo.sex || "male"}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "sex",
+                                  e.target.value as "male" | "female"
+                                )
+                              }
+                            >
+                              <option value="male">Male</option>
+                              <option value="female">Female</option>
+                            </select>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input
-                          id="firstName"
-                          value={personalInfo.firstName || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "firstName",
-                              e.target.value
-                            )
-                          }
-                        />
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                          <Input
+                            id="dateOfBirth"
+                            type="date"
+                            value={personalInfo.dateOfBirth || ""}
+                            onChange={(e) =>
+                              handlePersonalInfoChange(
+                                "dateOfBirth",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="placeOfBirth">Place of Birth</Label>
+                          <Input
+                            id="placeOfBirth"
+                            value={personalInfo.placeOfBirth || ""}
+                            onChange={(e) =>
+                              handlePersonalInfoChange(
+                                "placeOfBirth",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="age">Age</Label>
+                          <Input
+                            id="age"
+                            type="number"
+                            value={computedAge}
+                            readOnly
+                            className="bg-gray-100"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="middleName">Middle Name</Label>
-                        <Input
-                          id="middleName"
-                          value={personalInfo.middleName || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "middleName",
-                              e.target.value
-                            )
-                          }
-                        />
+
+                      <Separator />
+
+                      <div className="rounded-lg border border-gray-200/60 bg-gray-50/60 p-4">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">
+                          Address & Contact
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="houseNumber">House Number</Label>
+                            <Input
+                              id="houseNumber"
+                              value={personalInfo.houseNumber || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "houseNumber",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="purok">Purok / Street</Label>
+                            <Input
+                              id="purok"
+                              value={personalInfo.purok || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "purok",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="barangay">Barangay</Label>
+                            <Input
+                              id="barangay"
+                              value={personalInfo.barangay || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "barangay",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="municipality">Municipality</Label>
+                            <Input
+                              id="municipality"
+                              value={personalInfo.municipality || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "municipality",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="province">Province</Label>
+                            <Input
+                              id="province"
+                              value={personalInfo.province || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "province",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="contactNumber">
+                              Contact Number
+                            </Label>
+                            <Input
+                              id="contactNumber"
+                              value={personalInfo.contactNumber || ""}
+                              onChange={(e) =>
+                                handlePersonalInfoChange(
+                                  "contactNumber",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                        <Input
-                          id="dateOfBirth"
-                          type="date"
-                          value={personalInfo.dateOfBirth || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "dateOfBirth",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="placeOfBirth">Place of Birth</Label>
-                        <Input
-                          id="placeOfBirth"
-                          value={personalInfo.placeOfBirth || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "placeOfBirth",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="age">Age</Label>
-                        <Input
-                          id="age"
-                          type="number"
-                          value={personalInfo.age || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange("age", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="sex">Sex</Label>
-                        <select
-                          id="sex"
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          value={personalInfo.sex || "male"}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "sex",
-                              e.target.value as "male" | "female"
-                            )
-                          }
-                        >
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                        </select>
-                      </div>
-                      <div>
-                        <Label htmlFor="houseNumber">House Number</Label>
-                        <Input
-                          id="houseNumber"
-                          value={personalInfo.houseNumber || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "houseNumber",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="purok">Purok</Label>
-                        <Input
-                          id="purok"
-                          value={personalInfo.purok || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange("purok", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="barangay">Barangay</Label>
-                        <Input
-                          id="barangay"
-                          value={personalInfo.barangay || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange("barangay", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="municipality">Municipality</Label>
-                        <Input
-                          id="municipality"
-                          value={personalInfo.municipality || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "municipality",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="province">Province</Label>
-                        <Input
-                          id="province"
-                          value={personalInfo.province || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange("province", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="citizenship">Citizenship</Label>
-                        <Input
-                          id="citizenship"
-                          value={personalInfo.citizenship || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "citizenship",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="contactNumber">Contact Number</Label>
-                        <Input
-                          id="contactNumber"
-                          value={personalInfo.contactNumber || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "contactNumber",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="religion">Religion</Label>
-                        <Input
-                          id="religion"
-                          value={personalInfo.religion || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange("religion", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="course">Course</Label>
-                        <Input
-                          id="course"
-                          value={personalInfo.course || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange("course", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="yearLevel">Year Level</Label>
-                        <Input
-                          id="yearLevel"
-                          value={personalInfo.yearLevel || ""}
-                          onChange={(e) =>
-                            handlePersonalInfoChange(
-                              "yearLevel",
-                              e.target.value
-                            )
-                          }
-                        />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="citizenship">Citizenship</Label>
+                          <Input
+                            id="citizenship"
+                            value={personalInfo.citizenship || ""}
+                            onChange={(e) =>
+                              handlePersonalInfoChange(
+                                "citizenship",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="religion">Religion</Label>
+                          <Input
+                            id="religion"
+                            value={personalInfo.religion || ""}
+                            onChange={(e) =>
+                              handlePersonalInfoChange(
+                                "religion",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="course">Course / Strand</Label>
+                          <Input
+                            id="course"
+                            value={personalInfo.course || ""}
+                            onChange={(e) =>
+                              handlePersonalInfoChange("course", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="yearLevel">Year Level</Label>
+                          <Input
+                            id="yearLevel"
+                            value={personalInfo.yearLevel || ""}
+                            onChange={(e) =>
+                              handlePersonalInfoChange(
+                                "yearLevel",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   </CardContent>
