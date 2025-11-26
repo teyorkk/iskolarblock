@@ -38,6 +38,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Award,
   CheckCircle,
   Clock,
@@ -167,6 +177,7 @@ export default function AwardingPage() {
   const [levelFilters, setLevelFilters] = useState<Set<LevelFilter>>(new Set());
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmGrantId, setConfirmGrantId] = useState<string | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -322,6 +333,7 @@ export default function AwardingPage() {
 
   const handleGrantScholarship = async (applicationId: string) => {
     setUpdatingId(applicationId);
+    setConfirmGrantId(null);
     try {
       const response = await fetch(`/api/admin/awardings/${applicationId}`, {
         method: "PATCH",
@@ -731,24 +743,97 @@ export default function AwardingPage() {
                                   </Dialog>
                                   {canModifyAwards &&
                                   currentStatus !== "GRANTED" ? (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                      onClick={() =>
-                                        handleGrantScholarship(application.id)
-                                      }
-                                      disabled={updatingId === application.id}
-                                      title="Grant Scholarship"
-                                    >
-                                      {updatingId === application.id ? (
-                                        <span className="flex items-center gap-2 text-xs font-medium text-orange-600">
-                                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-orange-300 border-t-transparent" />
-                                        </span>
-                                      ) : (
-                                        <CheckCircle className="w-4 h-4" />
-                                      )}
-                                    </Button>
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                        onClick={() =>
+                                          setConfirmGrantId(application.id)
+                                        }
+                                        disabled={updatingId === application.id}
+                                        title="Grant Scholarship"
+                                      >
+                                        {updatingId === application.id ? (
+                                          <span className="flex items-center gap-2 text-xs font-medium text-orange-600">
+                                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-orange-300 border-t-transparent" />
+                                          </span>
+                                        ) : (
+                                          <CheckCircle className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                      <AlertDialog
+                                        open={
+                                          confirmGrantId === application.id
+                                        }
+                                        onOpenChange={(open) => {
+                                          if (!open) {
+                                            setConfirmGrantId(null);
+                                          }
+                                        }}
+                                      >
+                                        <AlertDialogContent className="border border-orange-100 bg-white">
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
+                                              <CheckCircle className="w-5 h-5 text-orange-600" />
+                                              Confirm Grant Scholarship
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription className="pt-2 text-gray-600">
+                                              Are you sure you want to grant the
+                                              scholarship to{" "}
+                                              <span className="font-semibold text-gray-900">
+                                                {deriveFullName(application)}
+                                              </span>
+                                              ?
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <div className="py-4 space-y-2 text-sm">
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">
+                                                Amount:
+                                              </span>
+                                              <span className="font-semibold text-gray-900">
+                                                {currencyFormatter.format(amount)}
+                                              </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">
+                                                Level:
+                                              </span>
+                                              <span className="font-semibold text-gray-900">
+                                                {formatLevel(level)}
+                                              </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">
+                                                Type:
+                                              </span>
+                                              <span className="font-semibold text-gray-900">
+                                                {application.applicationType ===
+                                                "NEW"
+                                                  ? "New"
+                                                  : "Renewal"}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                              Cancel
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() =>
+                                                handleGrantScholarship(
+                                                  application.id
+                                                )
+                                              }
+                                              className="bg-orange-600 hover:bg-orange-700 text-white"
+                                            >
+                                              Confirm Grant
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </>
                                   ) : !canModifyAwards ? (
                                     <span className="text-sm text-gray-400 self-center">
                                       Locked · Past Period

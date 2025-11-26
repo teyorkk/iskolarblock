@@ -47,7 +47,6 @@ export const userStatsCards: StatsCard[] = [
     description: "All time applications",
     icon: FileText,
     color: "bg-blue-500",
-    trend: "+12% from last month",
   },
   {
     title: "Pending Review",
@@ -55,7 +54,6 @@ export const userStatsCards: StatsCard[] = [
     description: "Awaiting approval",
     icon: TrendingUp,
     color: "bg-orange-500",
-    trend: "No change",
   },
   {
     title: "Approved",
@@ -63,7 +61,6 @@ export const userStatsCards: StatsCard[] = [
     description: "Successfully approved",
     icon: Users,
     color: "bg-green-500",
-    trend: "+1 this month",
   },
   {
     title: "Granted",
@@ -71,7 +68,6 @@ export const userStatsCards: StatsCard[] = [
     description: "Scholarships released",
     icon: Award,
     color: "bg-purple-500",
-    trend: "New payouts",
   },
 ];
 

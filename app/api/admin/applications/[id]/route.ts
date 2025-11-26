@@ -21,7 +21,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const supabase = await getSupabaseServerClient();
     const { id } = await context.params;
     const body = await request.json();
-    const { status } = body;
+    const { status, remarks } = body;
 
     // Validate status
     const validStatuses = ["PENDING", "APPROVED", "REJECTED"];
@@ -29,13 +29,21 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
+    // Prepare update object
+    const updateData: { status: string; updatedAt: string; remarks?: string } = {
+      status,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Include remarks if provided (especially for rejections)
+    if (remarks !== undefined) {
+      updateData.remarks = remarks;
+    }
+
     // Update application status
     const { data, error } = await supabase
       .from("Application")
-      .update({
-        status,
-        updatedAt: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", id)
       .select()
       .single();

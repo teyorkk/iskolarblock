@@ -44,6 +44,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/common/pagination";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Application {
   id: string;
@@ -86,6 +97,9 @@ export default function ScreeningPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmApproveId, setConfirmApproveId] = useState<string | null>(null);
+  const [confirmRejectId, setConfirmRejectId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -149,15 +163,21 @@ export default function ScreeningPage() {
 
   const handleStatusUpdate = async (
     applicationId: string,
-    newStatus: string
+    newStatus: string,
+    remarks?: string
   ) => {
     try {
+      const body: { status: string; remarks?: string } = { status: newStatus };
+      if (remarks !== undefined) {
+        body.remarks = remarks;
+      }
+
       const response = await fetch(`/api/admin/applications/${applicationId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -168,6 +188,9 @@ export default function ScreeningPage() {
       }
 
       toast.success(`Application ${newStatus.toLowerCase()} successfully`);
+      setConfirmApproveId(null);
+      setConfirmRejectId(null);
+      setRejectionReason("");
       void fetchApplications();
     } catch (error) {
       console.error("Error updating application:", error);
@@ -641,10 +664,7 @@ const getRemarksBadgeClass = (remarks?: string | null) => {
                                         size="sm"
                                         className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                         onClick={() =>
-                                          handleStatusUpdate(
-                                            application.id,
-                                            "APPROVED"
-                                          )
+                                          setConfirmApproveId(application.id)
                                         }
                                         title="Approve"
                                       >
@@ -654,12 +674,10 @@ const getRemarksBadgeClass = (remarks?: string | null) => {
                                         variant="ghost"
                                         size="sm"
                                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() =>
-                                          handleStatusUpdate(
-                                            application.id,
-                                            "REJECTED"
-                                          )
-                                        }
+                                        onClick={() => {
+                                          setConfirmRejectId(application.id);
+                                          setRejectionReason("");
+                                        }}
                                         title="Reject"
                                       >
                                         <XCircle className="w-4 h-4" />
@@ -701,6 +719,108 @@ const getRemarksBadgeClass = (remarks?: string | null) => {
           void fetchApplications();
         }}
       />
+
+      {/* Approve Confirmation Dialog */}
+      {confirmApproveId && (
+        <AlertDialog
+          open={confirmApproveId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setConfirmApproveId(null);
+            }
+          }}
+        >
+          <AlertDialogContent className="border border-orange-100 bg-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
+                <CheckCircle className="w-5 h-5 text-orange-600" />
+                Confirm Approval
+              </AlertDialogTitle>
+              <AlertDialogDescription className="pt-2 text-gray-600">
+                Are you sure you want to approve the application for{" "}
+                <span className="font-semibold text-gray-900">
+                  {
+                    applications.find((app) => app.id === confirmApproveId)
+                      ?.User.name
+                  }
+                </span>
+                ?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() =>
+                  handleStatusUpdate(confirmApproveId, "APPROVED")
+                }
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                Confirm Approval
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Reject Confirmation Dialog */}
+      {confirmRejectId && (
+        <AlertDialog
+          open={confirmRejectId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setConfirmRejectId(null);
+              setRejectionReason("");
+            }
+          }}
+        >
+          <AlertDialogContent className="border border-orange-100 bg-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
+                <XCircle className="w-5 h-5 text-orange-600" />
+                Confirm Rejection
+              </AlertDialogTitle>
+              <AlertDialogDescription className="pt-2 text-gray-600">
+                Are you sure you want to reject the application for{" "}
+                <span className="font-semibold text-gray-900">
+                  {
+                    applications.find((app) => app.id === confirmRejectId)
+                      ?.User.name
+                  }
+                </span>
+                ?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <Label htmlFor="rejection-reason" className="text-sm font-medium text-gray-700">
+                Reason for Rejection (Required)
+              </Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Enter the reason for rejection..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="mt-2 min-h-[100px]"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (!rejectionReason.trim()) {
+                    toast.error("Please provide a reason for rejection");
+                    return;
+                  }
+                  handleStatusUpdate(confirmRejectId, "REJECTED", rejectionReason.trim());
+                }}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+                disabled={!rejectionReason.trim()}
+              >
+                Confirm Rejection
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
