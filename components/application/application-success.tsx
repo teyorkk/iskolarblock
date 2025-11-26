@@ -41,7 +41,8 @@ const statusMeta: Record<
     iconWrapper: "bg-yellow-400",
     icon: Clock,
     title: "Application Submitted!",
-    description: "Your application is pending. Please upload remaining documents if needed.",
+    description:
+      "Your application is pending. Please upload remaining documents if needed.",
   },
   GRANTED: {
     badgeBg: "bg-purple-50",
@@ -50,7 +51,8 @@ const statusMeta: Record<
     iconWrapper: "bg-purple-500",
     icon: Award,
     title: "Scholarship Granted!",
-    description: "Congratulations! Your stipend has been approved for release.",
+    description:
+      "You're scholarship has been granted. See you in the next semester!",
   },
   REJECTED: {
     badgeBg: "bg-red-50",
@@ -81,10 +83,10 @@ export function ApplicationSuccess({
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto"
+      className="max-w-3xl mx-auto"
     >
       <Card className="text-center">
         <CardHeader>
@@ -98,9 +100,7 @@ export function ApplicationSuccess({
           <CardTitle className={`text-2xl ${meta.highlight}`}>
             {meta.title}
           </CardTitle>
-          <CardDescription>
-            {meta.description}
-          </CardDescription>
+          <CardDescription>{meta.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className={`${meta.badgeBg} p-4 rounded-lg`}>
@@ -108,8 +108,7 @@ export function ApplicationSuccess({
               <strong>Application ID:</strong>{" "}
               {applicationId || `SCH-${Date.now()}`}
               <br />
-              <strong>Status:</strong>{" "}
-              {statusLabel}
+              <strong>Status:</strong> {statusLabel}
               <br />
             </p>
           </div>

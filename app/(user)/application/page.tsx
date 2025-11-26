@@ -6,6 +6,7 @@ import { UserSidebar } from "@/components/user-sidebar";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useSession } from "@/components/session-provider";
+import { ApplicationSuccess } from "@/components/application/application-success";
 
 export default function ApplicationPage() {
   const { user } = useSession();
@@ -101,12 +102,6 @@ export default function ApplicationPage() {
             transition={{ duration: 0.5 }}
             className="max-w-4xl mx-auto"
           >
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Scholarship Application
-              </h1>
-            </div>
-
             {!hasOpenPeriod && !isCheckingApplications && (
               <div className="mb-6 flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0" />
@@ -121,21 +116,15 @@ export default function ApplicationPage() {
             )}
 
             {hasCurrentApplication && !isCheckingApplications && (
-              <div className="mb-8 flex items-start gap-3 rounded-xl border border-blue-300 bg-blue-50 p-6 text-base text-blue-800 shadow-sm">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-lg">
-                    You already submitted for this period.
-                  </p>
-                  <p className="text-base mt-1">
-                    Current status:{" "}
-                    <span className="font-semibold">
-                      {currentApplicationStatus || "PENDING"}
-                    </span>
-                    . Please monitor your history page for updates.
-                  </p>
-                </div>
-              </div>
+              <ApplicationSuccess
+                status={
+                  (currentApplicationStatus as
+                    | "PENDING"
+                    | "APPROVED"
+                    | "GRANTED"
+                    | "REJECTED") || "PENDING"
+                }
+              />
             )}
 
             {isCheckingApplications ? (

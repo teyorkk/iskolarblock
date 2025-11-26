@@ -69,7 +69,7 @@ export function IdUploadStep<T extends IdForm>({
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [extractedData, setExtractedData] =
     useState<IDExtractionResponse | null>(null);
-const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
+  const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
 
   const showInvalidFileTypeError = (
     alertMessage = DEFAULT_INVALID_FILE_MESSAGE,
@@ -160,7 +160,11 @@ const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
         // Clear invalid file type state when file is removed to enable submit button
         // But keep the error message visible via Alert component
         // Check if there's an invalid file type error message to preserve it
-        if (invalidFileTypeRef.current || (invalidFileTypeError && invalidFileTypeError.includes("Invalid file type"))) {
+        if (
+          invalidFileTypeRef.current ||
+          (invalidFileTypeError &&
+            invalidFileTypeError.includes("Invalid file type"))
+        ) {
           invalidFileTypeRef.current = false;
           setIsInvalidFileType(false);
           onInvalidFileTypeChange?.(false);
@@ -198,10 +202,14 @@ const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
         return;
       }
 
+      invalidFileTypeRef.current = false;
+      setIsInvalidFileType(false);
+      onInvalidFileTypeChange?.(false);
+      setInvalidFileTypeError("");
       setOcrText("");
       onOcrTextChange?.("");
       setOcrError("");
-      setProgress(1);
+      setProgress(0);
       setIsProcessing(true);
       setExtractedData(null);
 
@@ -412,8 +420,8 @@ const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
         {/* OCR Status */}
         {uploadedFile && !isInvalidFileType && (
           <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-700">
+            <div className="flex items-center">
+              <p className="text-sm text-gray-700 flex-1">
                 {isProcessing
                   ? statusMessage || "Processing document..."
                   : ocrText
@@ -422,9 +430,6 @@ const [isExtractingData, setIsExtractingData] = useState<boolean>(false);
                   ? "Processing failed"
                   : ""}
               </p>
-              {isProcessing && (
-                <span className="text-xs text-gray-500">{progress}%</span>
-              )}
             </div>
             {isProcessing && <Progress value={progress} />}
 

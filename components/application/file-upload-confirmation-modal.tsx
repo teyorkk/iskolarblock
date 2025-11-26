@@ -33,7 +33,7 @@ export function FileUploadConfirmationModal({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600" />
+            <FileText className="w-5 h-5 text-orange-600" />
             Confirm File Upload
           </AlertDialogTitle>
           <div className="space-y-3 pt-2">

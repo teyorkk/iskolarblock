@@ -175,6 +175,7 @@ export default function NewApplicationPage() {
     formState: { errors },
     setValue,
     watch,
+    trigger,
   } = useForm<NewApplicationFormData>({
     resolver: zodResolver(newApplicationSchema),
     defaultValues: {
@@ -762,6 +763,15 @@ export default function NewApplicationPage() {
                     console.log("Form values:", watch());
                     await handleSubmit(onSubmit, handleValidationErrors)(e);
                   } else {
+                    const stepFields = stepFieldErrorMap[currentStep];
+                    if (stepFields && stepFields.length > 0) {
+                      const isValid = await trigger(stepFields, {
+                        shouldFocus: true,
+                      });
+                      if (!isValid) {
+                        return;
+                      }
+                    }
                     nextStep();
                   }
                 }}

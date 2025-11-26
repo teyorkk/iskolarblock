@@ -306,6 +306,7 @@ export function PersonalInfoStepPart1({
                 onValueChange={(value) =>
                   setValue("sex", value as NewApplicationFormData["sex"])
                 }
+                value={watch("sex") ?? undefined}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select sex" />

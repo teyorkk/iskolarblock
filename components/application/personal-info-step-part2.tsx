@@ -25,6 +25,7 @@ export function PersonalInfoStepPart2({
   register,
   errors,
   setValue,
+  watch,
 }: ApplicationStepProps<NewApplicationFormData>): React.JSX.Element {
   const step2Errors = [
     "houseNumber",
@@ -211,6 +212,7 @@ export function PersonalInfoStepPart2({
                       value as NewApplicationFormData["yearLevel"]
                     )
                   }
+                  value={watch("yearLevel") ?? undefined}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select year level" />
