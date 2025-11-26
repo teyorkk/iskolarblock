@@ -129,21 +129,22 @@ export default function EditApplicationPage() {
     value: string
   ) => {
     if (!personalInfo) return;
-    const computedAge = useMemo(() => {
-      const dob = personalInfo?.dateOfBirth;
-      if (!dob) return personalInfo?.age || "";
-      const birthDate = new Date(dob);
-      if (Number.isNaN(birthDate.getTime())) return personalInfo?.age || "";
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-      return Math.max(age, 0).toString();
-    }, [personalInfo?.dateOfBirth, personalInfo?.age]);
     setPersonalInfo({ ...personalInfo, [field]: value });
   };
+
+  const computedAge = useMemo(() => {
+    const dob = personalInfo?.dateOfBirth;
+    if (!dob) return personalInfo?.age || "";
+    const birthDate = new Date(dob);
+    if (Number.isNaN(birthDate.getTime())) return personalInfo?.age || "";
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return Math.max(age, 0).toString();
+  }, [personalInfo?.dateOfBirth, personalInfo?.age]);
 
   const handleCogChange = (field: string, value: string | number) => {
     if (!cogData) return;
