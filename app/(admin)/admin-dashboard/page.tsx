@@ -43,11 +43,27 @@ interface ApplicationPeriod {
   endDate: string;
 }
 
+interface Application {
+  id: string;
+  status: string;
+  createdAt: string;
+  userId: string;
+  applicationPeriodId: string | null;
+  applicationType: string;
+  applicationDetails?: {
+    personalInfo?: {
+      firstName?: string;
+      middleName?: string | null;
+      lastName?: string;
+    };
+  } | null;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<StatsCard[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [pieData, setPieData] = useState<
     Array<{ name: string; value: number; color: string }>

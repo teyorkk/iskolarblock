@@ -14,7 +14,7 @@ const imageToBase64 = async (url: string): Promise<string> => {
   try {
     // Suppress console warnings for mixed content in development
     const originalWarn = console.warn;
-    console.warn = (...args: any[]) => {
+    console.warn = (...args: unknown[]) => {
       // Filter out mixed content warnings
       if (
         typeof args[0] === "string" &&
@@ -49,7 +49,7 @@ const imageToBase64 = async (url: string): Promise<string> => {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  } catch (error) {
+  } catch {
     // Silently handle errors - images are optional for PDF generation
     return "";
   }
@@ -66,20 +66,6 @@ interface ApplicationPeriod {
   title: string;
   startDate: string;
   endDate: string;
-}
-
-// Application type matching admin-report-pdf.tsx
-interface Application {
-  id: string;
-  status: string;
-  createdAt?: string;
-  applicationDetails?: {
-    personalInfo?: {
-      firstName?: string;
-      middleName?: string | null;
-      lastName?: string;
-    };
-  } | null;
 }
 
 interface GenerateReportButtonProps {
@@ -122,7 +108,7 @@ export function GenerateReportButton({
         setIskolarblockLogo(iskolarblockBase64);
         setSkLogo(skLogoBase64);
         setImagesLoading(false);
-      } catch (error) {
+      } catch {
         // Silently handle - images are optional for PDF
         setImagesLoading(false);
       }
