@@ -8,7 +8,6 @@ import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -228,7 +227,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="juandelacruz@gmail.com"
                   {...register("email")}
                   className={errors.email ? "border-red-500" : ""}
                   onChange={() => setErrorMessage("")}

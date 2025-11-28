@@ -318,7 +318,12 @@ export function UserSidebar(): React.JSX.Element {
 
             <nav className="space-y-2">
               {navigation.map((item) => {
-                const isActive = pathname === item.href;
+                // For Application, check if pathname starts with /application
+                const isActive =
+                  item.href === "/application"
+                    ? pathname === item.href ||
+                      pathname.startsWith("/application/")
+                    : pathname === item.href;
                 const commonClasses = `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                   isActive
                     ? "bg-orange-50 text-orange-600"
@@ -512,7 +517,12 @@ export function UserSidebar(): React.JSX.Element {
           {/* Navigation */}
           <nav className="space-y-1">
             {navigation.map((item) => {
-              const isActive = pathname === item.href;
+              // For Application, check if pathname starts with /application
+              const isActive =
+                item.href === "/application"
+                  ? pathname === item.href ||
+                    pathname.startsWith("/application/")
+                  : pathname === item.href;
               const commonClasses = `flex items-center ${
                 isCollapsed ? "justify-center" : "space-x-3"
               } px-3 py-2 rounded-lg transition-colors ${
