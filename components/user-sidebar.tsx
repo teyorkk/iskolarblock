@@ -255,7 +255,7 @@ export function UserSidebar(): React.JSX.Element {
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="relative w-6 h-6 rounded overflow-hidden">
+                <div className="relative w-6 h-6 rounded-lg overflow-hidden">
                   <NextImage
                     src="/iskolarblock.svg"
                     alt="IskolarBlock Logo"
@@ -323,7 +323,11 @@ export function UserSidebar(): React.JSX.Element {
                   isActive
                     ? "bg-orange-50 text-orange-600"
                     : "text-gray-600 hover:bg-gray-50"
-                } ${isApplicationNavLoading && item.href === "/application" ? "opacity-60 cursor-wait" : ""}`;
+                } ${
+                  isApplicationNavLoading && item.href === "/application"
+                    ? "opacity-60 cursor-wait"
+                    : ""
+                }`;
 
                 if (item.href === "/application") {
                   return (
@@ -378,7 +382,7 @@ export function UserSidebar(): React.JSX.Element {
               <Menu className="w-5 h-5" />
             </Button>
             <div className="flex items-center space-x-2">
-              <div className="relative w-5 h-5 rounded overflow-hidden">
+              <div className="relative w-5 h-5 rounded-lg overflow-hidden">
                 <NextImage
                   src="/iskolarblock.svg"
                   alt="IskolarBlock Logo"
@@ -512,8 +516,14 @@ export function UserSidebar(): React.JSX.Element {
               const commonClasses = `flex items-center ${
                 isCollapsed ? "justify-center" : "space-x-3"
               } px-3 py-2 rounded-lg transition-colors ${
-                isActive ? "bg-orange-50 text-orange-600" : "text-gray-600 hover:bg-gray-50"
-              } ${isApplicationNavLoading && item.href === "/application" ? "opacity-60 cursor-wait" : ""}`;
+                isActive
+                  ? "bg-orange-50 text-orange-600"
+                  : "text-gray-600 hover:bg-gray-50"
+              } ${
+                isApplicationNavLoading && item.href === "/application"
+                  ? "opacity-60 cursor-wait"
+                  : ""
+              }`;
 
               if (item.href === "/application") {
                 return (
@@ -584,6 +594,8 @@ export function UserSidebar(): React.JSX.Element {
   );
 }
 
-async function handleApplicationNavigation(closeMobileMenu: boolean): Promise<void> {
+async function handleApplicationNavigation(
+  closeMobileMenu: boolean
+): Promise<void> {
   // placeholder
 }
