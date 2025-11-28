@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Clock, Blocks, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AppBackground } from "@/components/common/app-background";
 import type { LiveBlockchainRecord } from "@/types";
 
 interface LandingBlockchainFeedProps {
@@ -40,8 +41,9 @@ export function LandingBlockchainFeed({
   }, [records, searchTerm]);
 
   return (
-    <section id="blockchain-feed" className="py-16 bg-white">
-      <div className="container mx-auto px-4">
+    <section id="blockchain-feed" className="relative overflow-hidden py-16">
+      <AppBackground className="opacity-40" />
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
