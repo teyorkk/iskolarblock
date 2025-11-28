@@ -1,6 +1,15 @@
 import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
 
+const logCookieWarning = (error: unknown) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(
+      "[Supabase] Skipping cookie write outside Server Action/Route Handler.",
+      error
+    )
+  }
+}
+
 export function getSupabaseServerClient() {
   // cookies() in Next 15 returns a Promise in RSC/route handlers, so we access in async wrappers.
   const cookieStorePromise = cookies()
@@ -20,7 +29,11 @@ export function getSupabaseServerClient() {
       setAll(cookiesToSet) {
         return cookieStorePromise.then(store => {
           cookiesToSet.forEach(({ name, value, options }) => {
-            store.set(name, value, options)
+            try {
+              store.set(name, value, options)
+            } catch (error) {
+              logCookieWarning(error)
+            }
           })
         })
       },
