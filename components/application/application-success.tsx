@@ -92,13 +92,16 @@ export function ApplicationSuccess({
       : "Pending";
 
   // Check if remarks indicate incomplete documents
+  // Only show upload button if documents are actually missing/incomplete
   const hasIncompleteDocuments =
     remarks &&
-    (remarks.toLowerCase().includes("incomplete") ||
-      remarks.toLowerCase().includes("missing") ||
-      remarks.toLowerCase().includes("document") ||
+    status === "PENDING" &&
+    (remarks.toLowerCase().includes("missing") ||
+      remarks.toLowerCase().includes("incomplete") ||
+      remarks.toLowerCase().includes("no document") ||
       remarks.toLowerCase().includes("upload") ||
-      remarks.toLowerCase().includes("provide"));
+      remarks.toLowerCase().includes("provide")) &&
+    !remarks.toLowerCase().includes("complete");
 
   return (
     <motion.div
@@ -122,24 +125,24 @@ export function ApplicationSuccess({
           <CardDescription>{meta.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className={`${meta.badgeBg} p-4 rounded-lg text-left`}>
-            <p className={`text-sm ${meta.textColor} break-words`}>
-              <strong>Application ID:</strong>{" "}
-              <span className="break-all">
-                {applicationId || `SCH-${Date.now()}`}
-              </span>
-              <br />
-              <strong>Status:</strong> {statusLabel}
-              {remarks && (
-                <>
-                  <br />
-                  <strong>Remarks: </strong>
-                  <span className="whitespace-pre-wrap break-words">
-                    {" " + remarks}
-                  </span>
-                </>
-              )}
-            </p>
+          <div className={`${meta.badgeBg} p-4 rounded-lg text-center`}>
+            <div className={`text-sm ${meta.textColor} break-words space-y-1`}>
+              <p>
+                <strong>Application ID:</strong>{" "}
+                <span className="break-all">
+                  {applicationId || `SCH-${Date.now()}`}
+                </span>
+              </p>
+              <p>
+                <strong>Status:</strong> {statusLabel}
+              </p>
+              <p>
+                <strong>Remarks:</strong>{" "}
+                <span className="whitespace-pre-wrap break-words">
+                  {remarks || "—"}
+                </span>
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-center">
