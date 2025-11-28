@@ -45,6 +45,40 @@ export function ScreeningTableDesktop({
   setConfirmRejectId,
   setRejectionReason,
 }: ScreeningTableDesktopProps) {
+  const truncateName = (name: string, maxLength: number = 30): string => {
+    if (name.length <= maxLength) return name;
+    return name.slice(0, maxLength) + "...";
+  };
+
+  const getApplicantName = (application: ScreeningApplication): string => {
+    // Try to extract name from applicationDetails first
+    if (application.applicationDetails) {
+      const details = application.applicationDetails;
+      let personalInfo: Record<string, unknown> | null = null;
+
+      if (typeof details === "object" && details !== null) {
+        if ("personalInfo" in details && details.personalInfo) {
+          personalInfo = details.personalInfo as Record<string, unknown>;
+        } else {
+          personalInfo = details as Record<string, unknown>;
+        }
+      }
+
+      if (personalInfo) {
+        const firstName = personalInfo.firstName as string | undefined;
+        const middleName = personalInfo.middleName as string | undefined;
+        const lastName = personalInfo.lastName as string | undefined;
+        const nameParts = [firstName, middleName, lastName].filter(Boolean);
+        if (nameParts.length > 0) {
+          return nameParts.join(" ");
+        }
+      }
+    }
+
+    // Fallback to User.name if applicationDetails doesn't have name
+    return application.User.name || "Unknown";
+  };
+
   return (
     <Table className="min-w-full text-sm">
       <TableHeader>
@@ -78,7 +112,9 @@ export function ScreeningTableDesktop({
             </TableCell>
             <TableCell className="font-medium">
               <div className="flex flex-col">
-                <span>{application.User.name}</span>
+                <span title={getApplicantName(application)}>
+                  {truncateName(getApplicantName(application))}
+                </span>
                 <span className="text-xs text-gray-500 xl:hidden">
                   {application.User.email}
                 </span>
@@ -151,4 +187,3 @@ export function ScreeningTableDesktop({
     </Table>
   );
 }
-

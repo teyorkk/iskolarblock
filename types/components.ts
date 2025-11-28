@@ -255,6 +255,7 @@ export interface ScreeningApplication {
   applicationType: string;
   createdAt: string;
   remarks: string | null;
+  applicationDetails?: Record<string, unknown> | null;
   User: {
     id: string;
     name: string;
