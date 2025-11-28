@@ -1,7 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle, Clock, Award, XCircle } from "lucide-react";
+import {
+  CheckCircle,
+  Clock,
+  Award,
+  XCircle,
+  Upload,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
 import type { ApplicationSuccessProps } from "@/types/components";
 import type { ApplicationStatus } from "@/types";
 
@@ -69,7 +77,9 @@ const statusMeta: Record<
 export function ApplicationSuccess({
   applicationId,
   status = "PENDING",
+  remarks,
 }: ApplicationSuccessProps): React.JSX.Element {
+  const router = useRouter();
   const meta = statusMeta[status] ?? statusMeta.PENDING;
   const IconComponent = meta.icon;
   const statusLabel =
@@ -80,6 +90,15 @@ export function ApplicationSuccess({
       : status === "REJECTED"
       ? "Rejected"
       : "Pending";
+
+  // Check if remarks indicate incomplete documents
+  const hasIncompleteDocuments =
+    remarks &&
+    (remarks.toLowerCase().includes("incomplete") ||
+      remarks.toLowerCase().includes("missing") ||
+      remarks.toLowerCase().includes("document") ||
+      remarks.toLowerCase().includes("upload") ||
+      remarks.toLowerCase().includes("provide"));
 
   return (
     <motion.div
@@ -109,19 +128,46 @@ export function ApplicationSuccess({
               {applicationId || `SCH-${Date.now()}`}
               <br />
               <strong>Status:</strong> {statusLabel}
-              <br />
+              {remarks && (
+                <>
+                  <br />
+                  <strong>Remarks: </strong>
+
+                  <span className="whitespace-pre-wrap">{" " + remarks}</span>
+                </>
+              )}
             </p>
           </div>
+
           <div className="flex gap-4 justify-center">
-            <Button onClick={() => (window.location.href = "/user-dashboard")}>
+            <Button
+              onClick={() => (window.location.href = "/user-dashboard")}
+              className={
+                hasIncompleteDocuments && applicationId ? "flex-1" : ""
+              }
+            >
               Back to Dashboard
             </Button>
             <Button
               variant="outline"
               onClick={() => (window.location.href = "/history")}
+              className={
+                hasIncompleteDocuments && applicationId ? "flex-1" : ""
+              }
             >
               View Application History
             </Button>
+            {hasIncompleteDocuments && applicationId && (
+              <Button
+                onClick={() =>
+                  router.push(`/application/complete/${applicationId}`)
+                }
+                className="flex-1 bg-orange-500 hover:bg-orange-600"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Documents
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

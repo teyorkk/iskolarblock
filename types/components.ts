@@ -104,6 +104,7 @@ export interface FileUploadZoneProps {
 export interface ApplicationSuccessProps {
   applicationId?: string;
   status?: ApplicationStatus;
+  remarks?: string;
 }
 
 // User management component props

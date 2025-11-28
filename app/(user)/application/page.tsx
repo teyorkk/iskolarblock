@@ -14,6 +14,12 @@ export default function ApplicationPage() {
   const [currentApplicationStatus, setCurrentApplicationStatus] = useState<
     string | null
   >(null);
+  const [currentApplicationId, setCurrentApplicationId] = useState<
+    string | null
+  >(null);
+  const [currentApplicationRemarks, setCurrentApplicationRemarks] = useState<
+    string | null
+  >(null);
   const [hasOpenPeriod, setHasOpenPeriod] = useState(true);
   const [isCheckingApplications, setIsCheckingApplications] = useState(true);
 
@@ -47,7 +53,7 @@ export default function ApplicationPage() {
 
         const { data, error } = await supabase
           .from("Application")
-          .select("id, status, applicationPeriodId")
+          .select("id, status, applicationPeriodId, remarks")
           .eq("userId", user.id);
 
         if (error) {
@@ -56,6 +62,8 @@ export default function ApplicationPage() {
 
           setHasCurrentApplication(false);
           setCurrentApplicationStatus(null);
+          setCurrentApplicationId(null);
+          setCurrentApplicationRemarks(null);
           setIsCheckingApplications(false);
           return;
         }
@@ -67,19 +75,27 @@ export default function ApplicationPage() {
           if (currentApplication) {
             setHasCurrentApplication(true);
             setCurrentApplicationStatus(currentApplication.status);
+            setCurrentApplicationId(currentApplication.id);
+            setCurrentApplicationRemarks(currentApplication.remarks || null);
           } else {
             setHasCurrentApplication(false);
             setCurrentApplicationStatus(null);
+            setCurrentApplicationId(null);
+            setCurrentApplicationRemarks(null);
           }
         } else {
           setHasCurrentApplication(false);
           setCurrentApplicationStatus(null);
+          setCurrentApplicationId(null);
+          setCurrentApplicationRemarks(null);
         }
       } catch (error) {
         console.error("Unexpected error checking applications:", error);
         // Fail gracefully - assume no past applications
         setHasCurrentApplication(false);
         setCurrentApplicationStatus(null);
+        setCurrentApplicationId(null);
+        setCurrentApplicationRemarks(null);
         setHasOpenPeriod(true);
       } finally {
         setIsCheckingApplications(false);
@@ -117,6 +133,7 @@ export default function ApplicationPage() {
 
             {hasCurrentApplication && !isCheckingApplications && (
               <ApplicationSuccess
+                applicationId={currentApplicationId || undefined}
                 status={
                   (currentApplicationStatus as
                     | "PENDING"
@@ -124,6 +141,7 @@ export default function ApplicationPage() {
                     | "GRANTED"
                     | "REJECTED") || "PENDING"
                 }
+                remarks={currentApplicationRemarks || undefined}
               />
             )}
 
