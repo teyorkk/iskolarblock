@@ -43,6 +43,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/common/pagination";
+import { ResponsiveTableWrapper } from "@/components/common/responsive-table-wrapper";
+import { ScreeningTableDesktop } from "@/components/admin-screening/screening-table-desktop";
+import { ScreeningTableMobile } from "@/components/admin-screening/screening-table-mobile";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   AlertDialog,
@@ -55,20 +58,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import type { ScreeningApplication } from "@/types/components";
 
-interface Application {
-  id: string;
-  userId: string;
-  status: string;
-  applicationType: string;
-  createdAt: string;
-  remarks: string | null;
-  User: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
+type Application = ScreeningApplication;
 
 interface ApplicationPeriod {
   id: string;
@@ -555,255 +547,46 @@ const getRemarksBadgeClass = (remarks?: string | null) => {
                     </p>
                   </div>
                 ) : (
-                  <>
-                    {/* Desktop Table View */}
-                    <div className="hidden md:block overflow-x-auto">
-                      <Table className="min-w-full text-sm">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-12">
-                              <Checkbox
-                                checked={allVisibleSelected}
-                                onCheckedChange={(checked) =>
-                                  handleSelectAll(
-                                    checked === true,
-                                    visibleApplications
-                                  )
-                                }
-                              />
-                            </TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead className="hidden lg:table-cell">
-                              Type
-                            </TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="hidden md:table-cell">
-                              Remarks
-                            </TableHead>
-                            <TableHead className="hidden sm:table-cell">
-                              Submitted
-                            </TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {visibleApplications.map((application) => (
-                            <TableRow key={application.id}>
-                              <TableCell>
-                                <Checkbox
-                                  checked={selectedApplications.has(
-                                    application.id
-                                  )}
-                                  onCheckedChange={(checked) =>
-                                    handleSelectApplication(
-                                      application.id,
-                                      checked as boolean
-                                    )
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                <div className="flex flex-col">
-                                  <span>{application.User.name}</span>
-                                  <span className="text-xs text-gray-500 xl:hidden">
-                                    {application.User.email}
-                                  </span>
-                                  <span className="md:hidden mt-1">
-                                    <span
-                                      className={getRemarksBadgeClass(
-                                        application.remarks
-                                      )}
-                                    >
-                                      {application.remarks || "—"}
-                                    </span>
-                                  </span>
-                                  <span className="text-xs text-gray-400 sm:hidden">
-                                    Submitted {formatDate(application.createdAt)}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="hidden lg:table-cell">
-                                <Badge variant="outline">
-                                  {application.applicationType}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  className={getStatusColor(application.status)}
-                                >
-                                  {application.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="hidden md:table-cell max-w-xs">
-                                <span
-                                  className={getRemarksBadgeClass(
-                                    application.remarks
-                                  )}
-                                >
-                                  {application.remarks || "—"}
-                                </span>
-                              </TableCell>
-                              <TableCell className="hidden sm:table-cell">
-                                {formatDate(application.createdAt)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end space-x-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleViewDetails(application.id)
-                                    }
-                                    title="View Details"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                  {application.status === "PENDING" &&
-                                    selectedPeriodId === latestPeriodId && (
-                                      <>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                          onClick={() =>
-                                            setConfirmApproveId(application.id)
-                                          }
-                                          title="Approve"
-                                        >
-                                          <CheckCircle className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                          onClick={() => {
-                                            setConfirmRejectId(application.id);
-                                            setRejectionReason("");
-                                          }}
-                                          title="Reject"
-                                        >
-                                          <XCircle className="w-4 h-4" />
-                                        </Button>
-                                      </>
-                                    )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-
-                    {/* Mobile Card View */}
-                    <div className="md:hidden space-y-4">
-                      {visibleApplications.map((application) => (
-                        <div
-                          key={application.id}
-                          className="border rounded-lg p-4 bg-white hover:bg-gray-50"
-                        >
-                          <div className="space-y-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-3 flex-1 min-w-0">
-                                <Checkbox
-                                  checked={selectedApplications.has(
-                                    application.id
-                                  )}
-                                  onCheckedChange={(checked) =>
-                                    handleSelectApplication(
-                                      application.id,
-                                      checked as boolean
-                                    )
-                                  }
-                                  className="mt-1"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm truncate">
-                                    {application.User.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500 truncate mt-0.5">
-                                    {application.User.email}
-                                  </p>
-                                </div>
-                              </div>
-                              <Badge
-                                className={getStatusColor(application.status)}
-                              >
-                                {application.status}
-                              </Badge>
-                            </div>
-
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge variant="outline" className="text-xs">
-                                {application.applicationType}
-                              </Badge>
-                              <span className="text-xs text-gray-500">
-                                {formatDate(application.createdAt)}
-                              </span>
-                            </div>
-
-                            {application.remarks && (
-                              <div>
-                                <span className="text-xs text-gray-500 font-medium">
-                                  Remarks:
-                                </span>
-                                <div className="mt-1">
-                                  <span
-                                    className={getRemarksBadgeClass(
-                                      application.remarks
-                                    )}
-                                  >
-                                    {application.remarks}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="flex gap-2 pt-2 border-t">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleViewDetails(application.id)
-                                }
-                                className="flex-1"
-                              >
-                                <Eye className="w-4 h-4 mr-2" />
-                                View
-                              </Button>
-                              {application.status === "PENDING" &&
-                                selectedPeriodId === latestPeriodId && (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="flex-1 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                      onClick={() =>
-                                        setConfirmApproveId(application.id)
-                                      }
-                                    >
-                                      <CheckCircle className="w-4 h-4 mr-2" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      onClick={() => {
-                                        setConfirmRejectId(application.id);
-                                        setRejectionReason("");
-                                      }}
-                                    >
-                                      <XCircle className="w-4 h-4 mr-2" />
-                                      Reject
-                                    </Button>
-                                  </>
-                                )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
+                  <ResponsiveTableWrapper
+                    desktopView={
+                      <ScreeningTableDesktop
+                        applications={visibleApplications}
+                        selectedApplications={selectedApplications}
+                        allVisibleSelected={allVisibleSelected}
+                        handleSelectAll={handleSelectAll}
+                        handleSelectApplication={handleSelectApplication}
+                        handleViewDetails={handleViewDetails}
+                        getStatusColor={getStatusColor}
+                        getRemarksBadgeClass={getRemarksBadgeClass}
+                        formatDate={formatDate}
+                        canApproveReject={(app) =>
+                          app.status === "PENDING" &&
+                          selectedPeriodId === latestPeriodId
+                        }
+                        setConfirmApproveId={setConfirmApproveId}
+                        setConfirmRejectId={setConfirmRejectId}
+                        setRejectionReason={setRejectionReason}
+                      />
+                    }
+                    mobileView={
+                      <ScreeningTableMobile
+                        applications={visibleApplications}
+                        selectedApplications={selectedApplications}
+                        handleSelectApplication={handleSelectApplication}
+                        handleViewDetails={handleViewDetails}
+                        getStatusColor={getStatusColor}
+                        getRemarksBadgeClass={getRemarksBadgeClass}
+                        formatDate={formatDate}
+                        canApproveReject={(app) =>
+                          app.status === "PENDING" &&
+                          selectedPeriodId === latestPeriodId
+                        }
+                        setConfirmApproveId={setConfirmApproveId}
+                        setConfirmRejectId={setConfirmRejectId}
+                        setRejectionReason={setRejectionReason}
+                      />
+                    }
+                  />
                 )}
                 {filteredApplications.length > 0 && (
                   <Pagination
