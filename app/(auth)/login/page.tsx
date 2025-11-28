@@ -185,7 +185,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="juandelacruz@gmail.com"
                   {...register("email")}
                   className={errors.email ? "border-red-500" : ""}
                   onChange={() => setErrorMessage("")}

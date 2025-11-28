@@ -12,21 +12,21 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#f97316",
     icons: [
       {
-        src: "/iskolarblock.svg",
+        src: "/iskolarblock.png",
         sizes: "192x192",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/iskolarblock.svg",
+        src: "/iskolarblock.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/iskolarblock.svg",
+        src: "/iskolarblock.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "maskable",
       },
     ],

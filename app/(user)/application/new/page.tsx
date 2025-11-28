@@ -453,7 +453,7 @@ export default function NewApplicationPage() {
     });
 
   const onSubmit = async (data: NewApplicationFormData): Promise<void> => {
-    console.log("🚀 onSubmit called with data:", data);
+    console.log("onSubmit called with data:", data);
     try {
       setIsSubmitting(true);
       console.log("📝 Starting submission process...");

@@ -169,9 +169,15 @@ export default function UserDashboard() {
     },
   ];
 
-  const pendingCount = applications.filter((app) => app.status === "PENDING").length;
-  const approvedCount = applications.filter((app) => app.status === "APPROVED").length;
-  const grantedCount = applications.filter((app) => app.status === "GRANTED").length;
+  const pendingCount = applications.filter(
+    (app) => app.status === "PENDING"
+  ).length;
+  const approvedCount = applications.filter(
+    (app) => app.status === "APPROVED"
+  ).length;
+  const grantedCount = applications.filter(
+    (app) => app.status === "GRANTED"
+  ).length;
 
   // Calculate stats from real data
   const stats = [
