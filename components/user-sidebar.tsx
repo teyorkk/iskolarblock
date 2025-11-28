@@ -324,7 +324,7 @@ export function UserSidebar(): React.JSX.Element {
                     ? pathname === item.href ||
                       pathname.startsWith("/application/")
                     : pathname === item.href;
-                const commonClasses = `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                const commonClasses = `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors w-full ${
                   isActive
                     ? "bg-orange-50 text-orange-600"
                     : "text-gray-600 hover:bg-gray-50"
@@ -525,7 +525,7 @@ export function UserSidebar(): React.JSX.Element {
                   : pathname === item.href;
               const commonClasses = `flex items-center ${
                 isCollapsed ? "justify-center" : "space-x-3"
-              } px-3 py-2 rounded-lg transition-colors ${
+              } px-3 py-2 rounded-lg transition-colors w-full ${
                 isActive
                   ? "bg-orange-50 text-orange-600"
                   : "text-gray-600 hover:bg-gray-50"
