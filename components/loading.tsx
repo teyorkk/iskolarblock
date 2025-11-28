@@ -161,7 +161,6 @@ export function Loading() {
           </div>
         </motion.div>
 
-
         {/* Floating particles */}
         <div className="absolute inset-0 pointer-events-none">
           {[...Array(12)].map((_, i) => (
