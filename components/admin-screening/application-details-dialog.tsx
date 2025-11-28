@@ -19,8 +19,9 @@ import {
   Phone,
   Edit,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { CheckCircle, XCircle } from "lucide-react";
 
@@ -126,12 +127,38 @@ export function ApplicationDetailsDialog({
   const [application, setApplication] = useState<ApplicationData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [activeTab, setActiveTab] = useState("personal");
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   useEffect(() => {
     if (open && applicationId) {
       void fetchApplicationDetails();
+      setActiveTab("personal");
     }
   }, [open, applicationId]);
+
+  useEffect(() => {
+    if (tabsListRef.current && open) {
+      const tabsList = tabsListRef.current.querySelector(
+        '[data-slot="tabs-list"]'
+      ) as HTMLElement;
+      if (tabsList) {
+        const tabs = tabsList.querySelectorAll('[data-slot="tabs-trigger"]');
+        const activeIndex =
+          activeTab === "personal" ? 0 : activeTab === "cog" ? 1 : 2;
+        const activeTabElement = tabs[activeIndex] as HTMLElement;
+        if (activeTabElement) {
+          const tabsListRect = tabsList.getBoundingClientRect();
+          const tabRect = activeTabElement.getBoundingClientRect();
+          setIndicatorStyle({
+            left: tabRect.left - tabsListRect.left,
+            width: tabRect.width,
+          });
+        }
+      }
+    }
+  }, [activeTab, open]);
 
   const fetchApplicationDetails = async () => {
     if (!applicationId) return;
@@ -285,23 +312,49 @@ export function ApplicationDetailsDialog({
 
             {/* Tabs */}
             <Tabs
-              defaultValue="personal"
+              value={activeTab}
+              onValueChange={setActiveTab}
               className="flex-1 flex flex-col min-h-0"
             >
-              <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger
-                  value="personal"
-                  className="flex items-center gap-2"
-                >
-                  <User className="w-4 h-4 text-orange-500" />
-                </TabsTrigger>
-                <TabsTrigger value="cog" className="flex items-center gap-2">
-                  <FileText className=" text-orange-500 w-4 h-4" />
-                </TabsTrigger>
-                <TabsTrigger value="cor" className="flex items-center gap-2">
-                  <FileText className=" text-orange-500 w-4 h-4" />
-                </TabsTrigger>
-              </TabsList>
+              <div ref={tabsListRef} className="relative mb-4">
+                <TabsList className="grid w-full grid-cols-3 relative">
+                  <motion.div
+                    className="absolute bg-background dark:bg-input/30 rounded-md shadow-sm border border-transparent dark:border-input z-0"
+                    initial={false}
+                    animate={{
+                      left: `${indicatorStyle.left}px`,
+                      width: `${indicatorStyle.width}px`,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30,
+                    }}
+                    style={{
+                      height: "calc(100% - 6px)",
+                      top: "3px",
+                    }}
+                  />
+                  <TabsTrigger
+                    value="personal"
+                    className="flex items-center gap-2 relative z-10"
+                  >
+                    <User className="w-4 h-4 text-orange-500" />
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="cog"
+                    className="flex items-center gap-2 relative z-10"
+                  >
+                    <FileText className="text-orange-500 w-4 h-4" />
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="cor"
+                    className="flex items-center gap-2 relative z-10"
+                  >
+                    <FileText className="text-orange-500 w-4 h-4" />
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Personal Information Tab */}
               <TabsContent

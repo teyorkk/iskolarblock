@@ -243,7 +243,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="password"
                     {...register("password", {
                       onChange: (e) => {
                         setErrorMessage("");
