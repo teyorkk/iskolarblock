@@ -1,0 +1,48 @@
+{
+  "name": "IskolarBlock - Blockchain Scholar Management",
+  "short_name": "IskolarBlock",
+  "description": "Empowering Isko at Iska Through Blockchain Transparency",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/iskolarblock.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/iskolarblock.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/iskolarblock.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to dashboard",
+      "url": "/user-dashboard",
+      "icons": [{ "src": "/iskolarblock.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Application",
+      "short_name": "Application",
+      "description": "Submit application",
+      "url": "/application",
+      "icons": [{ "src": "/iskolarblock.png", "sizes": "96x96" }]
+    }
+  ]
+}
