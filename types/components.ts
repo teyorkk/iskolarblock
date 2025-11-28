@@ -229,3 +229,79 @@ export interface ApplicationPeriodDialogProps {
   onSave: (startDate: string, endDate: string) => void;
   isLoading: boolean;
 }
+
+// Awarding component types
+export type AwardingStatus = "APPROVED" | "GRANTED";
+export type LevelFilter = "COLLEGE" | "SENIOR_HIGH";
+
+export interface AwardingApplication {
+  id: string;
+  applicationType: string;
+  status: AwardingStatus;
+  applicationDetails: Record<string, unknown> | null;
+  createdAt: string;
+  User?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
+}
+
+// Screening component types
+export interface ScreeningApplication {
+  id: string;
+  userId: string;
+  status: string;
+  applicationType: string;
+  createdAt: string;
+  remarks: string | null;
+  applicationDetails?: Record<string, unknown> | null;
+  User: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+// Blockchain component types
+export type BlockchainRecordType = "APPLICATION" | "AWARDING";
+
+export interface BlockchainRecord {
+  id: string;
+  recordType: BlockchainRecordType;
+  transactionHash: string;
+  timestamp: string;
+  Application?:
+    | {
+        id: string;
+        applicationDetails: Record<string, unknown> | null;
+      }
+    | Array<{
+        id: string;
+        applicationDetails: Record<string, unknown> | null;
+      }>
+    | null;
+  Awarding?:
+    | {
+        id: string;
+        name: string | null;
+      }
+    | Array<{
+        id: string;
+        name: string | null;
+      }>
+    | null;
+}
+
+// Responsive table component props
+export interface ResponsiveTableWrapperProps {
+  desktopView: React.ReactNode;
+  mobileView: React.ReactNode;
+  className?: string;
+}
+
+export interface MobileCardProps {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}

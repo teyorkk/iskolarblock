@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "./status-badge";
 import { formatDateTime } from "@/lib/utils/date-formatting";
+import { ResponsiveTableWrapper } from "@/components/common/responsive-table-wrapper";
+import { MobileCard } from "@/components/common/mobile-card";
 import type { UserApplicationsTableProps } from "@/types/components";
 
 export function UserApplicationsTable({
@@ -35,36 +37,71 @@ export function UserApplicationsTable({
   }
 
   return (
-    <div className="overflow-x-auto -mx-6 px-6">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="min-w-[100px]">Application ID</TableHead>
-            <TableHead className="min-w-[100px]">Status</TableHead>
-            <TableHead className="min-w-[140px]">Submitted</TableHead>
-            <TableHead className="min-w-[140px]">Last Updated</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <ResponsiveTableWrapper
+      desktopView={
+        <div className="-mx-6 px-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[100px]">Application ID</TableHead>
+                <TableHead className="min-w-[100px]">Status</TableHead>
+                <TableHead className="min-w-[140px]">Submitted</TableHead>
+                <TableHead className="min-w-[140px]">Last Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {applications.map((app) => (
+                <TableRow key={app.id}>
+                  <TableCell className="font-medium text-xs">
+                    {app.id.substring(0, 8)}...
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={app.status} />
+                  </TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">
+                    {formatDateTime(app.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">
+                    {formatDateTime(app.updatedAt)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      }
+      mobileView={
+        <div className="space-y-3 -mx-6 px-6">
           {applications.map((app) => (
-            <TableRow key={app.id}>
-              <TableCell className="font-medium text-xs">
-                {app.id.substring(0, 8)}...
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={app.status} />
-              </TableCell>
-              <TableCell className="text-xs whitespace-nowrap">
-                {formatDateTime(app.createdAt)}
-              </TableCell>
-              <TableCell className="text-xs whitespace-nowrap">
-                {formatDateTime(app.updatedAt)}
-              </TableCell>
-            </TableRow>
+            <MobileCard key={app.id}>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500 font-medium">Application ID</span>
+                  <StatusBadge status={app.status} />
+                </div>
+                <p className="font-medium text-sm break-all">
+                  {app.id.substring(0, 8)}...
+                </p>
+                <div className="pt-2 border-t space-y-2">
+                  <div>
+                    <span className="text-xs text-gray-500 font-medium">Submitted:</span>
+                    <p className="text-xs text-gray-900 mt-0.5">
+                      {formatDateTime(app.createdAt)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500 font-medium">Last Updated:</span>
+                    <p className="text-xs text-gray-900 mt-0.5">
+                      {formatDateTime(app.updatedAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </MobileCard>
           ))}
-        </TableBody>
-      </Table>
-    </div>
+        </div>
+      }
+    />
   );
 }
 

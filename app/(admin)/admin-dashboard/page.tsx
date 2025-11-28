@@ -43,10 +43,27 @@ interface ApplicationPeriod {
   endDate: string;
 }
 
+interface Application {
+  id: string;
+  status: string;
+  createdAt: string;
+  userId: string;
+  applicationPeriodId: string | null;
+  applicationType: string;
+  applicationDetails?: {
+    personalInfo?: {
+      firstName?: string;
+      middleName?: string | null;
+      lastName?: string;
+    };
+  } | null;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<StatsCard[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [pieData, setPieData] = useState<
     Array<{ name: string; value: number; color: string }>
@@ -129,6 +146,9 @@ export default function AdminDashboard() {
         if (appsError) {
           console.error("Error fetching applications:", appsError);
         }
+
+        // Store applications for PDF report
+        setApplications(applications || []);
 
         // Fetch user data for applications
         const userIds =
@@ -364,7 +384,7 @@ export default function AdminDashboard() {
       // Only fetch if we're still loading periods
       void fetchDashboardData();
     }
-  }, [selectedPeriodId, periods.length]);
+  }, [selectedPeriodId, periods]);
 
   if (isLoading) {
     return (
@@ -397,6 +417,7 @@ export default function AdminDashboard() {
                 stats,
                 pieData,
                 period: periods.find((p) => p.id === selectedPeriodId) || null,
+                applications: applications,
               }}
             />
 

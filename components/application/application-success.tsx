@@ -92,13 +92,16 @@ export function ApplicationSuccess({
       : "Pending";
 
   // Check if remarks indicate incomplete documents
+  // Only show upload button if documents are actually missing/incomplete
   const hasIncompleteDocuments =
     remarks &&
-    (remarks.toLowerCase().includes("incomplete") ||
-      remarks.toLowerCase().includes("missing") ||
-      remarks.toLowerCase().includes("document") ||
+    status === "PENDING" &&
+    (remarks.toLowerCase().includes("missing") ||
+      remarks.toLowerCase().includes("incomplete") ||
+      remarks.toLowerCase().includes("no document") ||
       remarks.toLowerCase().includes("upload") ||
-      remarks.toLowerCase().includes("provide"));
+      remarks.toLowerCase().includes("provide")) &&
+    !remarks.toLowerCase().includes("complete");
 
   return (
     <motion.div
@@ -122,28 +125,33 @@ export function ApplicationSuccess({
           <CardDescription>{meta.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className={`${meta.badgeBg} p-4 rounded-lg`}>
-            <p className={`text-sm ${meta.textColor}`}>
-              <strong>Application ID:</strong>{" "}
-              {applicationId || `SCH-${Date.now()}`}
-              <br />
-              <strong>Status:</strong> {statusLabel}
-              {remarks && (
-                <>
-                  <br />
-                  <strong>Remarks: </strong>
-
-                  <span className="whitespace-pre-wrap">{" " + remarks}</span>
-                </>
-              )}
-            </p>
+          <div className={`${meta.badgeBg} p-4 rounded-lg text-center`}>
+            <div className={`text-sm ${meta.textColor} break-words space-y-1`}>
+              <p>
+                <strong>Application ID:</strong>{" "}
+                <span className="break-all">
+                  {applicationId || `SCH-${Date.now()}`}
+                </span>
+              </p>
+              <p>
+                <strong>Status:</strong> {statusLabel}
+              </p>
+              <p>
+                <strong>Remarks:</strong>{" "}
+                <span className="whitespace-pre-wrap break-words">
+                  {remarks || "—"}
+                </span>
+              </p>
+            </div>
           </div>
 
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-center">
             <Button
               onClick={() => (window.location.href = "/user-dashboard")}
               className={
-                hasIncompleteDocuments && applicationId ? "flex-1" : ""
+                hasIncompleteDocuments && applicationId
+                  ? "w-full sm:flex-1"
+                  : "w-full sm:w-auto"
               }
             >
               Back to Dashboard
@@ -152,7 +160,9 @@ export function ApplicationSuccess({
               variant="outline"
               onClick={() => (window.location.href = "/history")}
               className={
-                hasIncompleteDocuments && applicationId ? "flex-1" : ""
+                hasIncompleteDocuments && applicationId
+                  ? "w-full sm:flex-1"
+                  : "w-full sm:w-auto"
               }
             >
               View Application History
@@ -162,7 +172,7 @@ export function ApplicationSuccess({
                 onClick={() =>
                   router.push(`/application/complete/${applicationId}`)
                 }
-                className="flex-1 bg-orange-500 hover:bg-orange-600"
+                className="w-full sm:flex-1 bg-orange-500 hover:bg-orange-600"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Documents

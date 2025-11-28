@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
+import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
 import { useDropzone } from "react-dropzone";
 import { useForm } from "react-hook-form";
 import type { NewApplicationFormData } from "@/lib/validations";
@@ -125,6 +126,12 @@ export default function CompleteApplicationPage() {
   const [corExtractedData, setCorExtractedData] =
     useState<CORExtractionResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
+  const [pendingCogFile, setPendingCogFile] = useState<File | null>(null);
+  const [pendingCorFile, setPendingCorFile] = useState<File | null>(null);
+  const [currentFileType, setCurrentFileType] = useState<
+    "Certificate of Grades" | "Certificate of Registration"
+  >("Certificate of Grades");
 
   const {
     register,
@@ -188,10 +195,9 @@ export default function CompleteApplicationPage() {
   } = useDropzone({
     onDrop: (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
-        setCertificateOfGrades(acceptedFiles[0]);
-        setIsCogProcessingDone(false);
-        setProcessedCogFile("");
-        setCogUploadLocked(false);
+        setPendingCogFile(acceptedFiles[0]);
+        setCurrentFileType("Certificate of Grades");
+        setConfirmationModalOpen(true);
       }
     },
     accept: {
@@ -208,10 +214,9 @@ export default function CompleteApplicationPage() {
   } = useDropzone({
     onDrop: (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
-        setCertificateOfRegistration(acceptedFiles[0]);
-        setIsCorProcessingDone(false);
-        setProcessedCorFile("");
-        setCorUploadLocked(false);
+        setPendingCorFile(acceptedFiles[0]);
+        setCurrentFileType("Certificate of Registration");
+        setConfirmationModalOpen(true);
       }
     },
     accept: {
@@ -220,6 +225,29 @@ export default function CompleteApplicationPage() {
     },
     maxFiles: 1,
   });
+
+  const handleConfirmUpload = (): void => {
+    if (pendingCogFile) {
+      setCertificateOfGrades(pendingCogFile);
+      setIsCogProcessingDone(false);
+      setProcessedCogFile("");
+      setCogUploadLocked(false);
+      setPendingCogFile(null);
+    } else if (pendingCorFile) {
+      setCertificateOfRegistration(pendingCorFile);
+      setIsCorProcessingDone(false);
+      setProcessedCorFile("");
+      setCorUploadLocked(false);
+      setPendingCorFile(null);
+    }
+    setConfirmationModalOpen(false);
+  };
+
+  const handleCancelUpload = (): void => {
+    setPendingCogFile(null);
+    setPendingCorFile(null);
+    setConfirmationModalOpen(false);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -230,7 +258,9 @@ export default function CompleteApplicationPage() {
     const hasCor = certificateOfRegistration || existingCorDocument?.fileUrl;
 
     if (!hasCog && !hasCor) {
-      toast.error("Please upload at least one document (Certificate of Grades or Certificate of Registration).");
+      toast.error(
+        "Please upload at least one document (Certificate of Grades or Certificate of Registration)."
+      );
       return;
     }
 
@@ -287,13 +317,14 @@ export default function CompleteApplicationPage() {
       }
 
       // Show appropriate message based on status
-      const message = result.message || 
-        (result.status === "APPROVED" 
+      const message =
+        result.message ||
+        (result.status === "APPROVED"
           ? "Documents uploaded! Application has been approved."
           : "Document uploaded! Application remains pending until both documents are uploaded.");
-      
+
       toast.success(message);
-      
+
       // Always redirect to history page after submission
       router.push("/history");
     } catch (error) {
@@ -352,8 +383,9 @@ export default function CompleteApplicationPage() {
           <CardHeader>
             <CardTitle>Complete Your Application</CardTitle>
             <CardDescription>
-              Upload the missing documents below. You can upload one file at a time. 
-              We&apos;ll run OCR automatically and your application will be approved once both documents are uploaded.
+              Upload the missing documents below. You can upload one file at a
+              time. We&apos;ll run OCR automatically and your application will
+              be approved once both documents are uploaded.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -437,7 +469,12 @@ export default function CompleteApplicationPage() {
           <div className="flex justify-end">
             <Button
               type="submit"
-              disabled={isSubmitting || documentsProcessing || isCogInvalidFileType || isCorInvalidFileType}
+              disabled={
+                isSubmitting ||
+                documentsProcessing ||
+                isCogInvalidFileType ||
+                isCorInvalidFileType
+              }
             >
               {isSubmitting ? (
                 <>
@@ -460,6 +497,15 @@ export default function CompleteApplicationPage() {
       <div className="md:ml-64 md:pt-20 pb-16 md:pb-0">
         <div className="p-4 md:p-6 max-w-5xl mx-auto">{renderContent()}</div>
       </div>
+
+      {/* File Upload Confirmation Modal */}
+      <FileUploadConfirmationModal
+        isOpen={confirmationModalOpen}
+        onConfirm={handleConfirmUpload}
+        onCancel={handleCancelUpload}
+        fileName={pendingCogFile?.name || pendingCorFile?.name || ""}
+        fileType={currentFileType}
+      />
     </div>
   );
 }

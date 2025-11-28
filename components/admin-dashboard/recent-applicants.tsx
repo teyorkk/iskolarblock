@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/card";
 import type { RecentApplicantsProps } from "@/types/components";
 
-export function RecentApplicants({ applicants }: RecentApplicantsProps): React.JSX.Element {
+export function RecentApplicants({
+  applicants,
+}: RecentApplicantsProps): React.JSX.Element {
   const router = useRouter();
   const statusClassMap: Record<
     string,
@@ -22,12 +24,18 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
   > = {
     APPROVED: { variant: "default", className: "bg-green-100 text-green-700" },
     GRANTED: { variant: "default", className: "bg-purple-100 text-purple-700" },
-    PENDING: { variant: "secondary", className: "bg-orange-100 text-orange-700" },
+    PENDING: {
+      variant: "secondary",
+      className: "bg-orange-100 text-orange-700",
+    },
     REJECTED: { variant: "destructive", className: "bg-red-100 text-red-700" },
   };
 
   const getStatusConfig = (status: string) =>
-    statusClassMap[status] ?? { variant: "secondary", className: "bg-gray-100 text-gray-700" };
+    statusClassMap[status] ?? {
+      variant: "secondary",
+      className: "bg-gray-100 text-gray-700",
+    };
 
   const handleViewAll = () => {
     router.push("/screening");
@@ -42,7 +50,7 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
     >
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <CardTitle className="flex items-center">
                 <Users className="w-5 h-5 mr-2 text-red-500" />
@@ -52,7 +60,12 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
                 Latest scholarship applications submitted
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={handleViewAll}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleViewAll}
+              className="self-start sm:self-auto"
+            >
               View All
             </Button>
           </div>
@@ -62,29 +75,35 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
             {applicants.slice(0, 4).map((applicant, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-gray-50 rounded-lg"
               >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-sm font-medium text-gray-600">
                       {applicant.name.charAt(0)}
                     </span>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{applicant.name}</p>
-                    <p className="text-sm text-gray-500">{applicant.email}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 truncate">
+                      {applicant.name}
+                    </p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {applicant.email}
+                    </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center justify-between sm:justify-end sm:flex-col sm:text-right gap-2 sm:gap-1 flex-shrink-0">
                   {(() => {
-                    const { variant, className } = getStatusConfig(applicant.status);
+                    const { variant, className } = getStatusConfig(
+                      applicant.status
+                    );
                     return (
                       <Badge variant={variant} className={className}>
-                    {applicant.status}
-                  </Badge>
+                        {applicant.status}
+                      </Badge>
                     );
                   })()}
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 sm:mt-0">
                     {applicant.submittedDate}
                   </p>
                 </div>
@@ -92,7 +111,11 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
             ))}
           </div>
           <div className="mt-4 text-center">
-            <Button variant="outline" className="w-full" onClick={handleViewAll}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleViewAll}
+            >
               View All Applicants
             </Button>
           </div>
@@ -101,4 +124,3 @@ export function RecentApplicants({ applicants }: RecentApplicantsProps): React.J
     </motion.div>
   );
 }
-

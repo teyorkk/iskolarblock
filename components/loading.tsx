@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import NextImage from "next/image";
+import { AppBackground } from "@/components/common/app-background";
 
 export function Loading() {
   // Animated dots for loading text
@@ -9,31 +10,7 @@ export function Loading() {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-orange-200/30 blur-3xl"
-            style={{
-              width: `${200 + i * 50}px`,
-              height: `${200 + i * 50}px`,
-              left: `${20 + i * 15}%`,
-              top: `${10 + i * 12}%`,
-            }}
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 3 + i * 0.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.3,
-            }}
-          />
-        ))}
-      </div>
+      <AppBackground />
 
       <div className="text-center relative z-10">
         {/* Rotating rings around logo */}
@@ -160,7 +137,6 @@ export function Loading() {
             ))}
           </div>
         </motion.div>
-
 
         {/* Floating particles */}
         <div className="absolute inset-0 pointer-events-none">

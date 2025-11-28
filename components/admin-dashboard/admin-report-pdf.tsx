@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 40,
     paddingTop: 30,
-    paddingBottom: 80, // Extra padding to prevent footer overlap
+    paddingBottom: 40,
     minHeight: 600, // Ensure minimum height for content
   },
   section: {
@@ -128,6 +128,18 @@ const styles = StyleSheet.create({
     flex: 2,
     color: "#333",
   },
+  tableCellId: {
+    fontSize: 8,
+    paddingHorizontal: 5,
+    flex: 1.5,
+    color: "#333",
+  },
+  tableCellDate: {
+    fontSize: 8,
+    paddingHorizontal: 5,
+    flex: 1.2,
+    color: "#333",
+  },
   periodInfo: {
     backgroundColor: "#fff7ed",
     padding: 12,
@@ -144,38 +156,6 @@ const styles = StyleSheet.create({
   periodDate: {
     fontSize: 10,
     color: "#666",
-  },
-  // Footer with logos
-  pageFooter: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60, // Fixed height for footer
-    backgroundColor: "#fff7ed",
-    padding: 15,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderTop: "2 solid #f97316",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  footerLogos: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  footerLogo: {
-    width: 30,
-    height: 30,
-    objectFit: "contain",
-  },
-  footerText: {
-    fontSize: 8,
-    color: "#666",
-    textAlign: "center",
-    flex: 1,
   },
 });
 
@@ -198,10 +178,24 @@ interface ApplicationPeriod {
   endDate: string;
 }
 
+interface Application {
+  id: string;
+  status: string;
+  createdAt?: string;
+  applicationDetails?: {
+    personalInfo?: {
+      firstName?: string;
+      middleName?: string | null;
+      lastName?: string;
+    };
+  } | null;
+}
+
 interface AdminReportPDFProps {
   stats: StatsCard[];
   pieData: PieData[];
   period: ApplicationPeriod | null;
+  applications?: Application[];
   iskolarblockLogo?: string;
   skLogo?: string;
 }
@@ -210,6 +204,7 @@ export function AdminReportPDF({
   stats,
   pieData,
   period,
+  applications = [],
   iskolarblockLogo,
   skLogo,
 }: AdminReportPDFProps): React.JSX.Element {
@@ -252,6 +247,24 @@ export function AdminReportPDF({
       })}`;
     }
     return value;
+  };
+
+  // Extract full name from applicationDetails.personalInfo
+  const getApplicantName = (application: Application): string => {
+    const personalInfo = application.applicationDetails?.personalInfo;
+    if (personalInfo) {
+      const firstName = personalInfo.firstName || "";
+      const middleName = personalInfo.middleName || "";
+      const lastName = personalInfo.lastName || "";
+      const nameParts = [firstName, middleName, lastName].filter(Boolean);
+      return nameParts.join(" ") || "N/A";
+    }
+    return "N/A";
+  };
+
+  // Format status for display
+  const formatStatus = (status: string): string => {
+    return status.charAt(0) + status.slice(1).toLowerCase();
   };
 
   return (
@@ -352,20 +365,46 @@ export function AdminReportPDF({
               })()}
             </View>
           </View>
-        </View>
 
-        {/* Footer with Logos */}
-        <View style={styles.pageFooter} fixed>
-          <View style={styles.footerLogos}>
-            {iskolarblockLogoUrl && (
-              <Image src={iskolarblockLogoUrl} style={styles.footerLogo} />
-            )}
-            {skLogoUrl && <Image src={skLogoUrl} style={styles.footerLogo} />}
-          </View>
-          <Text style={styles.footerText}>
-            This is an automatically generated report from the Barangay San
-            Miguel Scholarship Management System - IskolarBlock
-          </Text>
+          {/* Applicants List */}
+          {applications.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>List of Applicants</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  <Text style={styles.tableCellId}>Application ID</Text>
+                  <Text style={styles.tableCellName}>Name</Text>
+                  <Text style={styles.tableCell}>Status</Text>
+                  <Text style={styles.tableCellDate}>Date Submitted</Text>
+                </View>
+                {applications.map((application) => (
+                  <View key={application.id} style={styles.tableRow}>
+                    <Text style={styles.tableCellId}>
+                      {application.id.substring(0, 8)}...
+                    </Text>
+                    <Text style={styles.tableCellName}>
+                      {getApplicantName(application)}
+                    </Text>
+                    <Text style={styles.tableCell}>
+                      {formatStatus(application.status)}
+                    </Text>
+                    <Text style={styles.tableCellDate}>
+                      {application.createdAt
+                        ? new Date(application.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            }
+                          )
+                        : "N/A"}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       </Page>
     </Document>

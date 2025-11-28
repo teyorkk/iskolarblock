@@ -12,19 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  User,
-  FileText,
-  ExternalLink,
-  MapPin,
-  Phone,
-  Eye,
-  Award,
-  CheckCircle,
-  Clock,
-  XCircle,
-} from "lucide-react";
-import { useState, useEffect } from "react";
+import { User, FileText, ExternalLink, MapPin, Phone, Eye } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 interface Application {
@@ -37,7 +27,6 @@ interface Application {
 
 interface ApplicationDetailsDialogProps {
   application: Application;
-  statusColors: Record<string, string>;
 }
 
 interface PersonalInfo {
@@ -121,18 +110,43 @@ function buildBlockchainExplorerUrl(hash?: string | null) {
 
 export function ApplicationDetailsDialog({
   application,
-  statusColors,
 }: ApplicationDetailsDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [applicationData, setApplicationData] =
     useState<ApplicationData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("personal");
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   useEffect(() => {
     if (isOpen && application.id) {
       void fetchApplicationDetails();
+      setActiveTab("personal");
     }
   }, [isOpen, application.id]);
+
+  useEffect(() => {
+    if (tabsListRef.current && isOpen) {
+      const tabsList = tabsListRef.current.querySelector(
+        '[data-slot="tabs-list"]'
+      ) as HTMLElement;
+      if (tabsList) {
+        const tabs = tabsList.querySelectorAll('[data-slot="tabs-trigger"]');
+        const activeIndex =
+          activeTab === "personal" ? 0 : activeTab === "cog" ? 1 : 2;
+        const activeTabElement = tabs[activeIndex] as HTMLElement;
+        if (activeTabElement) {
+          const tabsListRect = tabsList.getBoundingClientRect();
+          const tabRect = activeTabElement.getBoundingClientRect();
+          setIndicatorStyle({
+            left: tabRect.left - tabsListRect.left,
+            width: tabRect.width,
+          });
+        }
+      }
+    }
+  }, [activeTab, isOpen]);
 
   const fetchApplicationDetails = async () => {
     setIsLoading(true);
@@ -242,23 +256,49 @@ export function ApplicationDetailsDialog({
 
             {/* Tabs */}
             <Tabs
-              defaultValue="personal"
+              value={activeTab}
+              onValueChange={setActiveTab}
               className="flex-1 flex flex-col min-h-0"
             >
-              <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger
-                  value="personal"
-                  className="flex items-center gap-2"
-                >
-                  <User className="w-4 h-4 text-orange-500" />
-                </TabsTrigger>
-                <TabsTrigger value="cog" className="flex items-center gap-2">
-                  <FileText className="text-orange-500 w-4 h-4" />
-                </TabsTrigger>
-                <TabsTrigger value="cor" className="flex items-center gap-2">
-                  <FileText className="text-orange-500 w-4 h-4" />
-                </TabsTrigger>
-              </TabsList>
+              <div ref={tabsListRef} className="relative mb-4">
+                <TabsList className="grid w-full grid-cols-3 relative">
+                  <motion.div
+                    className="absolute bg-background dark:bg-input/30 rounded-md shadow-sm border border-transparent dark:border-input z-0"
+                    initial={false}
+                    animate={{
+                      left: `${indicatorStyle.left}px`,
+                      width: `${indicatorStyle.width}px`,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30,
+                    }}
+                    style={{
+                      height: "calc(100% - 6px)",
+                      top: "3px",
+                    }}
+                  />
+                  <TabsTrigger
+                    value="personal"
+                    className="flex items-center gap-2 relative z-10"
+                  >
+                    <User className="w-4 h-4 text-orange-500" />
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="cog"
+                    className="flex items-center gap-2 relative z-10"
+                  >
+                    <FileText className="text-orange-500 w-4 h-4" />
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="cor"
+                    className="flex items-center gap-2 relative z-10"
+                  >
+                    <FileText className="text-orange-500 w-4 h-4" />
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Personal Information Tab */}
               <TabsContent

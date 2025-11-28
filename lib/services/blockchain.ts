@@ -4,7 +4,6 @@
  */
 
 import { JsonRpcProvider, Wallet, keccak256, toUtf8Bytes } from "ethers";
-import { randomUUID } from "crypto";
 
 // Polygon Amoy Testnet Configuration
 const POLYGON_AMOY_CHAIN_ID = 80002;
