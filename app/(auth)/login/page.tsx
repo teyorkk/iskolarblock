@@ -109,16 +109,53 @@ export default function LoginPage() {
         setIsLoading(false);
         return;
       }
-      // Get user role from API response (from User table)
-      const userRole = json.role || "USER";
-      const isAdmin = userRole === "ADMIN" || json.user?.role === "ADMIN";
+      // Determine user role - Always query User table directly as source of truth
+      // This ensures we get the correct role before redirecting
+      let isAdmin = false;
+      const normalizedEmail = formData.email.toLowerCase().trim();
+      const supabase = getSupabaseBrowserClient();
+
+      // Always query User table directly to get the role (most reliable)
+      try {
+        const { data: dbUser, error: dbError } = await supabase
+          .from("User")
+          .select("role")
+          .eq("email", normalizedEmail)
+          .maybeSingle();
+
+        if (dbError) {
+          console.error("Error fetching user role from DB:", dbError);
+          // Fallback to API response if DB query fails
+          const apiRole = (json.role || json.user?.role || "")
+            .toUpperCase()
+            .trim();
+          isAdmin = apiRole === "ADMIN";
+        } else if (dbUser?.role) {
+          const userRole = dbUser.role.toUpperCase().trim();
+          isAdmin = userRole === "ADMIN";
+        } else {
+          // If DB query returns no user, fallback to API response
+          const apiRole = (json.role || json.user?.role || "")
+            .toUpperCase()
+            .trim();
+          isAdmin = apiRole === "ADMIN";
+        }
+      } catch (err) {
+        console.error("Error checking user role:", err);
+        // Fallback to API response if DB query throws
+        const apiRole = (json.role || json.user?.role || "")
+          .toUpperCase()
+          .trim();
+        isAdmin = apiRole === "ADMIN";
+      }
 
       // Refresh the session on the client side to ensure cookies are synced
-      const supabase = getSupabaseBrowserClient();
       const { data: sessionData } = await supabase.auth.getSession();
+
       if (sessionData?.session) {
         toast.success("Login successful!");
         const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
+        console.log("Redirecting to:", redirectPath, "isAdmin:", isAdmin);
         // Use window.location for a full page reload to ensure session is picked up
         window.location.href = redirectPath;
       } else {
@@ -128,6 +165,12 @@ export default function LoginPage() {
         if (retrySession?.session) {
           toast.success("Login successful!");
           const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
+          console.log(
+            "Redirecting to (retry):",
+            redirectPath,
+            "isAdmin:",
+            isAdmin
+          );
           window.location.href = redirectPath;
         } else {
           toast.error("Session not found. Please try again.");
