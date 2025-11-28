@@ -261,7 +261,7 @@ export function UserSidebar(): React.JSX.Element {
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="relative w-6 h-6 rounded overflow-hidden">
+                <div className="relative w-6 h-6 rounded-lg overflow-hidden">
                   <NextImage
                     src="/iskolarblock.svg"
                     alt="IskolarBlock Logo"
@@ -391,7 +391,7 @@ export function UserSidebar(): React.JSX.Element {
               <Menu className="w-5 h-5" />
             </Button>
             <div className="flex items-center space-x-2">
-              <div className="relative w-5 h-5 rounded overflow-hidden">
+              <div className="relative w-5 h-5 rounded-lg overflow-hidden">
                 <NextImage
                   src="/iskolarblock.svg"
                   alt="IskolarBlock Logo"

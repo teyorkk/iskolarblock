@@ -75,5 +75,3 @@ export function AppBackground({
     </div>
   );
 }
-
-
