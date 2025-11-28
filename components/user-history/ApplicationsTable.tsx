@@ -84,7 +84,8 @@ export function ApplicationsTable({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -159,6 +160,78 @@ export function ApplicationsTable({
               ))}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+          {applications.map((application, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="border rounded-lg p-4 bg-white hover:bg-gray-50"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                    <span className="font-medium text-sm">{application.date}</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="border-orange-500 text-orange-700 bg-orange-50"
+                  >
+                    {application.type}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="secondary"
+                    className={
+                      statusColors[
+                        application.status as keyof typeof statusColors
+                      ]
+                    }
+                  >
+                    <div className="flex items-center">
+                      {getStatusIcon(application.status)}
+                      <span className="ml-1">{application.status}</span>
+                    </div>
+                  </Badge>
+                </div>
+
+                {application.remarks && (
+                  <div>
+                    <span className="text-xs text-gray-500 font-medium">Remarks:</span>
+                    <div className="mt-1">
+                      <span className={getRemarksBadgeClass(application.remarks)}>
+                        {application.remarks}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2 border-t">
+                  {application.status === "PENDING" && (
+                    <Button variant="secondary" size="sm" asChild className="flex-1">
+                      <Link href={`/application/complete/${application.id}`}>
+                        <CloudUpload className="w-4 h-4 mr-2" />
+                        Upload
+                      </Link>
+                    </Button>
+                  )}
+                  <div className={application.status === "PENDING" ? "flex-1" : "w-full"}>
+                    <ApplicationDetailsDialog
+                      application={application}
+                      statusColors={statusColors}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
 
         {applications.length === 0 && (
