@@ -21,15 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Award,
-  CheckCircle,
-  Clock,
-  Coins,
-  Filter,
-  Search,
-  Users,
-} from "lucide-react";
+import { Award, CheckCircle, Clock, Coins, Filter, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/common/pagination";
 import { ResponsiveTableWrapper } from "@/components/common/responsive-table-wrapper";

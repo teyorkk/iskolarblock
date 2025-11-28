@@ -137,7 +137,9 @@ export function ApplicationsTable({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className={getRemarksBadgeClass(application.remarks)}>
+                      <span
+                        className={getRemarksBadgeClass(application.remarks)}
+                      >
                         {application.remarks || "—"}
                       </span>
                     </TableCell>
@@ -145,15 +147,14 @@ export function ApplicationsTable({
                       <div className="flex justify-end gap-2">
                         {application.status === "PENDING" && (
                           <Button variant="secondary" size="sm" asChild>
-                            <Link href={`/application/complete/${application.id}`}>
+                            <Link
+                              href={`/application/complete/${application.id}`}
+                            >
                               <CloudUpload className="w-4 h-4" />
                             </Link>
                           </Button>
                         )}
-                        <ApplicationDetailsDialog
-                          application={application}
-                          statusColors={statusColors}
-                        />
+                        <ApplicationDetailsDialog application={application} />
                       </div>
                     </TableCell>
                   </motion.tr>
@@ -175,7 +176,9 @@ export function ApplicationsTable({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          <span className="font-medium text-sm">{application.date}</span>
+                          <span className="font-medium text-sm">
+                            {application.date}
+                          </span>
                         </div>
                         <Badge
                           variant="outline"
@@ -184,7 +187,7 @@ export function ApplicationsTable({
                           {application.type}
                         </Badge>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="secondary"
@@ -203,9 +206,15 @@ export function ApplicationsTable({
 
                       {application.remarks && (
                         <div>
-                          <span className="text-xs text-gray-500 font-medium">Remarks:</span>
+                          <span className="text-xs text-gray-500 font-medium">
+                            Remarks:
+                          </span>
                           <div className="mt-1">
-                            <span className={getRemarksBadgeClass(application.remarks)}>
+                            <span
+                              className={getRemarksBadgeClass(
+                                application.remarks
+                              )}
+                            >
                               {application.remarks}
                             </span>
                           </div>
@@ -214,18 +223,28 @@ export function ApplicationsTable({
 
                       <div className="flex gap-2 pt-2 border-t">
                         {application.status === "PENDING" && (
-                          <Button variant="secondary" size="sm" asChild className="flex-1">
-                            <Link href={`/application/complete/${application.id}`}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            asChild
+                            className="flex-1"
+                          >
+                            <Link
+                              href={`/application/complete/${application.id}`}
+                            >
                               <CloudUpload className="w-4 h-4 mr-2" />
                               Upload
                             </Link>
                           </Button>
                         )}
-                        <div className={application.status === "PENDING" ? "flex-1" : "w-full"}>
-                          <ApplicationDetailsDialog
-                            application={application}
-                            statusColors={statusColors}
-                          />
+                        <div
+                          className={
+                            application.status === "PENDING"
+                              ? "flex-1"
+                              : "w-full"
+                          }
+                        >
+                          <ApplicationDetailsDialog application={application} />
                         </div>
                       </div>
                     </div>

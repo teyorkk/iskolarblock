@@ -8,9 +8,34 @@ import { AdminReportPDF } from "./admin-report-pdf";
 import type { StatsCard } from "@/types";
 
 // Convert image URL to base64
+// Note: Browser may show a warning in development (HTTP) but this is harmless
+// and won't appear in production (HTTPS)
 const imageToBase64 = async (url: string): Promise<string> => {
   try {
-    const response = await fetch(url);
+    // Suppress console warnings for mixed content in development
+    const originalWarn = console.warn;
+    console.warn = (...args: any[]) => {
+      // Filter out mixed content warnings
+      if (
+        typeof args[0] === "string" &&
+        args[0].includes("insecure connection")
+      ) {
+        return; // Suppress this specific warning
+      }
+      originalWarn.apply(console, args);
+    };
+
+    const response = await fetch(url, {
+      cache: "no-cache",
+    });
+
+    // Restore console.warn
+    console.warn = originalWarn;
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -25,7 +50,7 @@ const imageToBase64 = async (url: string): Promise<string> => {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error("Error loading image:", error);
+    // Silently handle errors - images are optional for PDF generation
     return "";
   }
 };
@@ -43,16 +68,43 @@ interface ApplicationPeriod {
   endDate: string;
 }
 
+// Application type matching admin-report-pdf.tsx
+interface Application {
+  id: string;
+  status: string;
+  createdAt?: string;
+  applicationDetails?: {
+    personalInfo?: {
+      firstName?: string;
+      middleName?: string | null;
+      lastName?: string;
+    };
+  } | null;
+}
+
 interface GenerateReportButtonProps {
   stats: StatsCard[];
   pieData: PieData[];
   period: ApplicationPeriod | null;
+  applications?: Array<{
+    id: string;
+    status: string;
+    createdAt?: string;
+    applicationDetails?: {
+      personalInfo?: {
+        firstName?: string;
+        middleName?: string | null;
+        lastName?: string;
+      };
+    } | null;
+  }>;
 }
 
 export function GenerateReportButton({
   stats,
   pieData,
   period,
+  applications = [],
 }: GenerateReportButtonProps): React.JSX.Element {
   const [iskolarblockLogo, setIskolarblockLogo] = useState<string>("");
   const [skLogo, setSkLogo] = useState<string>("");
@@ -60,17 +112,18 @@ export function GenerateReportButton({
 
   useEffect(() => {
     const loadImages = async () => {
-      const baseUrl = window.location.origin;
+      // Use relative paths to avoid mixed content warnings
+      // In production with HTTPS, this warning won't appear
       try {
         const [iskolarblockBase64, skLogoBase64] = await Promise.all([
-          imageToBase64(`${baseUrl}/iskolarblock.svg`),
-          imageToBase64(`${baseUrl}/sk-logo.png`),
+          imageToBase64("/iskolarblock.svg"),
+          imageToBase64("/sk-logo.png"),
         ]);
         setIskolarblockLogo(iskolarblockBase64);
         setSkLogo(skLogoBase64);
         setImagesLoading(false);
       } catch (error) {
-        console.error("Error loading images:", error);
+        // Silently handle - images are optional for PDF
         setImagesLoading(false);
       }
     };
@@ -100,6 +153,7 @@ export function GenerateReportButton({
           stats={stats}
           pieData={pieData}
           period={period}
+          applications={applications}
           iskolarblockLogo={iskolarblockLogo}
           skLogo={skLogo}
         />

@@ -30,7 +30,12 @@ export function FileUploadConfirmationModal({
 }: FileUploadConfirmationModalProps): React.JSX.Element {
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <AlertDialogContent className="data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-top-0 data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-top-0">
+      <AlertDialogContent
+        className="data-[state=closed]:!translate-x-0 data-[state=closed]:!translate-y-0 data-[state=open]:!translate-x-0 data-[state=open]:!translate-y-0"
+        style={{
+          transform: "translate(-50%, -50%)",
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-orange-600" />

@@ -18,11 +18,24 @@ interface ApplicationPeriod {
   endDate: string;
 }
 
+interface Application {
+  id: string;
+  status: string;
+  applicationDetails?: {
+    personalInfo?: {
+      firstName?: string;
+      middleName?: string | null;
+      lastName?: string;
+    };
+  } | null;
+}
+
 interface AdminDashboardHeaderProps extends DashboardHeaderProps {
   reportData?: {
     stats: StatsCard[];
     pieData: PieData[];
     period: ApplicationPeriod | null;
+    applications?: Application[];
   };
 }
 
@@ -46,6 +59,7 @@ export function AdminDashboardHeader({
                   stats={reportData.stats}
                   pieData={reportData.pieData}
                   period={reportData.period}
+                  applications={reportData.applications}
                 />
               ) : null}
             </>

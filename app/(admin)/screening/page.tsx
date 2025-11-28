@@ -12,20 +12,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
   Users,
   CheckCircle,
   XCircle,
   Clock,
-  Eye,
   FileSearch,
   Filter,
   Search,
@@ -233,24 +223,21 @@ export default function ScreeningPage() {
     });
   };
 
-const getRemarksBadgeClass = (remarks?: string | null) => {
-  const base =
-    "inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border";
-  if (!remarks) {
-    return `${base} bg-gray-50 text-gray-500 border-gray-200`;
-  }
-  const normalized = remarks.toLowerCase();
-  if (normalized.includes("complete")) {
-    return `${base} bg-green-50 text-green-700 border-green-100`;
-  }
-  if (
-    normalized.includes("missing") ||
-    normalized.includes("no document")
-  ) {
-    return `${base} bg-red-50 text-red-700 border-red-100`;
-  }
-  return `${base} bg-yellow-50 text-yellow-700 border-yellow-100`;
-};
+  const getRemarksBadgeClass = (remarks?: string | null) => {
+    const base =
+      "inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border";
+    if (!remarks) {
+      return `${base} bg-gray-50 text-gray-500 border-gray-200`;
+    }
+    const normalized = remarks.toLowerCase();
+    if (normalized.includes("complete")) {
+      return `${base} bg-green-50 text-green-700 border-green-100`;
+    }
+    if (normalized.includes("missing") || normalized.includes("no document")) {
+      return `${base} bg-red-50 text-red-700 border-red-100`;
+    }
+    return `${base} bg-yellow-50 text-yellow-700 border-yellow-100`;
+  };
 
   const stats = useMemo(() => {
     return {
@@ -380,15 +367,14 @@ const getRemarksBadgeClass = (remarks?: string | null) => {
                     </SelectContent>
                   </Select>
                 </div>
-                {selectedPeriodId &&
-                  selectedPeriodId !== latestPeriodId && (
-                    <Badge
-                      variant="outline"
-                      className="bg-yellow-50 text-yellow-700 border-yellow-200 w-full sm:w-auto text-center py-2"
-                    >
-                      View Only · Past Period
-                    </Badge>
-                  )}
+                {selectedPeriodId && selectedPeriodId !== latestPeriodId && (
+                  <Badge
+                    variant="outline"
+                    className="bg-yellow-50 text-yellow-700 border-yellow-200 w-full sm:w-auto text-center py-2"
+                  >
+                    View Only · Past Period
+                  </Badge>
+                )}
               </div>
             )}
 
@@ -646,9 +632,7 @@ const getRemarksBadgeClass = (remarks?: string | null) => {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() =>
-                  handleStatusUpdate(confirmApproveId, "APPROVED")
-                }
+                onClick={() => handleStatusUpdate(confirmApproveId, "APPROVED")}
                 className="bg-orange-600 hover:bg-orange-700 text-white"
               >
                 Confirm Approval
@@ -679,15 +663,18 @@ const getRemarksBadgeClass = (remarks?: string | null) => {
                 Are you sure you want to reject the application for{" "}
                 <span className="font-semibold text-gray-900">
                   {
-                    applications.find((app) => app.id === confirmRejectId)
-                      ?.User.name
+                    applications.find((app) => app.id === confirmRejectId)?.User
+                      .name
                   }
                 </span>
                 ?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="py-4">
-              <Label htmlFor="rejection-reason" className="text-sm font-medium text-gray-700">
+              <Label
+                htmlFor="rejection-reason"
+                className="text-sm font-medium text-gray-700"
+              >
                 Reason for Rejection (Required)
               </Label>
               <Textarea
@@ -706,7 +693,11 @@ const getRemarksBadgeClass = (remarks?: string | null) => {
                     toast.error("Please provide a reason for rejection");
                     return;
                   }
-                  handleStatusUpdate(confirmRejectId, "REJECTED", rejectionReason.trim());
+                  handleStatusUpdate(
+                    confirmRejectId,
+                    "REJECTED",
+                    rejectionReason.trim()
+                  );
                 }}
                 className="bg-orange-600 hover:bg-orange-700 text-white"
                 disabled={!rejectionReason.trim()}

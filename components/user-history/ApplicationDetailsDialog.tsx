@@ -12,18 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  User,
-  FileText,
-  ExternalLink,
-  MapPin,
-  Phone,
-  Eye,
-  Award,
-  CheckCircle,
-  Clock,
-  XCircle,
-} from "lucide-react";
+import { User, FileText, ExternalLink, MapPin, Phone, Eye } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -38,7 +27,6 @@ interface Application {
 
 interface ApplicationDetailsDialogProps {
   application: Application;
-  statusColors: Record<string, string>;
 }
 
 interface PersonalInfo {
@@ -122,7 +110,6 @@ function buildBlockchainExplorerUrl(hash?: string | null) {
 
 export function ApplicationDetailsDialog({
   application,
-  statusColors,
 }: ApplicationDetailsDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [applicationData, setApplicationData] =

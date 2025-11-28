@@ -12,33 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Shield,
-  Search,
-  Eye,
-  Copy,
-  FileText,
-  Award,
-  Filter,
-  ExternalLink,
-} from "lucide-react";
+import { Shield, Search, FileText, Award, Filter } from "lucide-react";
 import { Pagination } from "@/components/common/pagination";
 import { ResponsiveTableWrapper } from "@/components/common/responsive-table-wrapper";
 import { BlockchainTableDesktop } from "@/components/admin-blockchain/blockchain-table-desktop";
