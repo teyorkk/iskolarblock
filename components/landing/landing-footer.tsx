@@ -1,12 +1,14 @@
 "use client";
 
 import NextImage from "next/image";
+import { AppBackground } from "@/components/common/app-background";
 import type { LandingFooterProps } from "@/types/components";
 
 export function LandingFooter({}: LandingFooterProps): React.JSX.Element {
   return (
-    <footer className="bg-orange-50 text-black py-12">
-      <div className="container mx-auto px-4">
+    <footer className="relative overflow-hidden text-black py-12">
+      <AppBackground className="opacity-30" />
+      <div className="container mx-auto px-4 relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center space-x-3 mb-4 md:mb-0">
             <div className="flex items-center space-x-2">

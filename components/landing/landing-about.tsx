@@ -1,12 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { AppBackground } from "@/components/common/app-background";
 import type { LandingAboutProps } from "@/types/components";
 
 export function LandingAbout({}: LandingAboutProps): React.JSX.Element {
   return (
-    <section id="about" className="py-20">
-      <div className="container mx-auto px-4">
+    <section id="about" className="relative overflow-hidden py-20">
+      <AppBackground className="opacity-30" />
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

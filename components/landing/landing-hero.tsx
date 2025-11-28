@@ -4,40 +4,13 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import NextImage from "next/image";
+import { AppBackground } from "@/components/common/app-background";
 import type { LandingHeroProps } from "@/types/components";
 
 export function LandingHero({}: LandingHeroProps): React.JSX.Element {
   return (
     <section className="relative overflow-hidden py-20 md:py-32">
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-100/50 to-transparent" />
-
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute top-20 left-10 w-20 h-20 bg-orange-200 rounded-full opacity-20"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.2, 0.3, 0.2],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-20 right-10 w-32 h-32 bg-orange-300 rounded-full opacity-10"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.1, 0.2, 0.1],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      </div>
+      <AppBackground />
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div

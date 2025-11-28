@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AppBackground } from "@/components/common/app-background";
 import type { LandingLiveImpactProps } from "@/types/components";
 
 export function LandingLiveImpact({
@@ -63,11 +64,9 @@ export function LandingLiveImpact({
   }, [displayValues]);
 
   return (
-    <section
-      id="live-impact"
-      className="py-20 bg-gradient-to-b from-white to-orange-50"
-    >
-      <div className="container mx-auto px-4">
+    <section id="live-impact" className="relative overflow-hidden py-20">
+      <AppBackground className="opacity-50" />
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -107,7 +106,8 @@ export function LandingLiveImpact({
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl font-bold text-gray-900 mb-2">
-                    {valueLookup.get(stat.id) ?? `${stat.prefix ?? ""}${stat.value}${stat.suffix ?? ""}`}
+                    {valueLookup.get(stat.id) ??
+                      `${stat.prefix ?? ""}${stat.value}${stat.suffix ?? ""}`}
                   </p>
                   <CardDescription className="text-gray-600">
                     {stat.description}

@@ -161,26 +161,6 @@ export function Loading() {
           </div>
         </motion.div>
 
-        {/* Progress bar */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8 w-64 mx-auto"
-        >
-          <div className="h-1.5 bg-orange-100 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: "100%" }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </div>
-        </motion.div>
 
         {/* Floating particles */}
         <div className="absolute inset-0 pointer-events-none">

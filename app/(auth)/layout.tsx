@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/components/session-provider";
 import { Loading } from "@/components/loading";
+import { AppBackground } from "@/components/common/app-background";
 
 export default function AuthLayout({
   children,
@@ -32,5 +33,10 @@ export default function AuthLayout({
     return <Loading />;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="relative min-h-screen bg-gradient-to-br from-orange-50 to-white flex items-center justify-center px-4">
+      <AppBackground className="opacity-60" />
+      <div className="relative z-10 w-full max-w-md">{children}</div>
+    </div>
+  );
 }
