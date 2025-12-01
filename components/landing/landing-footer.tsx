@@ -6,8 +6,7 @@ import type { LandingFooterProps } from "@/types/components";
 
 export function LandingFooter({}: LandingFooterProps): React.JSX.Element {
   return (
-    <footer className="relative overflow-hidden text-black py-12">
-      <AppBackground className="opacity-30" />
+    <footer className="relative overflow-hidden bg-white/80 backdrop-blur-md border-t py-12">
       <div className="container mx-auto px-4 relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center space-x-3 mb-4 md:mb-0">
@@ -23,11 +22,13 @@ export function LandingFooter({}: LandingFooterProps): React.JSX.Element {
                   loading="lazy"
                 />
               </div>
-              <span className="font-bold text-lg">IskolarBlock</span>
+              <span className="font-bold text-lg text-gray-900">
+                IskolarBlock
+              </span>
             </div>
           </div>
           <div className="text-center md:text-right">
-            <p className="text-gray-400">
+            <p className="text-gray-600">
               © 2025 IskolarBlock. Barangay San Miguel, Hagonoy
             </p>
             <p className="text-gray-500 text-sm mt-1">
