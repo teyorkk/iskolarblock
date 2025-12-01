@@ -8,6 +8,7 @@ import { UserSearchBar } from "@/components/user-management/user-search-bar";
 import { UserList } from "@/components/user-management/user-list";
 import { UserProfileDialog } from "@/components/user-management/user-profile-dialog";
 import { DeleteUserDialog } from "@/components/user-management/delete-user-dialog";
+import { EditUserDialog } from "@/components/user-management/edit-user-dialog";
 import { Pagination } from "@/components/common/pagination";
 import type { User, Application } from "@/types";
 
@@ -27,6 +28,9 @@ export default function UsersPage() {
   const [hasActiveApplications, setHasActiveApplications] = useState(false);
   const [activeApplicationCount, setActiveApplicationCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const itemsPerPage = 12;
 
   useEffect(() => {
@@ -106,6 +110,55 @@ export default function UsersPage() {
     setSelectedUser(user);
     setIsProfileDialogOpen(true);
     await fetchUserApplications(user.id);
+  };
+
+  const handleEditUser = (user: User): void => {
+    setUserToEdit(user);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveUser = async (
+    userId: string,
+    updates: Partial<User>
+  ): Promise<void> => {
+    try {
+      setIsSaving(true);
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        toast.error(json.error || "Failed to update user");
+        return;
+      }
+
+      toast.success("User updated successfully");
+
+      // Update users list
+      setUsers(users.map((u) => (u.id === userId ? { ...u, ...updates } : u)));
+      setFilteredUsers(
+        filteredUsers.map((u) => (u.id === userId ? { ...u, ...updates } : u))
+      );
+
+      // Update selected user if it's the one being edited
+      if (selectedUser?.id === userId) {
+        setSelectedUser({ ...selectedUser, ...updates });
+      }
+
+      setIsEditDialogOpen(false);
+      setUserToEdit(null);
+    } catch (error) {
+      toast.error("An error occurred while updating the user");
+      console.error("Error:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDeleteUser = async (user: User): Promise<void> => {
@@ -266,6 +319,7 @@ export default function UsersPage() {
         applications={userApplications}
         isLoadingApplications={isLoadingApplications}
         onDelete={handleDeleteUser}
+        onEdit={handleEditUser}
       />
 
       <DeleteUserDialog
@@ -276,6 +330,14 @@ export default function UsersPage() {
         isDeleting={isDeleting}
         hasActiveApplications={hasActiveApplications}
         activeApplicationCount={activeApplicationCount}
+      />
+
+      <EditUserDialog
+        user={userToEdit}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSave={handleSaveUser}
+        isSaving={isSaving}
       />
     </div>
   );

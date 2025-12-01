@@ -19,11 +19,12 @@ export function UserCard({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
+      className="h-full"
     >
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardContent className="p-6">
-          <div className="flex items-start space-x-4">
-            <Avatar className="w-16 h-16">
+      <Card className="hover:shadow-lg transition-shadow h-full">
+        <CardContent className="p-6 h-full flex flex-col">
+          <div className="flex items-start space-x-4 flex-1">
+            <Avatar className="w-16 h-16 shrink-0">
               {user.profilePicture ? (
                 <AvatarImage src={user.profilePicture} />
               ) : null}
@@ -37,7 +38,7 @@ export function UserCard({
                 {user.name?.charAt(0) || user.email?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-900 truncate">
                   {user.name || user.email?.split("@")[0] || "Unknown"}
@@ -46,8 +47,8 @@ export function UserCard({
                   variant="secondary"
                   className={
                     user.role === "ADMIN"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-orange-100 text-orange-700"
+                      ? "bg-red-100 text-red-700 shrink-0"
+                      : "bg-orange-100 text-orange-700 shrink-0"
                   }
                 >
                   {user.role || "USER"}
@@ -63,11 +64,11 @@ export function UserCard({
                   {user.phone}
                 </p>
               )}
-              <div className="flex items-center text-xs text-gray-500 mt-2">
+              <div className="flex items-center text-xs text-gray-500 mt-2 mb-4">
                 <Calendar className="w-3 h-3 mr-1" />
                 Joined {formatDate(user.createdAt)}
               </div>
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-2 mt-auto">
                 <Button
                   variant="outline"
                   size="sm"

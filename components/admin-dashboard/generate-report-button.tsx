@@ -118,7 +118,7 @@ export function GenerateReportButton({
       // Dynamic import to avoid React 19 compatibility issues on page load
       const { pdf } = await import("@react-pdf/renderer");
       const { AdminReportPDF } = await import("./admin-report-pdf");
-      
+
       const element = AdminReportPDF({
         stats,
         pieData,
@@ -129,7 +129,7 @@ export function GenerateReportButton({
       });
 
       const blob = await pdf(element).toBlob();
-      
+
       // Download the PDF
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");

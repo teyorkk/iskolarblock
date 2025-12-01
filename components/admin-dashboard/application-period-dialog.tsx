@@ -41,15 +41,20 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
   const [minDate, setMinDate] = useState<string>("");
 
   // Validate date is not today
-  const validateDateNotToday = (dateValue: string, fieldName: string): boolean => {
+  const validateDateNotToday = (
+    dateValue: string,
+    fieldName: string
+  ): boolean => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const selectedDate = new Date(dateValue);
     selectedDate.setHours(0, 0, 0, 0);
-    
+
     if (selectedDate <= today) {
-      toast.error(`${fieldName} cannot be today or earlier. Please select a future date.`);
+      toast.error(
+        `${fieldName} cannot be today or earlier. Please select a future date.`
+      );
       return false;
     }
     return true;
@@ -139,10 +144,10 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    
+
     const selectedStartDate = new Date(startDate);
     selectedStartDate.setHours(0, 0, 0, 0);
-    
+
     if (selectedStartDate < tomorrow) {
       toast.error("Start date must be at least tomorrow");
       return;
@@ -208,7 +213,7 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           message: budgetError?.message,
           details: budgetError?.details,
           hint: budgetError?.hint,
-          code: budgetError?.code
+          code: budgetError?.code,
         });
         toast.error(
           budgetError?.message || "Failed to create budget. Please try again."

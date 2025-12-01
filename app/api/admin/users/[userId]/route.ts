@@ -3,6 +3,129 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/utils/auth-server";
 import { logEvent } from "@/lib/services/log-events";
 
+// PATCH /api/admin/users/[userId]
+// Update a user (admin only)
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ userId: string }> | { userId: string } }
+) {
+  try {
+    const adminInfo = await requireAdmin();
+    const admin = getSupabaseAdminClient();
+    const resolvedParams = await Promise.resolve(params);
+    const { userId } = resolvedParams;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const body = await req.json();
+    const { name, email, phone, address, role } = body;
+
+    // Validate required fields
+    if (!name || !email) {
+      return NextResponse.json(
+        { error: "Name and email are required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 }
+      );
+    }
+
+    // Validate phone format if provided
+    if (phone && !/^09\d{9}$/.test(phone)) {
+      return NextResponse.json(
+        { error: "Phone must be in format 09XXXXXXXXX" },
+        { status: 400 }
+      );
+    }
+
+    // Validate role
+    if (role && !["ADMIN", "USER"].includes(role)) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+
+    // Update user in database
+    const { data: updatedUser, error: updateError } = await admin
+      .from("User")
+      .update({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone?.trim() || null,
+        address: address?.trim() || null,
+        role: role || "USER",
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Error updating user:", updateError);
+      return NextResponse.json(
+        { error: "Failed to update user" },
+        { status: 500 }
+      );
+    }
+
+    // Update auth email if changed
+    const { data: currentUser } = await admin
+      .from("User")
+      .select("email")
+      .eq("id", userId)
+      .single();
+
+    if (currentUser && currentUser.email !== email) {
+      const { error: authError } = await admin.auth.admin.updateUserById(
+        userId,
+        { email: email.trim() }
+      );
+
+      if (authError) {
+        console.error("Error updating auth email:", authError);
+        // Don't fail the request if auth update fails
+      }
+    }
+
+    const { data: adminProfile } = await admin
+      .from("User")
+      .select("id, name, email, role, profilePicture")
+      .eq("email", adminInfo.email)
+      .maybeSingle();
+
+    await logEvent({
+      eventType: "ADMIN_USER_UPDATED",
+      message: `Updated user ${updatedUser.email}`,
+      actorId: adminProfile?.id ?? null,
+      actorRole: adminProfile?.role ?? "ADMIN",
+      actorName: adminProfile?.name ?? adminInfo.email ?? "Admin",
+      actorUsername: adminProfile?.email ?? adminInfo.email ?? null,
+      actorAvatarUrl: adminProfile?.profilePicture ?? null,
+      metadata: { updatedUserId: userId, updatedUserEmail: updatedUser.email },
+    });
+
+    return NextResponse.json({
+      success: true,
+      user: updatedUser,
+    });
+  } catch (e) {
+    const error = e as Error;
+    return NextResponse.json(
+      { error: error.message ?? "Server error" },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE /api/admin/users/[userId]
 // Delete a user (admin only)
 export async function DELETE(

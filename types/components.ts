@@ -145,6 +145,7 @@ export interface UserProfileDialogProps {
   applications: Application[];
   isLoadingApplications: boolean;
   onDelete: (user: User) => void;
+  onEdit?: (user: User) => void;
 }
 
 export interface UserApplicationsTableProps {

@@ -10,6 +10,7 @@ import {
   User as UserIcon,
   FileText,
   AlertTriangle,
+  Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ export function UserProfileDialog({
   applications,
   isLoadingApplications,
   onDelete,
+  onEdit,
 }: UserProfileDialogProps): React.JSX.Element | null {
   // Check if user has active applications
   const activeApplications = useMemo(() => {
@@ -90,6 +92,20 @@ export function UserProfileDialog({
               </Badge>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {onEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 w-full sm:w-auto"
+                  onClick={() => {
+                    onClose();
+                    onEdit(user);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
               <div className="relative group">
                 <Button
                   variant="outline"
