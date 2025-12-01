@@ -147,7 +147,7 @@ export function ApplicationSuccess({
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-center">
             <Button
-              onClick={() => (window.location.href = "/user-dashboard")}
+              onClick={() => router.push("/user-dashboard")}
               className={
                 hasIncompleteDocuments && applicationId
                   ? "w-full sm:flex-1"

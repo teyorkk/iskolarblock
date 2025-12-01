@@ -82,6 +82,18 @@ export function LandingNavigation({
               About
             </Link>
             <Link
+              href="/faq"
+              className="text-gray-600 hover:text-orange-500 transition-colors"
+            >
+              FAQ
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-gray-600 hover:text-orange-500 transition-colors"
+            >
+              Privacy
+            </Link>
+            <Link
               href="/login"
               className="text-gray-600 hover:text-orange-500 transition-colors"
             >
@@ -160,6 +172,18 @@ export function LandingNavigation({
                 }}
               >
                 About
+              </Link>
+              <Link
+                href="/faq"
+                className="text-gray-600 hover:text-orange-500 transition-colors"
+              >
+                FAQ
+              </Link>
+              <Link
+                href="/privacy"
+                className="text-gray-600 hover:text-orange-500 transition-colors"
+              >
+                Privacy
               </Link>
               <Link
                 href="/login"

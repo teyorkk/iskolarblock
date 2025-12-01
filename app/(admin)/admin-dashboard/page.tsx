@@ -29,6 +29,7 @@ interface Applicant {
   type: string;
   status: string;
   submittedDate: string;
+  profilePicture?: string | null;
 }
 
 interface ChartDataPoint {
@@ -109,9 +110,18 @@ export default function AdminDashboard() {
           console.error("Error fetching periods:", periodsError);
         } else if (periodsData) {
           setPeriods(periodsData);
-          // Set the first period as default if none selected
+
+          // Find the currently active period (where today's date falls within the period)
+          const now = new Date();
+          const activePeriod = periodsData.find((period) => {
+            const start = new Date(period.startDate);
+            const end = new Date(period.endDate);
+            return now >= start && now <= end;
+          });
+
+          // Set default period: active period if exists, otherwise the most recent one
           if (periodsData.length > 0) {
-            setSelectedPeriodId((prev) => prev || periodsData[0].id);
+            setSelectedPeriodId(activePeriod?.id || periodsData[0].id);
           }
         }
       } catch (error) {
@@ -158,7 +168,7 @@ export default function AdminDashboard() {
         if (userIds.length > 0) {
           const { data: users, error: usersError } = await supabase
             .from("User")
-            .select("id, name, email")
+            .select("id, name, email, profilePicture")
             .in("id", userIds);
 
           if (usersError) {
@@ -366,6 +376,7 @@ export default function AdminDashboard() {
                   year: "numeric",
                 }
               ),
+              profilePicture: user?.profilePicture || null,
             };
           }) || [];
 
@@ -384,7 +395,8 @@ export default function AdminDashboard() {
       // Only fetch if we're still loading periods
       void fetchDashboardData();
     }
-  }, [selectedPeriodId, periods]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPeriodId]);
 
   if (isLoading) {
     return (

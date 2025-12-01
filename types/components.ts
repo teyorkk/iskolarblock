@@ -145,6 +145,7 @@ export interface UserProfileDialogProps {
   applications: Application[];
   isLoadingApplications: boolean;
   onDelete: (user: User) => void;
+  onEdit?: (user: User) => void;
 }
 
 export interface UserApplicationsTableProps {
@@ -158,6 +159,8 @@ export interface DeleteUserDialogProps {
   onClose: () => void;
   onConfirm: () => void;
   isDeleting: boolean;
+  hasActiveApplications?: boolean;
+  activeApplicationCount?: number;
 }
 
 export interface StatusBadgeProps {
@@ -203,6 +206,7 @@ export interface RecentApplicantsProps {
     type: string;
     status: string;
     submittedDate: string;
+    profilePicture?: string | null;
   }>;
 }
 

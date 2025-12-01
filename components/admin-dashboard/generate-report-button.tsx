@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BlobProvider } from "@react-pdf/renderer";
-import { AdminReportPDF } from "./admin-report-pdf";
+import { toast } from "sonner";
 import type { StatsCard } from "@/types";
 
 // Convert image URL to base64
@@ -94,12 +93,10 @@ export function GenerateReportButton({
 }: GenerateReportButtonProps): React.JSX.Element {
   const [iskolarblockLogo, setIskolarblockLogo] = useState<string>("");
   const [skLogo, setSkLogo] = useState<string>("");
-  const [imagesLoading, setImagesLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const loadImages = async () => {
-      // Use relative paths to avoid mixed content warnings
-      // In production with HTTPS, this warning won't appear
       try {
         const [iskolarblockBase64, skLogoBase64] = await Promise.all([
           imageToBase64("/iskolarblock.svg"),
@@ -107,18 +104,33 @@ export function GenerateReportButton({
         ]);
         setIskolarblockLogo(iskolarblockBase64);
         setSkLogo(skLogoBase64);
-        setImagesLoading(false);
       } catch {
         // Silently handle - images are optional for PDF
-        setImagesLoading(false);
       }
     };
 
     void loadImages();
   }, []);
 
-  const handleDownload = (blob: Blob | null) => {
-    if (blob) {
+  const handleGenerateReport = async () => {
+    setIsGenerating(true);
+    try {
+      // Dynamic import to avoid React 19 compatibility issues on page load
+      const { pdf } = await import("@react-pdf/renderer");
+      const { AdminReportPDF } = await import("./admin-report-pdf");
+
+      const element = AdminReportPDF({
+        stats,
+        pieData,
+        period,
+        applications,
+        iskolarblockLogo,
+        skLogo,
+      });
+
+      const blob = await pdf(element).toBlob();
+
+      // Download the PDF
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -129,66 +141,50 @@ export function GenerateReportButton({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
+      // Log the event
+      try {
+        await fetch("/api/log-events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            eventType: "ADMIN_REPORT_GENERATED",
+            message: "Generated dashboard PDF report",
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to log report generation:", error);
+      }
+
+      toast.success("Report generated successfully!");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate report. Please try again.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   return (
-    <BlobProvider
-      document={
-        <AdminReportPDF
-          stats={stats}
-          pieData={pieData}
-          period={period}
-          applications={applications}
-          iskolarblockLogo={iskolarblockLogo}
-          skLogo={skLogo}
-        />
-      }
+    <Button
+      variant="outline"
+      className="border-white text-red-600 hover:bg-gray-100"
+      onClick={handleGenerateReport}
+      disabled={isGenerating}
     >
-      {({ blob, loading, error }) => {
-        if (error) {
-          console.error("Error generating PDF:", error);
-        }
-
-        return (
-          <Button
-            variant="outline"
-            className="border-white text-red-600 hover:bg-gray-100"
-            onClick={async () => {
-              if (blob && !loading && !imagesLoading) {
-                handleDownload(blob);
-                try {
-                  await fetch("/api/log-events", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      eventType: "ADMIN_REPORT_GENERATED",
-                      message: "Generated dashboard PDF report",
-                    }),
-                  });
-                } catch (error) {
-                  console.error("Failed to log report generation:", error);
-                }
-              }
-            }}
-            disabled={loading || !blob || imagesLoading}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <FileText className="w-4 h-4 mr-2" />
-                Generate Report
-              </>
-            )}
-          </Button>
-        );
-      }}
-    </BlobProvider>
+      {isGenerating ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          Generating...
+        </>
+      ) : (
+        <>
+          <FileText className="w-4 h-4 mr-2" />
+          Generate Report
+        </>
+      )}
+    </Button>
   );
 }

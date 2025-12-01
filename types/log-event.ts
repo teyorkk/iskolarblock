@@ -12,6 +12,7 @@ export type LogEventType =
   | "ADMIN_PERIOD_CREATED"
   | "ADMIN_AWARD_GRANTED"
   | "ADMIN_USER_DELETED"
+  | "ADMIN_USER_UPDATED"
   | "ADMIN_SETTINGS_UPDATE";
 
 export interface LogEventRecord {
@@ -26,13 +27,3 @@ export interface LogEventRecord {
   metadata: Record<string, unknown> | null;
   created_at: string;
 }
-
-
-
-
-
-
-
-
-
-

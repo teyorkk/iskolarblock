@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   },
   // Enhanced image optimization configuration
   images: {
+    // Allowed image quality values (required in Next.js 16+)
+    qualities: [75, 90, 100],
     // Remote image patterns (Supabase storage)
     remotePatterns: [
       {

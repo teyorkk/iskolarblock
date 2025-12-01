@@ -152,7 +152,17 @@ export default function AwardingPage() {
         setPeriods(data ?? []);
         if (data && data.length > 0) {
           setLatestPeriodId(data[0].id);
-          setSelectedPeriodId((prev) => prev ?? data[0].id);
+
+          // Find the currently active period (where today's date falls within the period)
+          const now = new Date();
+          const activePeriod = data.find((period) => {
+            const start = new Date(period.startDate);
+            const end = new Date(period.endDate);
+            return now >= start && now <= end;
+          });
+
+          // Set default period: active period if exists, otherwise the most recent one
+          setSelectedPeriodId(activePeriod?.id ?? data[0].id);
         }
       } catch (err) {
         console.error("Failed to fetch periods:", err);

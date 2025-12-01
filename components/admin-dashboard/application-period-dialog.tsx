@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Settings, ToggleLeft, ToggleRight, AlertTriangle } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,7 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
-interface LatestPeriod {
+interface LatestCycle {
   id: string;
   title: string;
   startDate: string;
@@ -35,15 +36,35 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
   const [isAccepting, setIsAccepting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [budget, setBudget] = useState<string>("");
-  const [latestPeriod, setLatestPeriod] = useState<LatestPeriod | null>(null);
-  const [isCheckingPeriod, setIsCheckingPeriod] = useState(false);
+  const [latestCycle, setLatestCycle] = useState<LatestCycle | null>(null);
+  const [isCheckingCycle, setIsCheckingCycle] = useState(false);
   const [minDate, setMinDate] = useState<string>("");
 
-  // Fetch latest application period when dialog opens
+  // Validate date is not today
+  const validateDateNotToday = (
+    dateValue: string,
+    fieldName: string
+  ): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const selectedDate = new Date(dateValue);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate <= today) {
+      toast.error(
+        `${fieldName} cannot be today or earlier. Please select a future date.`
+      );
+      return false;
+    }
+    return true;
+  };
+
+  // Fetch latest application cycle when dialog opens
   useEffect(() => {
     if (isOpen) {
-      const fetchLatestPeriod = async () => {
-        setIsCheckingPeriod(true);
+      const fetchLatestCycle = async () => {
+        setIsCheckingCycle(true);
         try {
           const supabase = getSupabaseBrowserClient();
           const { data, error } = await supabase
@@ -55,11 +76,11 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
 
           if (error && error.code !== "PGRST116") {
             // PGRST116 is "no rows returned" which is fine
-            console.error("Error fetching latest period:", error);
+            console.error("Error fetching latest cycle:", error);
           }
 
           if (data) {
-            setLatestPeriod(data);
+            setLatestCycle(data);
             // Set minimum date to be the day after the latest period's end date
             const latestEndDate = new Date(data.endDate);
             latestEndDate.setDate(latestEndDate.getDate() + 1);
@@ -72,61 +93,77 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
             setMinDate(tomorrow.toISOString().split("T")[0]);
           }
         } catch (error) {
-          console.error("Error fetching latest period:", error);
+          console.error("Error fetching latest cycle:", error);
         } finally {
-          setIsCheckingPeriod(false);
+          setIsCheckingCycle(false);
         }
       };
 
-      void fetchLatestPeriod();
+      void fetchLatestCycle();
     } else {
       // Reset when dialog closes
-      setLatestPeriod(null);
+      setLatestCycle(null);
       setMinDate("");
       setStartDate("");
       setEndDate("");
     }
   }, [isOpen]);
 
-  // Check if current period is still active (not done)
-  const isCurrentPeriodActive = (): boolean => {
-    if (!latestPeriod) return false;
+  // Check if current cycle is still active (not done)
+  const isCurrentCycleActive = (): boolean => {
+    if (!latestCycle) return false;
     const now = new Date();
-    const periodEndDate = new Date(latestPeriod.endDate);
-    // Period is active if end date is in the future
-    return periodEndDate >= now;
+    const cycleEndDate = new Date(latestCycle.endDate);
+    // Cycle is active if end date is in the future (after today)
+    // Use > instead of >= to allow creating new cycle on the day after end date
+    return cycleEndDate > now;
   };
 
   const handleSave = async (): Promise<void> => {
-    // Check if current period is still active
-    if (isCurrentPeriodActive()) {
+    // Check if current cycle is still active
+    if (isCurrentCycleActive()) {
       toast.error(
-        "Cannot create a new application period while the current period is still active. Please wait until the current period ends."
+        "Cannot create a new application cycle while the current cycle is still active. Please wait until the current cycle ends."
       );
       return;
     }
 
+    // Validate title
     if (!title.trim()) {
-      toast.error("Please enter a title for the application period");
+      toast.error("Please enter a title for the application cycle");
       return;
     }
 
+    // Validate dates
     if (!startDate || !endDate) {
       toast.error("Please select both start and end dates");
       return;
     }
 
-    // Validate that start date is after the latest period's end date
-    if (latestPeriod) {
-      const latestEndDate = new Date(latestPeriod.endDate);
-      const selectedStartDate = new Date(startDate);
+    // Validate that start date is at least tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const selectedStartDate = new Date(startDate);
+    selectedStartDate.setHours(0, 0, 0, 0);
+
+    if (selectedStartDate < tomorrow) {
+      toast.error("Start date must be at least tomorrow");
+      return;
+    }
+
+    // Validate that start date is after the latest cycle's end date
+    if (latestCycle) {
+      const latestEndDate = new Date(latestCycle.endDate);
+      const cycleStartDate = new Date(startDate);
       latestEndDate.setDate(latestEndDate.getDate() + 1); // Day after end date
 
-      if (selectedStartDate < latestEndDate) {
+      if (cycleStartDate < latestEndDate) {
         toast.error(
           `Start date must be after ${new Date(
-            latestPeriod.endDate
-          ).toLocaleDateString()}. The new period cannot overlap with the previous period.`
+            latestCycle.endDate
+          ).toLocaleDateString()}. The new cycle cannot overlap with the previous cycle.`
         );
         return;
       }
@@ -137,8 +174,15 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
       return;
     }
 
-    if (!budget || parseFloat(budget) <= 0) {
-      toast.error("Please enter a valid budget amount");
+    // Validate budget
+    if (!budget.trim()) {
+      toast.error("Please enter a budget amount");
+      return;
+    }
+
+    const budgetValue = parseFloat(budget);
+    if (isNaN(budgetValue) || budgetValue <= 0) {
+      toast.error("Please enter a valid budget amount greater than 0");
       return;
     }
 
@@ -148,26 +192,45 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
       const supabase = getSupabaseBrowserClient();
 
       // Create Budget first
-      const budgetId = crypto.randomUUID();
       const budgetAmount = parseFloat(budget);
+      const budgetId = uuidv4();
 
-      const { error: budgetError } = await supabase.from("Budget").insert({
-        id: budgetId,
-        totalAmount: budgetAmount,
-        remainingAmount: budgetAmount,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      const { data: budgetData, error: budgetError } = await supabase
+        .from("Budget")
+        .insert({
+          id: budgetId,
+          totalAmount: budgetAmount,
+          remainingAmount: budgetAmount,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
 
-      if (budgetError) {
-        console.error("Budget creation error:", budgetError);
-        toast.error("Failed to create budget. Please try again.");
+      if (budgetError || !budgetData) {
+        console.error("Budget creation error:", {
+          error: budgetError,
+          message: budgetError?.message,
+          details: budgetError?.details,
+          hint: budgetError?.hint,
+          code: budgetError?.code,
+        });
+        toast.error(
+          budgetError?.message || "Failed to create budget. Please try again."
+        );
         setIsLoading(false);
         return;
       }
 
       // Create ApplicationPeriod with reference to Budget
-      const periodId = crypto.randomUUID();
+
+      // Set end date to 11:59 PM (23:59:59)
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+
+      // Generate UUID for ApplicationPeriod
+      const periodId = uuidv4();
+
       const { error: periodError } = await supabase
         .from("ApplicationPeriod")
         .insert({
@@ -175,9 +238,9 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           title: title.trim(),
           description: description.trim() || "Scholarship application period",
           startDate: new Date(startDate).toISOString(),
-          endDate: new Date(endDate).toISOString(),
+          endDate: endDateTime.toISOString(),
           isOpen: isAccepting,
-          budgetId: budgetId,
+          budgetId: budgetData.id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -185,13 +248,13 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
       if (periodError) {
         console.error("ApplicationPeriod creation error:", periodError);
         // Rollback: delete the budget if period creation fails
-        await supabase.from("Budget").delete().eq("id", budgetId);
-        toast.error("Failed to create application period. Please try again.");
+        await supabase.from("Budget").delete().eq("id", budgetData.id);
+        toast.error("Failed to create application cycle. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      toast.success("Application period and budget created successfully!");
+      toast.success("Application cycle and budget created successfully!");
 
       try {
         await fetch("/api/log-events", {
@@ -201,7 +264,7 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           },
           body: JSON.stringify({
             eventType: "ADMIN_PERIOD_CREATED",
-            message: `Configured application period ${title.trim()}`,
+            message: `Configured application cycle ${title.trim()}`,
             metadata: {
               startDate,
               endDate,
@@ -211,7 +274,7 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           }),
         });
       } catch (error) {
-        console.error("Failed to log period creation:", error);
+        console.error("Failed to log cycle creation:", error);
       }
       setIsOpen(false);
       // Reset form
@@ -225,14 +288,14 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
       // Refresh the page to show updated data
       window.location.reload();
     } catch (error) {
-      console.error("Error creating application period:", error);
+      console.error("Error creating application cycle:", error);
       toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isPeriodActive = isCurrentPeriodActive();
+  const isCycleActive = isCurrentCycleActive();
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -240,33 +303,33 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
         <Button
           variant="outline"
           className="border-white text-red-600 hover:bg-gray-100"
-          disabled={isPeriodActive}
+          disabled={isCycleActive}
           title={
-            isPeriodActive
-              ? "Cannot create new period while current period is active"
-              : "Set Application Period and Budget"
+            isCycleActive
+              ? "Cannot create new cycle while current cycle is active"
+              : "Set Application Cycle and Budget"
           }
         >
           <Settings className="w-4 h-4 mr-2" />
-          Set Application Period and Budget
+          Set Application Cycle and Budget
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Set Application Period and Budget</DialogTitle>
+          <DialogTitle>Set Application Cycle and Budget</DialogTitle>
           <DialogDescription>
             Define the start, end dates and the budget allocation for the
-            scholarship application period.
-            {latestPeriod && (
+            scholarship application cycle.
+            {latestCycle && (
               <span className="block mt-2 text-sm text-amber-600">
-                Latest period: {latestPeriod.title} (ends{" "}
-                {new Date(latestPeriod.endDate).toLocaleDateString()})
+                Latest cycle: {latestCycle.title} (ends{" "}
+                {new Date(latestCycle.endDate).toLocaleDateString()})
               </span>
             )}
-            {isPeriodActive && (
+            {isCycleActive && (
               <span className="flex items-center gap-2 mt-2 text-sm text-red-600 font-medium">
                 <AlertTriangle className="w-4 h-4" />
-                Cannot create a new period while the current period is still
+                Cannot create a new cycle while the current cycle is still
                 active.
               </span>
             )}
@@ -303,15 +366,25 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
             <Label htmlFor="startDate" className="text-right">
               Start Date
             </Label>
-            <Input
-              id="startDate"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              min={minDate || undefined}
-              disabled={isCheckingPeriod || isPeriodActive}
-              className="col-span-3"
-            />
+            <div className="col-span-3 space-y-2">
+              <Input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value && !validateDateNotToday(value, "Start date")) {
+                    return;
+                  }
+                  setStartDate(value);
+                }}
+                min={minDate || undefined}
+                disabled={isCheckingCycle || isCycleActive}
+              />
+              <p className="text-xs text-muted-foreground">
+                Must be at least tomorrow or later
+              </p>
+            </div>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="endDate" className="text-right">
@@ -321,9 +394,15 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
               id="endDate"
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value && !validateDateNotToday(value, "End date")) {
+                  return;
+                }
+                setEndDate(value);
+              }}
               min={startDate || minDate || undefined}
-              disabled={isCheckingPeriod || isPeriodActive}
+              disabled={isCheckingCycle || isCycleActive}
               className="col-span-3"
             />
           </div>
@@ -389,13 +468,13 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           <Button
             type="submit"
             onClick={handleSave}
-            disabled={isLoading || isPeriodActive || isCheckingPeriod}
+            disabled={isLoading || isCycleActive || isCheckingCycle}
           >
             {isLoading
               ? "Saving..."
-              : isPeriodActive
-              ? "Current Period Active"
-              : "Save Period"}
+              : isCycleActive
+              ? "Current Cycle Active"
+              : "Save Cycle"}
           </Button>
         </DialogFooter>
       </DialogContent>

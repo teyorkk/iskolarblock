@@ -8,6 +8,7 @@ import { UserSearchBar } from "@/components/user-management/user-search-bar";
 import { UserList } from "@/components/user-management/user-list";
 import { UserProfileDialog } from "@/components/user-management/user-profile-dialog";
 import { DeleteUserDialog } from "@/components/user-management/delete-user-dialog";
+import { EditUserDialog } from "@/components/user-management/edit-user-dialog";
 import { Pagination } from "@/components/common/pagination";
 import type { User, Application } from "@/types";
 
@@ -24,7 +25,12 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
+  const [hasActiveApplications, setHasActiveApplications] = useState(false);
+  const [activeApplicationCount, setActiveApplicationCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const itemsPerPage = 12;
 
   useEffect(() => {
@@ -106,13 +112,90 @@ export default function UsersPage() {
     await fetchUserApplications(user.id);
   };
 
-  const handleDeleteUser = (user: User): void => {
-    setUserToDelete(user);
-    setIsDeleteDialogOpen(true);
+  const handleEditUser = (user: User): void => {
+    setUserToEdit(user);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveUser = async (
+    userId: string,
+    updates: Partial<User>
+  ): Promise<void> => {
+    try {
+      setIsSaving(true);
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        toast.error(json.error || "Failed to update user");
+        return;
+      }
+
+      toast.success("User updated successfully");
+
+      // Update users list
+      setUsers(users.map((u) => (u.id === userId ? { ...u, ...updates } : u)));
+      setFilteredUsers(
+        filteredUsers.map((u) => (u.id === userId ? { ...u, ...updates } : u))
+      );
+
+      // Update selected user if it's the one being edited
+      if (selectedUser?.id === userId) {
+        setSelectedUser({ ...selectedUser, ...updates });
+      }
+
+      setIsEditDialogOpen(false);
+      setUserToEdit(null);
+    } catch (error) {
+      toast.error("An error occurred while updating the user");
+      console.error("Error:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: User): Promise<void> => {
+    // Check if user has active applications
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: activeApps, error } = await supabase
+        .from("Application")
+        .select("id, status")
+        .eq("userId", user.id)
+        .in("status", ["PENDING", "APPROVED", "GRANTED"]);
+
+      if (error) {
+        console.error("Error checking applications:", error);
+        toast.error("Failed to verify user applications");
+        return;
+      }
+
+      const hasActive = activeApps && activeApps.length > 0;
+      setHasActiveApplications(hasActive);
+      setActiveApplicationCount(activeApps?.length || 0);
+      setUserToDelete(user);
+      setIsDeleteDialogOpen(true);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("An error occurred while checking user applications");
+    }
   };
 
   const confirmDeleteUser = async (): Promise<void> => {
     if (!userToDelete) return;
+
+    // Don't allow deletion if user has active applications
+    if (hasActiveApplications) {
+      toast.error("Cannot delete user with active applications");
+      return;
+    }
 
     try {
       setIsDeleting(true);
@@ -132,6 +215,8 @@ export default function UsersPage() {
       setFilteredUsers(filteredUsers.filter((u) => u.id !== userToDelete.id));
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
+      setHasActiveApplications(false);
+      setActiveApplicationCount(0);
 
       // Close profile dialog if the deleted user was being viewed
       if (selectedUser?.id === userToDelete.id) {
@@ -234,6 +319,7 @@ export default function UsersPage() {
         applications={userApplications}
         isLoadingApplications={isLoadingApplications}
         onDelete={handleDeleteUser}
+        onEdit={handleEditUser}
       />
 
       <DeleteUserDialog
@@ -242,6 +328,16 @@ export default function UsersPage() {
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={confirmDeleteUser}
         isDeleting={isDeleting}
+        hasActiveApplications={hasActiveApplications}
+        activeApplicationCount={activeApplicationCount}
+      />
+
+      <EditUserDialog
+        user={userToEdit}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSave={handleSaveUser}
+        isSaving={isSaving}
       />
     </div>
   );

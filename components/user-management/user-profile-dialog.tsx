@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   Trash2,
   Mail,
@@ -8,6 +9,8 @@ import {
   Calendar,
   User as UserIcon,
   FileText,
+  AlertTriangle,
+  Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +33,20 @@ export function UserProfileDialog({
   applications,
   isLoadingApplications,
   onDelete,
+  onEdit,
 }: UserProfileDialogProps): React.JSX.Element | null {
+  // Check if user has active applications
+  const activeApplications = useMemo(() => {
+    return applications.filter(
+      (app) =>
+        app.status === "PENDING" ||
+        app.status === "APPROVED" ||
+        app.status === "GRANTED"
+    );
+  }, [applications]);
+
+  const hasActiveApplications = activeApplications.length > 0;
+
   if (!user) return null;
 
   return (
@@ -76,21 +92,65 @@ export function UserProfileDialog({
               </Badge>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto"
-                onClick={() => {
-                  onClose();
-                  onDelete(user);
-                }}
-                disabled={user.role === "ADMIN"}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
+              {onEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 w-full sm:w-auto"
+                  onClick={() => {
+                    onClose();
+                    onEdit(user);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              <div className="relative group">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto"
+                  onClick={() => {
+                    onClose();
+                    onDelete(user);
+                  }}
+                  disabled={user.role === "ADMIN" || hasActiveApplications}
+                  title={
+                    user.role === "ADMIN"
+                      ? "Cannot delete admin users"
+                      : hasActiveApplications
+                      ? `Cannot delete user with ${
+                          activeApplications.length
+                        } active application${
+                          activeApplications.length > 1 ? "s" : ""
+                        }`
+                      : "Delete user"
+                  }
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Active Applications Warning */}
+          {hasActiveApplications && (
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-900">
+                  User has {activeApplications.length} active application
+                  {activeApplications.length > 1 ? "s" : ""}
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Cannot delete this user until all active applications are
+                  processed or rejected.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Profile Information */}
           <div className="grid grid-cols-1 gap-4">

@@ -23,3 +23,4 @@ export function MobileCard({ children, className, onClick }: MobileCardProps) {
     </div>
   );
 }
+
