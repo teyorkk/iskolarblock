@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import NextImage from "next/image";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -155,8 +157,10 @@ export default function LoginPage() {
         toast.success("Login successful!");
         const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
         console.log("Redirecting to:", redirectPath, "isAdmin:", isAdmin);
-        // Use window.location for a full page reload to ensure session is picked up
-        window.location.href = redirectPath;
+
+        // Use router.push for client-side navigation to avoid full page reload
+        // This prevents redirect loops by allowing SessionProvider to update before navigation
+        router.push(redirectPath);
       } else {
         // If session not immediately available, wait a bit and try again
         await new Promise((resolve) => setTimeout(resolve, 300));
@@ -170,7 +174,7 @@ export default function LoginPage() {
             "isAdmin:",
             isAdmin
           );
-          window.location.href = redirectPath;
+          router.push(redirectPath);
         } else {
           toast.error("Session not found. Please try again.");
           setIsLoading(false);

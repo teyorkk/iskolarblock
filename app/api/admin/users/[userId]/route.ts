@@ -23,7 +23,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { name, email, phone, address, role } = body;
+    const { name, email, phone, address, role, password } = body;
 
     // Validate required fields
     if (!name || !email) {
@@ -54,6 +54,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
+    // Validate password if provided
+    if (password && password.length < 6) {
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters" },
+        { status: 400 }
+      );
+    }
+
     // Update user in database
     const { data: updatedUser, error: updateError } = await admin
       .from("User")
@@ -77,21 +85,29 @@ export async function PATCH(
       );
     }
 
-    // Update auth email if changed
+    // Update auth email and/or password if changed
     const { data: currentUser } = await admin
       .from("User")
       .select("email")
       .eq("id", userId)
       .single();
 
+    const authUpdates: { email?: string; password?: string } = {};
     if (currentUser && currentUser.email !== email) {
+      authUpdates.email = email.trim();
+    }
+    if (password) {
+      authUpdates.password = password;
+    }
+
+    if (Object.keys(authUpdates).length > 0) {
       const { error: authError } = await admin.auth.admin.updateUserById(
         userId,
-        { email: email.trim() }
+        authUpdates
       );
 
       if (authError) {
-        console.error("Error updating auth email:", authError);
+        console.error("Error updating auth:", authError);
         // Don't fail the request if auth update fails
       }
     }

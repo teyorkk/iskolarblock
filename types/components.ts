@@ -206,6 +206,7 @@ export interface RecentApplicantsProps {
     type: string;
     status: string;
     submittedDate: string;
+    profilePicture?: string | null;
   }>;
 }
 

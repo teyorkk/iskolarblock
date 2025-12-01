@@ -41,6 +41,7 @@ export function EditUserDialog({
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [role, setRole] = useState<"ADMIN" | "USER">("USER");
+  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export function EditUserDialog({
       setPhone(user.phone || "");
       setAddress(user.address || "");
       setRole(user.role);
+      setPassword("");
       setErrors({});
     }
   }, [user]);
@@ -71,6 +73,10 @@ export function EditUserDialog({
       newErrors.phone = "Phone must be in format 09XXXXXXXXX";
     }
 
+    if (password && password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -78,7 +84,7 @@ export function EditUserDialog({
   const handleSave = async () => {
     if (!user || !validateForm()) return;
 
-    const updates: Partial<User> = {
+    const updates: Partial<User> & { password?: string } = {
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim() || null,
@@ -86,12 +92,16 @@ export function EditUserDialog({
       role,
     };
 
+    if (password) {
+      updates.password = password;
+    }
+
     await onSave(user.id, updates);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
@@ -99,7 +109,7 @@ export function EditUserDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-4 px-1">
           <div className="grid gap-2">
             <Label htmlFor="name">
               Name <span className="text-red-500">*</span>
@@ -162,6 +172,24 @@ export function EditUserDialog({
           </div>
 
           <div className="grid gap-2">
+            <Label htmlFor="password">New Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Leave blank to keep current password"
+              disabled={isSaving}
+            />
+            {errors.password && (
+              <p className="text-sm text-red-500">{errors.password}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Minimum 6 characters. Leave blank to keep current password.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
             <Label htmlFor="role">
               Role <span className="text-red-500">*</span>
             </Label>
@@ -181,11 +209,20 @@ export function EditUserDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isSaving}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full sm:w-auto"
+          >
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>

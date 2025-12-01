@@ -46,7 +46,6 @@ export function Loading() {
               alt="IskolarBlock Logo"
               fill
               className="object-contain rounded-3xl p-2"
-              priority
               quality={90}
               sizes="96px"
             />
