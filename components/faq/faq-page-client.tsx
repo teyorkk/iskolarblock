@@ -181,6 +181,18 @@ export function FAQPageClient() {
                 Home
               </Link>
               <Link
+                href="/privacy"
+                className="text-gray-600 hover:text-orange-500 transition-colors"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/login"
+                className="text-gray-600 hover:text-orange-500 transition-colors"
+              >
+                Login
+              </Link>
+              <Link
                 href="/login"
                 className="text-gray-600 hover:text-orange-500 transition-colors"
               >

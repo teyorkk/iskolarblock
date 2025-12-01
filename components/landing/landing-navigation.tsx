@@ -88,6 +88,12 @@ export function LandingNavigation({
               FAQ
             </Link>
             <Link
+              href="/privacy"
+              className="text-gray-600 hover:text-orange-500 transition-colors"
+            >
+              Privacy
+            </Link>
+            <Link
               href="/login"
               className="text-gray-600 hover:text-orange-500 transition-colors"
             >
@@ -172,6 +178,12 @@ export function LandingNavigation({
                 className="text-gray-600 hover:text-orange-500 transition-colors"
               >
                 FAQ
+              </Link>
+              <Link
+                href="/privacy"
+                className="text-gray-600 hover:text-orange-500 transition-colors"
+              >
+                Privacy
               </Link>
               <Link
                 href="/login"
