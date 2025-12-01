@@ -192,12 +192,6 @@ export function FAQPageClient() {
               >
                 Login
               </Link>
-              <Link
-                href="/login"
-                className="text-gray-600 hover:text-orange-500 transition-colors"
-              >
-                Login
-              </Link>
               <Link href="/register">
                 <Button className="bg-orange-500 hover:bg-orange-600">
                   Get Started
