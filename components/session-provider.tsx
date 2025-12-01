@@ -97,13 +97,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
       setLoadingRole(true);
       try {
-        const response = await fetch("/api/user/role");
-        if (response.ok) {
-          const data = await response.json();
-          setUserRole(data.role || null);
-        } else {
-          console.error("Failed to fetch user role:", await response.text());
+        const supabase = getSupabaseBrowserClient();
+        const { data: userData, error } = await supabase
+          .from("User")
+          .select("role")
+          .eq("email", session.user.email.toLowerCase().trim())
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching user role:", error);
           setUserRole(null);
+        } else {
+          setUserRole((userData?.role as UserRole) || null);
         }
       } catch (error) {
         console.error("Error fetching user role:", error);

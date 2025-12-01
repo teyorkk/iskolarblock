@@ -16,13 +16,14 @@ export default function UserLayout({
   const hydrated = ready && typeof window !== "undefined";
 
   useEffect(() => {
-    if (!hydrated || loadingRole) return;
+    if (!hydrated) return;
     if (!user) {
       router.push("/login");
       return;
     }
-    // If user is admin, redirect to admin dashboard
-    if (isAdmin) {
+    // Only redirect if role is fully loaded and user is confirmed admin
+    if (!loadingRole && isAdmin) {
+      console.log("User layout: redirecting admin to admin-dashboard");
       router.push("/admin-dashboard");
     }
   }, [hydrated, user, isAdmin, loadingRole, router]);

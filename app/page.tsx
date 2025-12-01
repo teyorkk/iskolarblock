@@ -3,8 +3,9 @@ import { getLiveImpactAggregates } from "@/lib/services/live-impact";
 import { getLiveBlockchainFeed } from "@/lib/services/live-blockchain";
 import type { LiveBlockchainRecord } from "@/types";
 
-// Force dynamic rendering since we're fetching live data from Supabase
-export const dynamic = "force-dynamic";
+// Use ISR (Incremental Static Regeneration) with 5 minute revalidation
+// This balances data freshness with performance
+export const revalidate = 300; // Revalidate every 5 minutes
 
 export default async function Home() {
   let initialLiveImpactValues = {

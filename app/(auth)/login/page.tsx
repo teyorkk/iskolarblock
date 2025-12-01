@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NextImage from "next/image";
@@ -21,12 +21,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useSession } from "@/components/session-provider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, isAdmin, loadingRole } = useSession();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+
+  useEffect(() => {
+    if (user && !loadingRole) {
+      const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
+      console.log("User already logged in, redirecting to:", redirectPath);
+      router.push(redirectPath);
+    }
+  }, [user, isAdmin, loadingRole, router]);
 
   const {
     register,
@@ -154,27 +164,21 @@ export default function LoginPage() {
       const { data: sessionData } = await supabase.auth.getSession();
 
       if (sessionData?.session) {
-        toast.success("Login successful!");
-        const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
-        console.log("Redirecting to:", redirectPath, "isAdmin:", isAdmin);
-
-        // Use router.push for client-side navigation to avoid full page reload
-        // This prevents redirect loops by allowing SessionProvider to update before navigation
-        router.push(redirectPath);
+        toast.success("Login successful! Redirecting...");
+        console.log(
+          "Session confirmed. SessionProvider will handle redirect based on role."
+        );
+        setIsLoading(false);
       } else {
         // If session not immediately available, wait a bit and try again
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         const { data: retrySession } = await supabase.auth.getSession();
         if (retrySession?.session) {
-          toast.success("Login successful!");
-          const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
+          toast.success("Login successful! Redirecting...");
           console.log(
-            "Redirecting to (retry):",
-            redirectPath,
-            "isAdmin:",
-            isAdmin
+            "Session confirmed (retry). SessionProvider will handle redirect based on role."
           );
-          router.push(redirectPath);
+          setIsLoading(false);
         } else {
           toast.error("Session not found. Please try again.");
           setIsLoading(false);
@@ -183,7 +187,6 @@ export default function LoginPage() {
     } catch (e) {
       const error = e as Error;
       toast.error(error.message || "Unexpected error");
-    } finally {
       setIsLoading(false);
     }
   };
