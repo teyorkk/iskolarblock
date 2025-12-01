@@ -24,3 +24,4 @@ export function getDocumentRemarks(hasCog: boolean, hasCor: boolean): string {
 
 
 
+

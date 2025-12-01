@@ -168,6 +168,11 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
 
       // Create ApplicationPeriod with reference to Budget
       const periodId = crypto.randomUUID();
+      
+      // Set end date to 11:59 PM (23:59:59)
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      
       const { error: periodError } = await supabase
         .from("ApplicationPeriod")
         .insert({
@@ -175,7 +180,7 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           title: title.trim(),
           description: description.trim() || "Scholarship application period",
           startDate: new Date(startDate).toISOString(),
-          endDate: new Date(endDate).toISOString(),
+          endDate: endDateTime.toISOString(),
           isOpen: isAccepting,
           budgetId: budgetId,
           createdAt: new Date().toISOString(),
