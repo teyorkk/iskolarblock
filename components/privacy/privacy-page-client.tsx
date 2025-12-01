@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -10,6 +11,8 @@ import {
   AlertCircle,
   Mail,
   Phone,
+  Menu,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import NextImage from "next/image";
@@ -19,11 +22,12 @@ import { AppBackground } from "@/components/common/app-background";
 import { LandingFooter } from "@/components/landing/landing-footer";
 
 export function PrivacyPageClient() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white relative">
       <AppBackground />
 
-      {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b relative">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -43,7 +47,7 @@ export function PrivacyPageClient() {
                 IskolarBlock
               </span>
             </Link>
-            <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-4">
               <Link
                 href="/"
                 className="text-gray-600 hover:text-orange-500 transition-colors"
@@ -68,7 +72,58 @@ export function PrivacyPageClient() {
                 </Button>
               </Link>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </Button>
           </div>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="md:hidden mt-4 pb-4"
+            >
+              <div className="flex flex-col space-y-3">
+                <Link
+                  href="/"
+                  className="text-gray-600 hover:text-orange-500 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/faq"
+                  className="text-gray-600 hover:text-orange-500 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  FAQ
+                </Link>
+                <Link
+                  href="/login"
+                  className="text-gray-600 hover:text-orange-500 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button className="bg-orange-500 hover:bg-orange-600 w-full">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+          )}
         </div>
       </nav>
 

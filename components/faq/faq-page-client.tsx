@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, HelpCircle, Book, Shield, Users, Zap } from "lucide-react";
+import {
+  Search,
+  HelpCircle,
+  Book,
+  Shield,
+  Users,
+  Zap,
+  Menu,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
@@ -140,6 +149,7 @@ const categories = [
 export function FAQPageClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const filteredFAQs = faqData.filter((faq) => {
     const matchesSearch =
@@ -153,7 +163,6 @@ export function FAQPageClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white relative">
       <AppBackground />
-      {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b relative">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -173,7 +182,7 @@ export function FAQPageClient() {
                 IskolarBlock
               </span>
             </Link>
-            <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-4">
               <Link
                 href="/"
                 className="text-gray-600 hover:text-orange-500 transition-colors"
@@ -198,7 +207,58 @@ export function FAQPageClient() {
                 </Button>
               </Link>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </Button>
           </div>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="md:hidden mt-4 pb-4"
+            >
+              <div className="flex flex-col space-y-3">
+                <Link
+                  href="/"
+                  className="text-gray-600 hover:text-orange-500 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/privacy"
+                  className="text-gray-600 hover:text-orange-500 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Privacy
+                </Link>
+                <Link
+                  href="/login"
+                  className="text-gray-600 hover:text-orange-500 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button className="bg-orange-500 hover:bg-orange-600 w-full">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+          )}
         </div>
       </nav>
 
