@@ -33,8 +33,6 @@ export function UserProfileDialog({
   isLoadingApplications,
   onDelete,
 }: UserProfileDialogProps): React.JSX.Element | null {
-  if (!user) return null;
-
   // Check if user has active applications
   const activeApplications = useMemo(() => {
     return applications.filter(
@@ -46,6 +44,8 @@ export function UserProfileDialog({
   }, [applications]);
 
   const hasActiveApplications = activeApplications.length > 0;
+
+  if (!user) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
