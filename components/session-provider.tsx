@@ -1,155 +1,167 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import type { Session, User } from "@supabase/supabase-js"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+} from "react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { Session, User } from "@supabase/supabase-js";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-type UserRole = "ADMIN" | "USER" | null
+type UserRole = "ADMIN" | "USER" | null;
 
 type SessionContextValue = {
-  ready: boolean
-  session: Session | null
-  user: User | null
-  userRole: UserRole
-  isAdmin: boolean
-  loadingRole: boolean
-}
+  ready: boolean;
+  session: Session | null;
+  user: User | null;
+  userRole: UserRole;
+  isAdmin: boolean;
+  loadingRole: boolean;
+};
 
-const SessionContext = createContext<SessionContextValue | undefined>(undefined)
+const SessionContext = createContext<SessionContextValue | undefined>(
+  undefined
+);
 
 // Session timeout duration: 15 minutes in milliseconds
-const SESSION_TIMEOUT = 15 * 60 * 1000
+const SESSION_TIMEOUT = 15 * 60 * 1000;
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false)
-  const [session, setSession] = useState<Session | null>(null)
-  const [userRole, setUserRole] = useState<UserRole>(null)
-  const [loadingRole, setLoadingRole] = useState(false)
-  const [lastActivity, setLastActivity] = useState<number>(Date.now())
-  const router = useRouter()
+  const [ready, setReady] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>(null);
+  const [loadingRole, setLoadingRole] = useState(false);
+  const [lastActivity, setLastActivity] = useState<number>(Date.now());
+  const router = useRouter();
 
   // Handle logout
   const handleLogout = useCallback(async () => {
-    const supabase = getSupabaseBrowserClient()
-    await supabase.auth.signOut()
-    setSession(null)
-    setUserRole(null)
-    router.push("/login")
-  }, [router])
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setSession(null);
+    setUserRole(null);
+    router.push("/login");
+  }, [router]);
 
   // Update last activity time
   const updateActivity = useCallback(() => {
-    setLastActivity(Date.now())
-  }, [])
+    setLastActivity(Date.now());
+  }, []);
 
   // Track user activity
   useEffect(() => {
-    if (!session) return
+    if (!session) return;
 
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
-    
-    events.forEach(event => {
-      window.addEventListener(event, updateActivity)
-    })
+    const events = ["mousedown", "keydown", "scroll", "touchstart", "click"];
+
+    events.forEach((event) => {
+      window.addEventListener(event, updateActivity);
+    });
 
     return () => {
-      events.forEach(event => {
-        window.removeEventListener(event, updateActivity)
-      })
-    }
-  }, [session, updateActivity])
+      events.forEach((event) => {
+        window.removeEventListener(event, updateActivity);
+      });
+    };
+  }, [session, updateActivity]);
 
   // Check for session timeout
   useEffect(() => {
-    if (!session) return
+    if (!session) return;
 
     const interval = setInterval(() => {
-      const now = Date.now()
-      const timeSinceLastActivity = now - lastActivity
+      const now = Date.now();
+      const timeSinceLastActivity = now - lastActivity;
 
       if (timeSinceLastActivity >= SESSION_TIMEOUT) {
-        toast.error("Session expired due to inactivity. Please log in again.")
-        handleLogout()
+        toast.error("Session expired due to inactivity. Please log in again.");
+        handleLogout();
       }
-    }, 60000) // Check every minute
+    }, 60000); // Check every minute
 
-    return () => clearInterval(interval)
-  }, [session, lastActivity, handleLogout])
+    return () => clearInterval(interval);
+  }, [session, lastActivity, handleLogout]);
 
   // Fetch user role from database when session changes
   useEffect(() => {
     const fetchUserRole = async () => {
       if (!session?.user?.email) {
-        setUserRole(null)
-        return
+        setUserRole(null);
+        return;
       }
 
-      setLoadingRole(true)
+      setLoadingRole(true);
       try {
-        const response = await fetch("/api/user/role")
+        const response = await fetch("/api/user/role");
         if (response.ok) {
-          const data = await response.json()
-          setUserRole(data.role || null)
+          const data = await response.json();
+          setUserRole(data.role || null);
         } else {
-          console.error("Failed to fetch user role:", await response.text())
-          setUserRole(null)
+          console.error("Failed to fetch user role:", await response.text());
+          setUserRole(null);
         }
       } catch (error) {
-        console.error("Error fetching user role:", error)
-        setUserRole(null)
+        console.error("Error fetching user role:", error);
+        setUserRole(null);
       } finally {
-        setLoadingRole(false)
+        setLoadingRole(false);
       }
-    }
+    };
 
-    fetchUserRole()
-  }, [session?.user?.email])
+    fetchUserRole();
+  }, [session?.user?.email]);
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
+    const supabase = getSupabaseBrowserClient();
 
     // Initial load
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? null)
-      setReady(true)
-    })
+      setSession(data.session ?? null);
+      setReady(true);
+    });
 
     // Subscribe to auth changes
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession)
-      // Reset role when session changes
-      if (!newSession) {
-        setUserRole(null)
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        // Reset role when session changes
+        if (!newSession) {
+          setUserRole(null);
+        }
       }
-    })
-    const unsub = () => sub.subscription.unsubscribe()
+    );
+    const unsub = () => sub.subscription.unsubscribe();
 
     return () => {
-      unsub()
-    }
-  }, [])
+      unsub();
+    };
+  }, []);
 
-  const value = useMemo<SessionContextValue>(() => ({
-    ready,
-    session,
-    user: session?.user ?? null,
-    userRole,
-    isAdmin: userRole === "ADMIN",
-    loadingRole,
-  }), [ready, session, userRole, loadingRole])
+  const value = useMemo<SessionContextValue>(
+    () => ({
+      ready,
+      session,
+      user: session?.user ?? null,
+      userRole,
+      isAdmin: userRole === "ADMIN",
+      loadingRole,
+    }),
+    [ready, session, userRole, loadingRole]
+  );
 
-  if (!ready) return null
+  if (!ready) return null;
   return (
-    <SessionContext.Provider value={value}>
-      {children}
-    </SessionContext.Provider>
-  )
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+  );
 }
 
 export function useSession() {
-  const ctx = useContext(SessionContext)
-  if (!ctx) throw new Error("useSession must be used within SessionProvider")
-  return ctx
+  const ctx = useContext(SessionContext);
+  if (!ctx) throw new Error("useSession must be used within SessionProvider");
+  return ctx;
 }
