@@ -194,13 +194,26 @@ export function ProfileForm({ userData, onUpdate }: ProfileFormProps) {
               <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 id="phone"
-                {...register("phone")}
+                type="tel"
+                placeholder="09XXXXXXXXX"
+                {...register("phone", {
+                  pattern: {
+                    value: /^09\d{9}$/,
+                    message: "Phone number must start with 09 and be 11 digits",
+                  },
+                })}
                 className={`pl-10 ${!isEditing ? "bg-gray-50" : ""}`}
                 disabled={!isEditing}
+                maxLength={11}
               />
             </div>
             {errors.phone && (
               <p className="text-sm text-red-500">{errors.phone.message}</p>
+            )}
+            {isEditing && (
+              <p className="text-xs text-gray-500">
+                Format: 09XXXXXXXXX (11 digits)
+              </p>
             )}
           </div>
 
