@@ -24,6 +24,8 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
+  const [hasActiveApplications, setHasActiveApplications] = useState(false);
+  const [activeApplicationCount, setActiveApplicationCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
@@ -106,13 +108,41 @@ export default function UsersPage() {
     await fetchUserApplications(user.id);
   };
 
-  const handleDeleteUser = (user: User): void => {
-    setUserToDelete(user);
-    setIsDeleteDialogOpen(true);
+  const handleDeleteUser = async (user: User): Promise<void> => {
+    // Check if user has active applications
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: activeApps, error } = await supabase
+        .from("Application")
+        .select("id, status")
+        .eq("userId", user.id)
+        .in("status", ["PENDING", "APPROVED", "GRANTED"]);
+
+      if (error) {
+        console.error("Error checking applications:", error);
+        toast.error("Failed to verify user applications");
+        return;
+      }
+
+      const hasActive = activeApps && activeApps.length > 0;
+      setHasActiveApplications(hasActive);
+      setActiveApplicationCount(activeApps?.length || 0);
+      setUserToDelete(user);
+      setIsDeleteDialogOpen(true);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("An error occurred while checking user applications");
+    }
   };
 
   const confirmDeleteUser = async (): Promise<void> => {
     if (!userToDelete) return;
+
+    // Don't allow deletion if user has active applications
+    if (hasActiveApplications) {
+      toast.error("Cannot delete user with active applications");
+      return;
+    }
 
     try {
       setIsDeleting(true);
@@ -132,6 +162,8 @@ export default function UsersPage() {
       setFilteredUsers(filteredUsers.filter((u) => u.id !== userToDelete.id));
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
+      setHasActiveApplications(false);
+      setActiveApplicationCount(0);
 
       // Close profile dialog if the deleted user was being viewed
       if (selectedUser?.id === userToDelete.id) {
@@ -242,6 +274,8 @@ export default function UsersPage() {
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={confirmDeleteUser}
         isDeleting={isDeleting}
+        hasActiveApplications={hasActiveApplications}
+        activeApplicationCount={activeApplicationCount}
       />
     </div>
   );

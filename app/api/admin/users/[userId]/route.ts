@@ -28,6 +28,33 @@ export async function DELETE(
       .eq("id", userId)
       .maybeSingle();
 
+    // Check if user has active applications (PENDING, APPROVED, or GRANTED)
+    const { data: activeApplications, error: appCheckError } = await admin
+      .from("Application")
+      .select("id, status")
+      .eq("userId", userId)
+      .in("status", ["PENDING", "APPROVED", "GRANTED"]);
+
+    if (appCheckError) {
+      console.error("Error checking applications:", appCheckError);
+      return NextResponse.json(
+        { error: "Failed to verify user applications" },
+        { status: 500 }
+      );
+    }
+
+    if (activeApplications && activeApplications.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Cannot delete user with active applications. User has applications that are pending, approved, or granted.",
+          hasActiveApplications: true,
+          activeCount: activeApplications.length,
+        },
+        { status: 400 }
+      );
+    }
+
     // Delete user from auth
     const { error: authError } = await admin.auth.admin.deleteUser(userId);
 

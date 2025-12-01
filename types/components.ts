@@ -158,6 +158,8 @@ export interface DeleteUserDialogProps {
   onClose: () => void;
   onConfirm: () => void;
   isDeleting: boolean;
+  hasActiveApplications?: boolean;
+  activeApplicationCount?: number;
 }
 
 export interface StatusBadgeProps {
