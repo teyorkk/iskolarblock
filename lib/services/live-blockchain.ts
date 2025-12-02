@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseStaticClient } from "@/lib/supabase/static";
 import type { LiveBlockchainRecord } from "@/types";
 
 type SupabaseBlockchainRow = {
@@ -19,7 +19,7 @@ type SupabaseBlockchainRow = {
 export async function getLiveBlockchainFeed(
   limit?: number
 ): Promise<LiveBlockchainRecord[]> {
-  const supabase = getSupabaseServerClient();
+  const supabase = getSupabaseStaticClient();
   const query = supabase
     .from("BlockchainRecord")
     .select(
