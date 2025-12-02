@@ -70,7 +70,15 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ places });
+    // Cache places results for 1 hour
+    return NextResponse.json(
+      { places },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+        },
+      }
+    );
   } catch (error) {
     console.error("Places search error:", error);
     return NextResponse.json(

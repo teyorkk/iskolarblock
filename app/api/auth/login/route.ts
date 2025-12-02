@@ -1,179 +1,122 @@
-import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 import { logEvent } from "@/lib/services/log-events";
 
-const logSuccessfulLogin = async (
-  supabase: ReturnType<typeof getSupabaseServerClient>,
-  {
-    actorId,
-    actorName,
-    actorEmail,
-    actorRole,
-  }: {
-    actorId?: string | null;
-    actorName?: string | null;
-    actorEmail?: string | null;
-    actorRole?: string | null;
-  }
-) => {
-  await logEvent(
-    {
-      eventType: "USER_LOGIN",
-      message: "User signed in",
-      actorId: actorId ?? null,
-      actorRole: actorRole ?? "USER",
-      actorName: actorName ?? actorEmail ?? "User",
-      actorUsername: actorEmail ?? null,
-    },
-    supabase
-  );
-};
-
-// POST /api/auth/login { email, password }
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    // Parse request body
+    const { email, password } = await request.json();
+
+    // Validate input
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Missing email or password" },
+        { error: "Email and password are required" },
         { status: 400 }
       );
     }
-    const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+
+    // Create Supabase client with cookie handling
+    const cookieStore = await cookies();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Supabase environment variables are missing");
+    }
+
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
     });
-    if (error) {
-      // Provide clearer guidance for common cases
-      const message = error.message || "Login failed";
-      if (/confirm(ed)? your email/i.test(message)) {
+
+    // Authenticate with Supabase Auth (email and password from auth table)
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+    if (authError) {
+      // Handle common error cases
+      if (authError.message.includes("Invalid login credentials")) {
         return NextResponse.json(
-          {
-            error:
-              "Email not confirmed. Please check your inbox for a verification code and verify your account.",
-          },
-          { status: 409 }
-        );
-      }
-      if (
-        /invalid login credentials/i.test(message) ||
-        /invalid credentials/i.test(message)
-      ) {
-        return NextResponse.json(
-          { error: "Wrong credentials. Please check your email and password." },
+          { error: "Invalid email or password" },
           { status: 401 }
         );
       }
-      if (/password/i.test(message) && !/confirm/i.test(message)) {
+      if (authError.message.includes("Email not confirmed")) {
         return NextResponse.json(
-          { error: "Wrong password. Please try again." },
-          { status: 401 }
+          { error: "Please verify your email before logging in" },
+          { status: 403 }
         );
       }
-      // Optional dev helper: auto-provision demo account if service role key is available
-      const canProvision = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (/invalid login credentials/i.test(message) && canProvision) {
-        try {
-          const admin = getSupabaseAdminClient();
-          await admin.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true,
-          });
-          // retry login
-          const retry = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          if (retry.error) {
-            return NextResponse.json(
-              { error: retry.error.message },
-              { status: 401 }
-            );
-          }
-          // Fetch user data from User table after auto-provision
-          if (retry.data.user?.email) {
-            const { data: userData } = await supabase
-              .from("User")
-              .select("id, email, name, role")
-              .eq("email", retry.data.user.email.toLowerCase().trim())
-              .maybeSingle();
-
-            await logSuccessfulLogin(supabase, {
-              actorId: userData?.id ?? retry.data.user?.id,
-              actorName: userData?.name ?? retry.data.user.email,
-              actorEmail: userData?.email ?? retry.data.user.email,
-              actorRole: userData?.role ?? "USER",
-            });
-
-            return NextResponse.json({
-              success: true,
-              userId: retry.data.user?.id,
-              user: userData || null,
-              role: userData?.role || "USER",
-            });
-          }
-          await logSuccessfulLogin(supabase, {
-            actorId: retry.data.user?.id,
-            actorName: retry.data.user?.email ?? "User",
-            actorEmail: retry.data.user?.email ?? email,
-            actorRole: "USER",
-          });
-          return NextResponse.json({
-            success: true,
-            userId: retry.data.user?.id,
-          });
-        } catch {
-          return NextResponse.json({ error: message }, { status: 401 });
-        }
-      }
-      return NextResponse.json({ error: message }, { status: 401 });
+      return NextResponse.json({ error: authError.message }, { status: 401 });
     }
 
-    // After successful login, fetch user data from User table
-    if (data.user?.email) {
-      const { data: userData, error: userError } = await supabase
-        .from("User")
-        .select("id, email, name, role")
-        .eq("email", data.user.email.toLowerCase().trim())
-        .maybeSingle();
-
-      if (userError) {
-        console.error("Error fetching user data after login:", userError);
-        // Still return success, but log the error
-      }
-
-      await logSuccessfulLogin(supabase, {
-        actorId: userData?.id ?? data.user?.id,
-        actorName: userData?.name ?? data.user?.email ?? "User",
-        actorEmail: userData?.email ?? data.user?.email ?? email,
-        actorRole: userData?.role ?? "USER",
-      });
-
-      return NextResponse.json({
-        success: true,
-        userId: data.user?.id,
-        user: userData || null,
-        role: userData?.role || "USER",
-      });
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: "Authentication failed" },
+        { status: 401 }
+      );
     }
 
-    if (data.user) {
-      await logSuccessfulLogin(supabase, {
-        actorId: data.user.id,
-        actorName: data.user.email ?? "User",
-        actorEmail: data.user.email ?? email,
-        actorRole: "USER",
-      });
+    // Get user role from User table
+    const { data: userData, error: userError } = await supabase
+      .from("User")
+      .select("id, email, name, role")
+      .eq("id", authData.user.id)
+      .single();
+
+    if (userError) {
+      console.error("Error fetching user data:", userError);
+      return NextResponse.json(
+        { error: "Failed to fetch user information" },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ success: true, userId: data.user?.id });
-  } catch (e) {
-    const error = e as Error;
+    // Log the successful login event
+    await logEvent(
+      {
+        eventType: "USER_LOGIN",
+        message: "User signed in successfully",
+        actorId: userData.id,
+        actorRole: userData.role,
+        actorName: userData.name || userData.email,
+        actorUsername: userData.email,
+      },
+      supabase
+    );
+
+    // Determine redirect URL based on role
+    const redirectUrl =
+      userData.role === "ADMIN" ? "/admin-dashboard" : "/user-dashboard";
+
+    // Return success with user data and redirect URL
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        role: userData.role,
+      },
+      role: userData.role,
+      redirectUrl,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
     return NextResponse.json(
-      { error: error.message ?? "Server error" },
+      { error: "An unexpected error occurred during login" },
       { status: 500 }
     );
   }

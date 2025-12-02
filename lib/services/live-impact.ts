@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseStaticClient } from "@/lib/supabase/static";
 
 export interface LiveImpactAggregates {
   totalBudgetReimbursed: number;
@@ -7,7 +7,7 @@ export interface LiveImpactAggregates {
 }
 
 export async function getLiveImpactAggregates(): Promise<LiveImpactAggregates> {
-  const supabase = getSupabaseServerClient();
+  const supabase = getSupabaseStaticClient();
 
   const [awardingResult, applicantsResult, grantedResult] = await Promise.all([
     supabase.from("Awarding").select("amountReceived"),

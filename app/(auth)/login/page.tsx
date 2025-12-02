@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import NextImage from "next/image";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, type LoginFormData } from "@/lib/validations";
 import { toast } from "sonner";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,162 +24,44 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setError,
-    getValues,
-    setValue,
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage("");
+    setIsLoading(true);
 
-  const getErrorMessage = (error: string): string => {
-    const lowerError = error.toLowerCase();
-    if (
-      lowerError.includes("invalid login credentials") ||
-      lowerError.includes("invalid credentials")
-    ) {
-      return "Wrong credentials. Please check your email and password.";
-    }
-    if (lowerError.includes("password")) {
-      return "Wrong password. Please try again.";
-    }
-    if (
-      lowerError.includes("email not confirmed") ||
-      lowerError.includes("confirm")
-    ) {
-      return "Email not confirmed. Please check your inbox for a verification code.";
-    }
-    return error || "Login failed. Please try again.";
-  };
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-  const onSubmit = async (data: LoginFormData) => {
     try {
-      setIsLoading(true);
-      setErrorMessage("");
-
-      // Ensure we have the current password value (in case type change caused issues)
-      // Try multiple methods to get the password value
-      let passwordValue = getValues("password") || data.password;
-
-      // Fallback: get value directly from DOM if React Hook Form doesn't have it
-      if (!passwordValue) {
-        const passwordInput = document.getElementById(
-          "password"
-        ) as HTMLInputElement;
-        if (passwordInput) {
-          passwordValue = passwordInput.value;
-        }
-      }
-
-      const formData = {
-        email: data.email,
-        password: passwordValue,
-      };
-
-      const res = await fetch("/api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
       });
-      const json = await res.json();
-      if (!res.ok) {
-        const errorMsg = getErrorMessage(json.error || "Login failed");
-        setErrorMessage(errorMsg);
-        toast.error(errorMsg);
 
-        // Set field-specific errors
-        if (json.error?.toLowerCase().includes("password")) {
-          setError("password", { type: "manual", message: "Wrong password" });
-        } else if (
-          json.error?.toLowerCase().includes("invalid login credentials")
-        ) {
-          setError("email", { type: "manual", message: "Invalid credentials" });
-          setError("password", {
-            type: "manual",
-            message: "Invalid credentials",
-          });
-        }
+      const data = await response.json();
 
+      if (!response.ok) {
+        setErrorMessage(data.error || "Login failed");
+        toast.error(data.error || "Login failed");
         setIsLoading(false);
         return;
       }
-      // Determine user role - Always query User table directly as source of truth
-      // This ensures we get the correct role before redirecting
-      let isAdmin = false;
-      const normalizedEmail = formData.email.toLowerCase().trim();
-      const supabase = getSupabaseBrowserClient();
 
-      // Always query User table directly to get the role (most reliable)
-      try {
-        const { data: dbUser, error: dbError } = await supabase
-          .from("User")
-          .select("role")
-          .eq("email", normalizedEmail)
-          .maybeSingle();
+      // Success - redirect based on role
+      toast.success("Login successful!");
 
-        if (dbError) {
-          console.error("Error fetching user role from DB:", dbError);
-          // Fallback to API response if DB query fails
-          const apiRole = (json.role || json.user?.role || "")
-            .toUpperCase()
-            .trim();
-          isAdmin = apiRole === "ADMIN";
-        } else if (dbUser?.role) {
-          const userRole = dbUser.role.toUpperCase().trim();
-          isAdmin = userRole === "ADMIN";
-        } else {
-          // If DB query returns no user, fallback to API response
-          const apiRole = (json.role || json.user?.role || "")
-            .toUpperCase()
-            .trim();
-          isAdmin = apiRole === "ADMIN";
-        }
-      } catch (err) {
-        console.error("Error checking user role:", err);
-        // Fallback to API response if DB query throws
-        const apiRole = (json.role || json.user?.role || "")
-          .toUpperCase()
-          .trim();
-        isAdmin = apiRole === "ADMIN";
-      }
-
-      // Refresh the session on the client side to ensure cookies are synced
-      const { data: sessionData } = await supabase.auth.getSession();
-
-      if (sessionData?.session) {
-        toast.success("Login successful!");
-        const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
-        console.log("Redirecting to:", redirectPath, "isAdmin:", isAdmin);
-
-        // Use router.push for client-side navigation to avoid full page reload
-        // This prevents redirect loops by allowing SessionProvider to update before navigation
-        router.push(redirectPath);
-      } else {
-        // If session not immediately available, wait a bit and try again
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const { data: retrySession } = await supabase.auth.getSession();
-        if (retrySession?.session) {
-          toast.success("Login successful!");
-          const redirectPath = isAdmin ? "/admin-dashboard" : "/user-dashboard";
-          console.log(
-            "Redirecting to (retry):",
-            redirectPath,
-            "isAdmin:",
-            isAdmin
-          );
-          router.push(redirectPath);
-        } else {
-          toast.error("Session not found. Please try again.");
-          setIsLoading(false);
-        }
-      }
-    } catch (e) {
-      const error = e as Error;
-      toast.error(error.message || "Unexpected error");
-    } finally {
+      // Use window.location.href to ensure a full page reload
+      // This allows the session to be properly established before navigating
+      window.location.href =
+        data.redirectUrl ||
+        (data.role === "ADMIN" ? "/admin-dashboard" : "/user-dashboard");
+    } catch (error) {
+      setErrorMessage("An unexpected error occurred");
+      toast.error("An unexpected error occurred");
       setIsLoading(false);
     }
   };
@@ -220,7 +98,7 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                   <p className="text-sm text-red-600">{errorMessage}</p>
@@ -230,15 +108,12 @@ export default function LoginPage() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="juandelacruz@gmail.com"
-                  {...register("email")}
-                  className={errors.email ? "border-red-500" : ""}
+                  required
                   onChange={() => setErrorMessage("")}
                 />
-                {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email.message}</p>
-                )}
               </div>
 
               <div className="space-y-2">
@@ -246,48 +121,19 @@ export default function LoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Password"
-                    {...register("password", {
-                      onChange: (e) => {
-                        setErrorMessage("");
-                      },
-                    })}
-                    className={
-                      errors.password ? "border-red-500 pr-10" : "pr-10"
-                    }
+                    required
+                    className="pr-10"
+                    onChange={() => setErrorMessage("")}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      // Preserve the password value when toggling visibility
-                      // Try to get value from React Hook Form first, then from DOM
-                      let currentPassword = getValues("password");
-                      if (!currentPassword) {
-                        const passwordInput = document.getElementById(
-                          "password"
-                        ) as HTMLInputElement;
-                        if (passwordInput) {
-                          currentPassword = passwordInput.value;
-                        }
-                      }
-                      setShowPassword(!showPassword);
-                      // Ensure the value is preserved after type change
-                      if (currentPassword) {
-                        // Use setTimeout to ensure the value is set after the type change
-                        setTimeout(() => {
-                          setValue("password", currentPassword, {
-                            shouldValidate: false,
-                            shouldDirty: true,
-                          });
-                        }, 0);
-                      }
-                    }}
+                    onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-gray-500" />
@@ -296,11 +142,6 @@ export default function LoginPage() {
                     )}
                   </Button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-red-500">
-                    {errors.password.message}
-                  </p>
-                )}
               </div>
 
               <Button

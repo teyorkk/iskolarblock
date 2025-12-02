@@ -1,39 +1,40 @@
-'use client'
+"use client";
 
-import { motion } from "framer-motion"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useSession } from "@/components/session-provider"
-import { Loading } from "@/components/loading"
+import { motion } from "framer-motion";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/components/session-provider";
+import { Loading } from "@/components/loading";
 
 export default function AdminLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const router = useRouter()
-  const { ready, user, isAdmin, loadingRole } = useSession()
-  const hydrated = ready && typeof window !== 'undefined'
+  const router = useRouter();
+  const { ready, user, isAdmin, loadingRole } = useSession();
+  const hydrated = ready && typeof window !== "undefined";
 
   useEffect(() => {
-    if (!hydrated || loadingRole) return
+    if (!hydrated) return;
     if (!user) {
-      router.push('/login')
-      return
+      router.push("/login");
+      return;
     }
-    // If user is not admin, redirect to user dashboard
-    if (!isAdmin) {
-      router.push('/user-dashboard')
+    // Only redirect if role is fully loaded and user is confirmed not admin
+    if (!loadingRole && !isAdmin) {
+      console.log("Admin layout: redirecting non-admin to user-dashboard");
+      router.push("/user-dashboard");
     }
-  }, [hydrated, user, isAdmin, loadingRole, router])
+  }, [hydrated, user, isAdmin, loadingRole, router]);
 
   if (!hydrated || !user || loadingRole) {
-    return <Loading />
+    return <Loading />;
   }
 
   // If user is not admin, show loading while redirecting
   if (!isAdmin) {
-    return <Loading />
+    return <Loading />;
   }
 
   return (
@@ -44,5 +45,5 @@ export default function AdminLayout({
     >
       {children}
     </motion.div>
-  )
+  );
 }

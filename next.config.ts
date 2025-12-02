@@ -25,8 +25,8 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     // Image sizes for different breakpoints
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Minimum quality for optimized images (1-100, default is 75)
-    minimumCacheTTL: 60, // Cache optimized images for 60 seconds
+    // Cache optimized images for 1 year (images are immutable with content hashing)
+    minimumCacheTTL: 31536000, // 1 year in seconds
     // Enable image optimization
     dangerouslyAllowSVG: true, // Allow SVG optimization (for iskolarblock.svg)
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
