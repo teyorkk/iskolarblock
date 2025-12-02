@@ -164,12 +164,8 @@ export default function RenewalApplicationPage() {
         );
 
         if (currentApplication) {
-          setIsPageLocked(true);
-          setLockReason(
-            "You already submitted an application for the current period. Renewals are limited to one submission."
-          );
-          setLockStatus(currentApplication.status);
-          setIsCheckingEligibility(false);
+          // User already submitted for current period, redirect to /application
+          router.push("/application");
           return;
         }
 
@@ -388,6 +384,11 @@ export default function RenewalApplicationPage() {
               : "Missing documents detected. Submit the rest to move from Pending to Approved.",
         }
       );
+
+      // Redirect to /application after successful submission
+      setTimeout(() => {
+        router.push("/application");
+      }, 2000);
     } catch (error) {
       setIsSubmitting(false);
       const errorMessage =

@@ -9,6 +9,7 @@ import {
   capitalizeText,
 } from "@/lib/utils";
 import { getDocumentRemarks } from "@/lib/utils/application-remarks";
+import { sendEmailNotification } from "@/lib/services/email-notification";
 
 interface RenewApplicationRequest {
   // Images (base64 strings)
@@ -104,7 +105,7 @@ const resolveStoredDocumentUrl = (
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = await getSupabaseServerClient();
     const body = (await request.json()) as RenewApplicationRequest;
 
     // Get current user
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
     // Get user ID from User table
     const { data: userData, error: userError } = await supabase
       .from("User")
-      .select("id")
+      .select("id, email")
       .eq("email", user.email)
       .single();
 
@@ -420,6 +421,26 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       console.error("Blockchain logging failed (renewal application):", error);
+    }
+
+    // Send email notification for renewal submission
+    if (userData.email) {
+      const applicantFullName =
+        capitalizedPersonalInfo.firstName && capitalizedPersonalInfo.lastName
+          ? `${capitalizedPersonalInfo.firstName} ${capitalizedPersonalInfo.middleName ? capitalizedPersonalInfo.middleName + " " : ""}${capitalizedPersonalInfo.lastName}`.trim()
+          : "Applicant";
+
+      await sendEmailNotification({
+        applicantName: applicantFullName,
+        applicantEmail: userData.email,
+        applicationId,
+        applicationType: "RENEWAL",
+        status: "PENDING",
+        submissionDate: now,
+      }).catch((error) => {
+        console.error("Failed to send renewal confirmation email:", error);
+        // Don't fail the renewal submission if email fails
+      });
     }
 
     return NextResponse.json({

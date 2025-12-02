@@ -4,6 +4,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/utils/auth-server";
 import { logAwardingToBlockchain } from "@/lib/services/blockchain";
 import { logEvent } from "@/lib/services/log-events";
+import { sendEmailNotification } from "@/lib/services/email-notification";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -40,7 +41,14 @@ export async function PATCH(request: Request, context: RouteContext) {
         userId,
         status,
         applicationDetails,
-        applicationPeriodId
+        applicationPeriodId,
+        applicationType,
+        createdAt,
+        User!Application_userId_fkey (
+          id,
+          name,
+          email
+        )
       `
       )
       .eq("id", id)
@@ -155,6 +163,28 @@ export async function PATCH(request: Request, context: RouteContext) {
       actorAvatarUrl: adminProfile?.profilePicture ?? null,
       metadata: { applicationId: id, amount: scholarAmount },
     });
+
+    // Send email notification for GRANTED status
+    const userData = Array.isArray(existingApplication.User)
+      ? existingApplication.User[0]
+      : existingApplication.User;
+    const userEmail = userData?.email;
+
+    if (userEmail) {
+      const applicantName = getAwardeeName(existingApplication);
+
+      await sendEmailNotification({
+        applicantName,
+        applicantEmail: userEmail,
+        applicationId: id,
+        applicationType: existingApplication.applicationType || "NEW",
+        status: "GRANTED",
+        submissionDate: existingApplication.createdAt,
+      }).catch((error) => {
+        console.error("Failed to send granted notification email:", error);
+        // Don't fail the awarding if email fails
+      });
+    }
 
     return NextResponse.json({ application: data });
   } catch (error) {

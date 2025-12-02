@@ -21,6 +21,33 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const periodId = searchParams.get("periodId");
 
+    // If no periodId is provided, get the active period
+    let activePeriodId = periodId;
+    if (!activePeriodId) {
+      const { data: activePeriod } = await supabase
+        .from("ApplicationPeriod")
+        .select("id")
+        .lte("startDate", new Date().toISOString())
+        .gte("endDate", new Date().toISOString())
+        .single();
+
+      if (activePeriod) {
+        activePeriodId = activePeriod.id;
+      } else {
+        // If no active period, get the most recent one
+        const { data: latestPeriod } = await supabase
+          .from("ApplicationPeriod")
+          .select("id")
+          .order("createdAt", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (latestPeriod) {
+          activePeriodId = latestPeriod.id;
+        }
+      }
+    }
+
     // Fetch applications with user data
     let query = supabase.from("Application").select(
       `
@@ -41,9 +68,9 @@ export async function GET(request: Request) {
       `
     );
 
-    // Filter by period if provided
-    if (periodId) {
-      query = query.eq("applicationPeriodId", periodId);
+    // Filter by period
+    if (activePeriodId) {
+      query = query.eq("applicationPeriodId", activePeriodId);
     }
 
     const { data: applications, error: appsError } = await query.order(
