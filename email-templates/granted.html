@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IskolarBlock — Scholarship Granted!</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background-color: #ffffff; padding: 20px 0"
+    >
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              border-collapse: collapse;
+              border: 1px solid #f3e8ff;
+              border-radius: 12px;
+              overflow: hidden;
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                style="
+                  background-color: #9333ea;
+                  padding: 22px 28px;
+                  text-align: center;
+                  color: #ffffff;
+                "
+              >
+                <h1
+                  style="
+                    margin: 0;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 22px;
+                    line-height: 1;
+                    color: #fff;
+                  "
+                >
+                  IskolarBlock
+                </h1>
+                <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.95">
+                  Congratulations! Your scholarship has been granted
+                </p>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="background-color: #ffffff; padding: 28px">
+                <p style="margin: 0 0 14px 0; color: #333333; font-size: 15px">
+                  Dear {{ $json.body.applicantName }},
+                </p>
+
+                <p style="margin: 0 0 18px 0; color: #333333; font-size: 15px">
+                  We are thrilled to inform you that your scholarship
+                  application has been
+                  <strong style="color: #9333ea">GRANTED</strong>!
+                </p>
+
+                <!-- Status Box -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    margin: 18px 0;
+                    background: #faf5ff;
+                    border: 1px solid #e9d5ff;
+                    border-radius: 10px;
+                    padding: 18px;
+                  "
+                >
+                  <tr>
+                    <td>
+                      <div style="margin-bottom: 8px">
+                        <span style="color: #666666; font-size: 13px"
+                          >Application ID:</span
+                        >
+                        <span
+                          style="
+                            color: #333333;
+                            font-size: 14px;
+                            font-weight: 600;
+                            margin-left: 8px;
+                          "
+                          >{{ $json.body.applicationId }}</span
+                        >
+                      </div>
+                      <div style="margin-bottom: 8px">
+                        <span style="color: #666666; font-size: 13px"
+                          >Application Type:</span
+                        >
+                        <span
+                          style="
+                            color: #333333;
+                            font-size: 14px;
+                            font-weight: 600;
+                            margin-left: 8px;
+                          "
+                          >{{ $json.body.applicationType }}</span
+                        >
+                      </div>
+                      <div>
+                        <span style="color: #666666; font-size: 13px"
+                          >Status:</span
+                        >
+                        <span
+                          style="
+                            color: #9333ea;
+                            font-size: 14px;
+                            font-weight: 700;
+                            margin-left: 8px;
+                          "
+                          >GRANTED</span
+                        >
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Visit Site Button -->
+                <table
+                  role="presentation"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="margin: 0 auto 18px auto; text-align: center"
+                >
+                  <tr>
+                    <td align="center">
+                      <a
+                        href="https://iskolarblock.app"
+                        style="
+                          display: inline-block;
+                          padding: 12px 22px;
+                          border-radius: 8px;
+                          background: #9333ea;
+                          color: #ffffff;
+                          text-decoration: none;
+                          font-weight: 600;
+                        "
+                        >Visit Site</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin: 0 0 6px 0; color: #666666; font-size: 14px">
+                  If you have any questions, please don't hesitate to contact
+                  us.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  background-color: #fdfbff;
+                  padding: 14px 22px;
+                  text-align: center;
+                  color: #999999;
+                  font-size: 12px;
+                "
+              >
+                <div>© 2025 IskolarBlock. All rights reserved.</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

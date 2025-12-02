@@ -144,11 +144,9 @@ export default function NewApplicationPage() {
         }
 
         if (existingApplications && existingApplications.length > 0) {
-          setIsPageLocked(true);
-          setLockReason(
-            "You already submitted an application for the current period. Please wait for updates or check your history."
-          );
-          setLockStatus(existingApplications[0].status);
+          // User already submitted for current period, redirect to /application
+          router.push("/application");
+          return;
         } else {
           setIsPageLocked(false);
           setLockReason(null);

@@ -10,6 +10,7 @@ import {
   capitalizeText,
 } from "@/lib/utils";
 import { getDocumentRemarks } from "@/lib/utils/application-remarks";
+import { sendEmailNotification } from "@/lib/services/email-notification";
 
 interface SubmitApplicationRequest {
   // Form data
@@ -437,6 +438,23 @@ export async function POST(request: NextRequest) {
       },
       supabase
     );
+
+    // Send email notification for application submission
+    if (userData.email) {
+      const applicantFullName = `${capitalizedFormData.firstName} ${capitalizedFormData.middleName ? capitalizedFormData.middleName + " " : ""}${capitalizedFormData.lastName}`.trim();
+
+      await sendEmailNotification({
+        applicantName: applicantFullName,
+        applicantEmail: userData.email,
+        applicationId,
+        applicationType: "NEW",
+        status: "PENDING",
+        submissionDate: now,
+      }).catch((error) => {
+        console.error("Failed to send confirmation email:", error);
+        // Don't fail the application submission if email fails
+      });
+    }
 
     return NextResponse.json({
       success: true,

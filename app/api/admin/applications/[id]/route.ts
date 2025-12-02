@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/auth-server";
 import { expirePendingApplications } from "@/lib/services/application-status";
+import { sendEmailNotification } from "@/lib/services/email-notification";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -45,7 +46,16 @@ export async function PATCH(request: Request, context: RouteContext) {
       .from("Application")
       .update(updateData)
       .eq("id", id)
-      .select()
+      .select(
+        `
+        *,
+        User!Application_userId_fkey (
+          id,
+          name,
+          email
+        )
+      `
+      )
       .single();
 
     if (error) {
@@ -54,6 +64,55 @@ export async function PATCH(request: Request, context: RouteContext) {
         { error: "Failed to update application" },
         { status: 500 }
       );
+    }
+
+    // Send email notification for APPROVED or REJECTED status
+    if (data && (status === "APPROVED" || status === "REJECTED")) {
+      const userData = Array.isArray(data.User) ? data.User[0] : data.User;
+      const userEmail = userData?.email;
+
+      if (userEmail) {
+        // Extract applicant name from application details
+        const applicationDetails =
+          typeof data.applicationDetails === "object" &&
+          data.applicationDetails !== null
+            ? data.applicationDetails
+            : {};
+        const personalInfo =
+          "personalInfo" in applicationDetails &&
+          typeof applicationDetails.personalInfo === "object"
+            ? (applicationDetails.personalInfo as Record<string, unknown>)
+            : {};
+
+        const firstName =
+          typeof personalInfo.firstName === "string"
+            ? personalInfo.firstName
+            : "";
+        const middleName =
+          typeof personalInfo.middleName === "string"
+            ? personalInfo.middleName
+            : "";
+        const lastName =
+          typeof personalInfo.lastName === "string"
+            ? personalInfo.lastName
+            : "";
+        const applicantName =
+          `${firstName} ${middleName} ${lastName}`.trim() ||
+          "Applicant";
+
+        await sendEmailNotification({
+          applicantName,
+          applicantEmail: userEmail,
+          applicationId: id,
+          applicationType: data.applicationType || "NEW",
+          status: status as "APPROVED" | "REJECTED",
+          rejectionReason: status === "REJECTED" ? remarks : undefined,
+          submissionDate: data.createdAt,
+        }).catch((error) => {
+          console.error("Failed to send status update email:", error);
+          // Don't fail the status update if email fails
+        });
+      }
     }
 
     return NextResponse.json({ application: data });

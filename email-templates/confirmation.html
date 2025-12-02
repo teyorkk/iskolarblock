@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IskolarBlock — Confirm your email</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background-color: #ffffff; padding: 20px 0"
+    >
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              border-collapse: collapse;
+              border: 1px solid #fff2e6;
+              border-radius: 12px;
+              overflow: hidden;
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                style="
+                  background-color: #ff6a00;
+                  padding: 22px 28px;
+                  text-align: center;
+                  color: #ffffff;
+                "
+              >
+                <h1
+                  style="
+                    margin: 0;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 22px;
+                    line-height: 1;
+                    color: #fff;
+                  "
+                >
+                  IskolarBlock
+                </h1>
+                <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.95">
+                  Confirm your email to complete signup
+                </p>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="background-color: #ffffff; padding: 28px">
+                <p style="margin: 0 0 14px 0; color: #333333; font-size: 15px">
+                  Hi there, here is your verification code:
+                </p>
+
+                <!-- OTP Box -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    margin: 18px 0;
+                    background: #fff7ef;
+                    border: 1px solid #ffe8d6;
+                    border-radius: 10px;
+                    padding: 18px;
+                    text-align: center;
+                  "
+                >
+                  <tr>
+                    <td>
+                      <div
+                        style="
+                          font-size: 28px;
+                          letter-spacing: 4px;
+                          font-weight: 700;
+                          color: #ff6a00;
+                        "
+                      >
+                        {{ .Token }}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin: 0 0 18px 0; color: #666666; font-size: 14px">
+                  Or simply click the button below to confirm your account:
+                </p>
+
+                <!-- Confirm Button -->
+                <table
+                  role="presentation"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="margin: 0 auto 18px auto; text-align: center"
+                >
+                  <tr>
+                    <td align="center">
+                      <a
+                        href="{{ .ConfirmationURL }}"
+                        style="
+                          display: inline-block;
+                          padding: 12px 22px;
+                          border-radius: 8px;
+                          background: #ff6a00;
+                          color: #ffffff;
+                          text-decoration: none;
+                          font-weight: 600;
+                        "
+                        >Confirm my email</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Fallback link -->
+                <p style="margin: 0 0 6px 0; color: #999999; font-size: 12px">
+                  If the button doesn't work, copy and paste the following link
+                  into your browser:
+                </p>
+                <p
+                  style="
+                    word-break: break-all;
+                    margin: 0 0 14px 0;
+                    font-size: 12px;
+                    color: #0066cc;
+                  "
+                >
+                  {{ .ConfirmationURL }}
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  background-color: #fffdfb;
+                  padding: 14px 22px;
+                  text-align: center;
+                  color: #999999;
+                  font-size: 12px;
+                "
+              >
+                <div>
+                  © 2025 IskolarBlock. All rights reserved.
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
