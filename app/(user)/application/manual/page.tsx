@@ -229,7 +229,7 @@ export default function ManualApplicationPage() {
         const filePath = `${folder}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("application-documents")
+          .from("documents")
           .upload(filePath, file);
 
         if (uploadError) {
@@ -238,7 +238,7 @@ export default function ManualApplicationPage() {
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from("application-documents").getPublicUrl(filePath);
+        } = supabase.storage.from("documents").getPublicUrl(filePath);
 
         return publicUrl;
       };
