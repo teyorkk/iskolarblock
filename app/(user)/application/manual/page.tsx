@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { Upload, Loader2, CheckCircle2, FileText, User, Home, Plus, Trash2, IdCard, BookOpen } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 
 // Subject type for COG
 type Subject = {
@@ -218,15 +219,100 @@ export default function ManualApplicationPage() {
         return;
       }
 
+      // Generate application ID using same format as new applications
+      const applicationId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      console.log("Generated UUID:", applicationId);
+      console.log("UUID type:", typeof applicationId);
+
+      if (!applicationId) {
+        toast.error("Failed to generate application ID");
+        return;
+      }
+
+      // Create application record first to get the ID
+      const { data: newApplication, error: insertError } = await supabase
+        .from("Application")
+        .insert({
+          id: applicationId,
+          userId: user.id,
+          applicationPeriodId: activePeriod.id,
+          applicationType: "NEW",
+          status: "PENDING",
+          createdAt: now,
+          updatedAt: now,
+          remarks: "No document submitted",
+          applicationDetails: {
+            personalInfo: {
+              firstName: data.firstName,
+              middleName: data.middleName || "",
+              lastName: data.lastName,
+              dateOfBirth: data.dateOfBirth,
+              placeOfBirth: data.placeOfBirth,
+              age: data.age || "",
+              sex: data.sex,
+            },
+            address: {
+              houseNumber: data.houseNumber,
+              purok: data.purok,
+              barangay: data.barangay,
+              municipality: data.municipality,
+              province: data.province,
+            },
+            academicInfo: {
+              contactNumber: data.contactNumber,
+              citizenship: data.citizenship,
+              religion: data.religion,
+              course: data.course,
+              yearLevel: data.yearLevel,
+            },
+            corData: data.corSchool ? {
+              school: data.corSchool,
+              schoolYear: data.corSchoolYear,
+              semester: data.corSemester,
+              course: data.corCourse,
+              name: data.corName,
+              totalUnits: data.corTotalUnits,
+            } : null,
+            cogData: data.cogSchool ? {
+              school: data.cogSchool,
+              schoolYear: data.cogSchoolYear,
+              semester: data.cogSemester,
+              course: data.cogCourse,
+              name: data.cogName,
+              subjects: cogSubjects,
+              totalUnits: cogTotalUnits,
+              gwa: cogGwa,
+              gradingSystem: gradingSystem,
+            } : null,
+          },
+        })
+        .select()
+        .single();
+
+      if (insertError || !newApplication) {
+        console.error("Insert error details:", insertError);
+        console.error("Generated applicationId:", applicationId);
+        console.error("Insert payload:", {
+          id: applicationId,
+          userId: user.id,
+          applicationPeriodId: activePeriod.id,
+        });
+        throw new Error(insertError?.message || "Failed to create application record");
+      }
+
+      console.log("Application created successfully:", newApplication);
+
       let idUrl = null;
       let corUrl = null;
       let cogUrl = null;
 
-      // Upload files to Supabase Storage (if provided)
+      // Upload files to Supabase Storage using the application ID (if provided)
       const uploadFile = async (file: File, folder: string) => {
         const fileExt = file.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `${folder}/${fileName}`;
+        const filePath = `applications/${newApplication.id}/${folder}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("documents")
@@ -255,72 +341,42 @@ export default function ManualApplicationPage() {
         if (uploadedFiles.cog) {
           cogUrl = await uploadFile(uploadedFiles.cog, "cogs");
         }
+
+        // Update application with document URLs and remarks
+        const hasCog = !!cogUrl;
+        const hasCor = !!corUrl;
+        const remarks = getDocumentRemarks(hasCog, hasCor);
+
+        const { error: updateError } = await supabase
+          .from("Application")
+          .update({
+            remarks,
+            applicationDetails: {
+              ...newApplication.applicationDetails,
+              documents: {
+                idUrl,
+                corUrl,
+                cogUrl,
+              },
+            },
+          })
+          .eq("id", newApplication.id);
+
+        if (updateError) {
+          throw new Error(`Failed to update application with document URLs: ${updateError.message}`);
+        }
       }
 
-      // Prepare application data with COR and COG details
-      const applicationData = {
-        userId: user.id,
-        applicationPeriodId: activePeriod.id,
-        applicationType: "NEW",
-        status: "PENDING",
-        applicationDetails: {
-          personalInfo: {
-            firstName: data.firstName,
-            middleName: data.middleName || "",
-            lastName: data.lastName,
-            dateOfBirth: data.dateOfBirth,
-            placeOfBirth: data.placeOfBirth,
-            age: data.age || "",
-            sex: data.sex,
-          },
-          address: {
-            houseNumber: data.houseNumber,
-            purok: data.purok,
-            barangay: data.barangay,
-            municipality: data.municipality,
-            province: data.province,
-          },
-          academicInfo: {
-            contactNumber: data.contactNumber,
-            citizenship: data.citizenship,
-            religion: data.religion,
-            course: data.course,
-            yearLevel: data.yearLevel,
-          },
-          documents: {
-            idUrl,
-            corUrl,
-            cogUrl,
-          },
-          corData: data.corSchool ? {
-            school: data.corSchool,
-            schoolYear: data.corSchoolYear,
-            semester: data.corSemester,
-            course: data.corCourse,
-            name: data.corName,
-            totalUnits: data.corTotalUnits,
-          } : null,
-          cogData: data.cogSchool ? {
-            school: data.cogSchool,
-            schoolYear: data.cogSchoolYear,
-            semester: data.cogSemester,
-            course: data.cogCourse,
-            name: data.cogName,
-            subjects: cogSubjects,
-            totalUnits: cogTotalUnits,
-            gwa: cogGwa,
-            gradingSystem: gradingSystem,
-          } : null,
-        },
-      };
-
-      // Submit application
+      // Submit to API for blockchain logging and email notification
       const response = await fetch("/api/applications/manual-submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(applicationData),
+        body: JSON.stringify({
+          applicationId: newApplication.id,
+          userId: user.id,
+        }),
       });
 
       const result = await response.json();
