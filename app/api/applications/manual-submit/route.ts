@@ -56,6 +56,32 @@ export async function POST(request: NextRequest) {
     try {
       transactionHash = await logApplicationToBlockchain(applicationId, userData.id);
       console.log("Blockchain transaction hash:", transactionHash);
+      
+      // Persist blockchain record in database when available
+      if (transactionHash) {
+        try {
+          const blockchainRecord = {
+            id: randomUUID(),
+            recordType: "APPLICATION",
+            transactionHash,
+            applicationId,
+            userId: userData.id,
+            timestamp: new Date().toISOString(),
+          };
+
+          const { error: brError } = await supabase
+            .from("BlockchainRecord")
+            .insert(blockchainRecord);
+
+          if (brError) {
+            console.error("Failed to persist blockchain record:", brError);
+          } else {
+            console.log("Blockchain record saved:", blockchainRecord.id);
+          }
+        } catch (persistError) {
+          console.error("Error saving blockchain record:", persistError);
+        }
+      }
     } catch (blockchainError) {
       console.error("Blockchain logging failed:", blockchainError);
       // Continue even if blockchain logging fails

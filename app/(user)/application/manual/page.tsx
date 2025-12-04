@@ -219,19 +219,16 @@ export default function ManualApplicationPage() {
         return;
       }
 
-      // Generate application ID using same format as new applications
-      const applicationId = crypto.randomUUID();
       const now = new Date().toISOString();
 
-      console.log("Generated UUID:", applicationId);
-      console.log("UUID type:", typeof applicationId);
+      // Generate application ID (client-side UUID v4 generation)
+      const applicationId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
 
-      if (!applicationId) {
-        toast.error("Failed to generate application ID");
-        return;
-      }
-
-      // Create application record first to get the ID
+      // Create application record with generated ID
       const { data: newApplication, error: insertError } = await supabase
         .from("Application")
         .insert({
@@ -293,12 +290,6 @@ export default function ManualApplicationPage() {
 
       if (insertError || !newApplication) {
         console.error("Insert error details:", insertError);
-        console.error("Generated applicationId:", applicationId);
-        console.error("Insert payload:", {
-          id: applicationId,
-          userId: user.id,
-          applicationPeriodId: activePeriod.id,
-        });
         throw new Error(insertError?.message || "Failed to create application record");
       }
 
@@ -385,7 +376,17 @@ export default function ManualApplicationPage() {
         throw new Error(result.error || "Failed to submit application");
       }
 
-      toast.success("Application submitted successfully!");
+      // Display success message with blockchain transaction hash if available
+      if (result.transactionHash) {
+        toast.success(
+          `Application submitted successfully! Blockchain TX: ${result.transactionHash.substring(0, 10)}...`,
+          { duration: 5000 }
+        );
+        console.log("Blockchain transaction hash:", result.transactionHash);
+      } else {
+        toast.success("Application submitted successfully!");
+      }
+      
       setTimeout(() => {
         router.push("/application");
       }, 2000);
