@@ -219,19 +219,16 @@ export default function ManualApplicationPage() {
         return;
       }
 
-      // Generate application ID using same format as new applications
-      const applicationId = crypto.randomUUID();
       const now = new Date().toISOString();
 
-      console.log("Generated UUID:", applicationId);
-      console.log("UUID type:", typeof applicationId);
+      // Generate application ID (client-side UUID v4 generation)
+      const applicationId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
 
-      if (!applicationId) {
-        toast.error("Failed to generate application ID");
-        return;
-      }
-
-      // Create application record first to get the ID
+      // Create application record with generated ID
       const { data: newApplication, error: insertError } = await supabase
         .from("Application")
         .insert({
@@ -293,12 +290,6 @@ export default function ManualApplicationPage() {
 
       if (insertError || !newApplication) {
         console.error("Insert error details:", insertError);
-        console.error("Generated applicationId:", applicationId);
-        console.error("Insert payload:", {
-          id: applicationId,
-          userId: user.id,
-          applicationPeriodId: activePeriod.id,
-        });
         throw new Error(insertError?.message || "Failed to create application record");
       }
 
@@ -308,18 +299,19 @@ export default function ManualApplicationPage() {
       let corUrl = null;
       let cogUrl = null;
 
-      // Upload files to Supabase Storage using the application ID (if provided)
-      const uploadFile = async (file: File, folder: string) => {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `applications/${newApplication.id}/${folder}/${fileName}`;
+      // Upload files to Supabase Storage using the same path format as new/renew applications
+      const uploadFile = async (file: File, type: string) => {
+        const filePath = `applications/${user.id}/${applicationId}/${type}-${Date.now()}-${file.name}`;
 
         const { error: uploadError } = await supabase.storage
           .from("documents")
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            contentType: file.type,
+            cacheControl: "3600",
+          });
 
         if (uploadError) {
-          throw new Error(`Failed to upload ${folder}: ${uploadError.message}`);
+          throw new Error(`Failed to upload ${type}: ${uploadError.message}`);
         }
 
         const {
@@ -333,13 +325,13 @@ export default function ManualApplicationPage() {
         toast.info("Uploading documents...");
         
         if (uploadedFiles.id) {
-          idUrl = await uploadFile(uploadedFiles.id, "ids");
+          idUrl = await uploadFile(uploadedFiles.id, "id");
         }
         if (uploadedFiles.cor) {
-          corUrl = await uploadFile(uploadedFiles.cor, "cors");
+          corUrl = await uploadFile(uploadedFiles.cor, "cor");
         }
         if (uploadedFiles.cog) {
-          cogUrl = await uploadFile(uploadedFiles.cog, "cogs");
+          cogUrl = await uploadFile(uploadedFiles.cog, "cog");
         }
 
         // Update application with document URLs and remarks
@@ -385,7 +377,17 @@ export default function ManualApplicationPage() {
         throw new Error(result.error || "Failed to submit application");
       }
 
-      toast.success("Application submitted successfully!");
+      // Display success message with blockchain transaction hash if available
+      if (result.transactionHash) {
+        toast.success(
+          `Application submitted successfully! Blockchain TX: ${result.transactionHash.substring(0, 10)}...`,
+          { duration: 5000 }
+        );
+        console.log("Blockchain transaction hash:", result.transactionHash);
+      } else {
+        toast.success("Application submitted successfully!");
+      }
+      
       setTimeout(() => {
         router.push("/application");
       }, 2000);
