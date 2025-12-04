@@ -299,18 +299,19 @@ export default function ManualApplicationPage() {
       let corUrl = null;
       let cogUrl = null;
 
-      // Upload files to Supabase Storage using the application ID (if provided)
-      const uploadFile = async (file: File, folder: string) => {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `applications/${newApplication.id}/${folder}/${fileName}`;
+      // Upload files to Supabase Storage using the same path format as new/renew applications
+      const uploadFile = async (file: File, type: string) => {
+        const filePath = `applications/${user.id}/${applicationId}/${type}-${Date.now()}-${file.name}`;
 
         const { error: uploadError } = await supabase.storage
           .from("documents")
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            contentType: file.type,
+            cacheControl: "3600",
+          });
 
         if (uploadError) {
-          throw new Error(`Failed to upload ${folder}: ${uploadError.message}`);
+          throw new Error(`Failed to upload ${type}: ${uploadError.message}`);
         }
 
         const {
@@ -324,13 +325,13 @@ export default function ManualApplicationPage() {
         toast.info("Uploading documents...");
         
         if (uploadedFiles.id) {
-          idUrl = await uploadFile(uploadedFiles.id, "ids");
+          idUrl = await uploadFile(uploadedFiles.id, "id");
         }
         if (uploadedFiles.cor) {
-          corUrl = await uploadFile(uploadedFiles.cor, "cors");
+          corUrl = await uploadFile(uploadedFiles.cor, "cor");
         }
         if (uploadedFiles.cog) {
-          cogUrl = await uploadFile(uploadedFiles.cog, "cogs");
+          cogUrl = await uploadFile(uploadedFiles.cog, "cog");
         }
 
         // Update application with document URLs and remarks
