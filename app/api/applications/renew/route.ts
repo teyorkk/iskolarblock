@@ -427,7 +427,11 @@ export async function POST(request: NextRequest) {
     if (userData.email) {
       const applicantFullName =
         capitalizedPersonalInfo.firstName && capitalizedPersonalInfo.lastName
-          ? `${capitalizedPersonalInfo.firstName} ${capitalizedPersonalInfo.middleName ? capitalizedPersonalInfo.middleName + " " : ""}${capitalizedPersonalInfo.lastName}`.trim()
+          ? `${capitalizedPersonalInfo.firstName} ${
+              capitalizedPersonalInfo.middleName
+                ? capitalizedPersonalInfo.middleName + " "
+                : ""
+            }${capitalizedPersonalInfo.lastName}`.trim()
           : "Applicant";
 
       await sendEmailNotification({
