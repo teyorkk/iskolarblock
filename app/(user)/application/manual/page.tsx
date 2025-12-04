@@ -334,6 +334,62 @@ export default function ManualApplicationPage() {
           cogUrl = await uploadFile(uploadedFiles.cog, "cog");
         }
 
+        // Create CertificateOfGrades record if COG file was uploaded (data is optional)
+        if (cogUrl) {
+          const cogId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+
+          const { error: cogError } = await supabase
+            .from("CertificateOfGrades")
+            .insert({
+              id: cogId,
+              applicationId: applicationId,
+              school: data.cogSchool || "",
+              schoolYear: data.cogSchoolYear || "",
+              semester: data.cogSemester || "",
+              course: data.cogCourse || "",
+              name: data.cogName || "",
+              gwa: parseFloat(cogGwa) || 0,
+              totalUnits: cogTotalUnits || 0,
+              subjects: cogSubjects,
+              fileUrl: cogUrl,
+            });
+
+          if (cogError) {
+            console.error("CertificateOfGrades creation error:", cogError);
+          }
+        }
+
+        // Create CertificateOfRegistration record if COR file was uploaded (data is optional)
+        if (corUrl) {
+          const corId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+
+          const { error: corError } = await supabase
+            .from("CertificateOfRegistration")
+            .insert({
+              id: corId,
+              applicationId: applicationId,
+              school: data.corSchool || "",
+              schoolYear: data.corSchoolYear || "",
+              semester: data.corSemester || "",
+              course: data.corCourse || "",
+              name: data.corName || "",
+              totalUnits: parseInt(data.corTotalUnits || "0") || 0,
+              fileUrl: corUrl,
+            });
+
+          if (corError) {
+            console.error("CertificateOfRegistration creation error:", corError);
+          }
+        }
+
         // Update application with document URLs and remarks
         const hasCog = !!cogUrl;
         const hasCor = !!corUrl;
