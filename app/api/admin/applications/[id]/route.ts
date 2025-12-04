@@ -31,10 +31,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     // Prepare update object
-    const updateData: { status: string; updatedAt: string; remarks?: string } = {
-      status,
-      updatedAt: new Date().toISOString(),
-    };
+    const updateData: { status: string; updatedAt: string; remarks?: string } =
+      {
+        status,
+        updatedAt: new Date().toISOString(),
+      };
 
     // Include remarks if provided (especially for rejections)
     if (remarks !== undefined) {
@@ -97,8 +98,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             ? personalInfo.lastName
             : "";
         const applicantName =
-          `${firstName} ${middleName} ${lastName}`.trim() ||
-          "Applicant";
+          `${firstName} ${middleName} ${lastName}`.trim() || "Applicant";
 
         await sendEmailNotification({
           applicantName,

@@ -141,9 +141,13 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    let adminProfile:
-      | { id: string; name: string | null; email: string | null; role: string | null; profilePicture: string | null }
-      | null = null;
+    let adminProfile: {
+      id: string;
+      name: string | null;
+      email: string | null;
+      role: string | null;
+      profilePicture: string | null;
+    } | null = null;
     if (adminInfo?.email) {
       const { data: adminUser } = await supabaseAdmin
         .from("User")

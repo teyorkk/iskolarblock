@@ -441,7 +441,11 @@ export async function POST(request: NextRequest) {
 
     // Send email notification for application submission
     if (userData.email) {
-      const applicantFullName = `${capitalizedFormData.firstName} ${capitalizedFormData.middleName ? capitalizedFormData.middleName + " " : ""}${capitalizedFormData.lastName}`.trim();
+      const applicantFullName = `${capitalizedFormData.firstName} ${
+        capitalizedFormData.middleName
+          ? capitalizedFormData.middleName + " "
+          : ""
+      }${capitalizedFormData.lastName}`.trim();
 
       await sendEmailNotification({
         applicantName: applicantFullName,
