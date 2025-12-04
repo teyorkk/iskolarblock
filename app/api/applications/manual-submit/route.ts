@@ -4,24 +4,19 @@ import { randomUUID } from "crypto";
 import { logApplicationToBlockchain } from "@/lib/services/blockchain";
 import { logEvent } from "@/lib/services/log-events";
 import { sendEmailNotification } from "@/lib/services/email-notification";
+import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = getSupabaseServerClient();
     const body = await request.json();
 
-    const {
-      userId,
-      applicationPeriodId,
-      applicationType,
-      status,
-      applicationDetails,
-    } = body;
+    const { applicationId, userId } = body;
 
     // Validate required fields
-    if (!userId || !applicationPeriodId || !applicationDetails) {
+    if (!applicationId || !userId) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: applicationId and userId" },
         { status: 400 }
       );
     }
@@ -40,33 +35,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate application ID
-    const applicationId = `APP-${Date.now()}-${randomUUID().substring(0, 8).toUpperCase()}`;
-
-    // Prepare application data for database
-    const applicationData = {
-      id: applicationId,
-      userId: userData.id,
-      applicationPeriodId,
-      applicationType: applicationType || "NEW",
-      status: status || "PENDING",
-      applicationDetails,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Insert application into database
-    const { data: insertedApplication, error: insertError } = await supabase
+    // Get application data
+    const { data: applicationData, error: appError } = await supabase
       .from("Application")
-      .insert(applicationData)
-      .select()
+      .select("*")
+      .eq("id", applicationId)
       .single();
 
-    if (insertError) {
-      console.error("Error inserting application:", insertError);
+    if (appError || !applicationData) {
       return NextResponse.json(
-        { error: "Failed to submit application", details: insertError.message },
-        { status: 500 }
+        { error: "Application not found" },
+        { status: 404 }
       );
     }
 
@@ -92,7 +71,7 @@ export async function POST(request: NextRequest) {
         actorRole: userData.role || "USER",
         metadata: {
           applicationId,
-          applicationType: applicationType || "NEW",
+          applicationType: applicationData.applicationType || "NEW",
           submissionMethod: "MANUAL_ENTRY",
         },
       });
@@ -104,12 +83,12 @@ export async function POST(request: NextRequest) {
     // Send email notification
     try {
       await sendEmailNotification({
-        applicantName: applicationDetails.personalInfo?.firstName
-          ? `${applicationDetails.personalInfo.firstName} ${applicationDetails.personalInfo.lastName}`
+        applicantName: applicationData.applicationDetails?.personalInfo?.firstName
+          ? `${applicationData.applicationDetails.personalInfo.firstName} ${applicationData.applicationDetails.personalInfo.lastName}`
           : userData.name || "Applicant",
         applicantEmail: userData.email,
         applicationId,
-        applicationType: applicationType || "NEW",
+        applicationType: applicationData.applicationType || "NEW",
         status: "PENDING",
         submissionDate: new Date().toLocaleDateString(),
       });
@@ -122,7 +101,8 @@ export async function POST(request: NextRequest) {
       success: true,
       applicationId,
       message: "Application submitted successfully",
-      data: insertedApplication,
+      data: applicationData,
+      transactionHash,
     });
   } catch (error) {
     console.error("Error in manual application submission:", error);
