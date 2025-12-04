@@ -65,19 +65,19 @@ const manualApplicationSchema = z.object({
   }),
 
   // COR Information
-  corSchool: z.string().min(1, "School is required"),
-  corSchoolYear: z.string().min(1, "School year is required"),
-  corSemester: z.string().min(1, "Semester is required"),
-  corCourse: z.string().min(1, "Course is required"),
-  corName: z.string().min(1, "Name is required"),
-  corTotalUnits: z.string().min(1, "Total units is required"),
+  corSchool: z.string().optional(),
+  corSchoolYear: z.string().optional(),
+  corSemester: z.string().optional(),
+  corCourse: z.string().optional(),
+  corName: z.string().optional(),
+  corTotalUnits: z.string().optional(),
 
   // COG Information
-  cogSchool: z.string().min(1, "School is required"),
-  cogSchoolYear: z.string().min(1, "School year is required"),
-  cogSemester: z.string().min(1, "Semester is required"),
-  cogCourse: z.string().min(1, "Course is required"),
-  cogName: z.string().min(1, "Name is required"),
+  cogSchool: z.string().optional(),
+  cogSchoolYear: z.string().optional(),
+  cogSemester: z.string().optional(),
+  cogCourse: z.string().optional(),
+  cogName: z.string().optional(),
 });
 
 type ManualApplicationForm = z.infer<typeof manualApplicationSchema>;
@@ -191,21 +191,6 @@ export default function ManualApplicationPage() {
     try {
       setIsSubmitting(true);
 
-      // Validate file uploads
-      if (!uploadedFiles.id || !uploadedFiles.cor || !uploadedFiles.cog) {
-        toast.error("Please upload all required documents (ID, COR, and COG)");
-        return;
-      }
-
-      // Validate COG subjects
-      const invalidSubject = cogSubjects.find(
-        (subject) => !subject.description || subject.units <= 0 || subject.grade <= 0
-      );
-      if (invalidSubject) {
-        toast.error("Please fill in all COG subject details");
-        return;
-      }
-
       const supabase = getSupabaseBrowserClient();
 
       // Get current user
@@ -233,7 +218,11 @@ export default function ManualApplicationPage() {
         return;
       }
 
-      // Upload files to Supabase Storage
+      let idUrl = null;
+      let corUrl = null;
+      let cogUrl = null;
+
+      // Upload files to Supabase Storage (if provided)
       const uploadFile = async (file: File, folder: string) => {
         const fileExt = file.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -254,12 +243,19 @@ export default function ManualApplicationPage() {
         return publicUrl;
       };
 
-      toast.info("Uploading documents...");
-      const [idUrl, corUrl, cogUrl] = await Promise.all([
-        uploadFile(uploadedFiles.id!, "ids"),
-        uploadFile(uploadedFiles.cor!, "cors"),
-        uploadFile(uploadedFiles.cog!, "cogs"),
-      ]);
+      if (uploadedFiles.id || uploadedFiles.cor || uploadedFiles.cog) {
+        toast.info("Uploading documents...");
+        
+        if (uploadedFiles.id) {
+          idUrl = await uploadFile(uploadedFiles.id, "ids");
+        }
+        if (uploadedFiles.cor) {
+          corUrl = await uploadFile(uploadedFiles.cor, "cors");
+        }
+        if (uploadedFiles.cog) {
+          cogUrl = await uploadFile(uploadedFiles.cog, "cogs");
+        }
+      }
 
       // Prepare application data with COR and COG details
       const applicationData = {
@@ -296,15 +292,15 @@ export default function ManualApplicationPage() {
             corUrl,
             cogUrl,
           },
-          corData: {
+          corData: data.corSchool ? {
             school: data.corSchool,
             schoolYear: data.corSchoolYear,
             semester: data.corSemester,
             course: data.corCourse,
             name: data.corName,
             totalUnits: data.corTotalUnits,
-          },
-          cogData: {
+          } : null,
+          cogData: data.cogSchool ? {
             school: data.cogSchool,
             schoolYear: data.cogSchoolYear,
             semester: data.cogSemester,
@@ -314,7 +310,7 @@ export default function ManualApplicationPage() {
             totalUnits: cogTotalUnits,
             gwa: cogGwa,
             gradingSystem: gradingSystem,
-          },
+          } : null,
         },
       };
 
@@ -375,7 +371,7 @@ export default function ManualApplicationPage() {
                   <div className="space-y-3">
                     <Label htmlFor="id-upload" className="text-sm font-medium flex items-center gap-2">
                       <IdCard className="w-4 h-4 text-orange-600" />
-                      Valid ID *
+                      Valid ID
                     </Label>
                     <div className="relative">
                       <input
@@ -412,7 +408,7 @@ export default function ManualApplicationPage() {
                   <div className="space-y-3">
                     <Label htmlFor="cor-upload" className="text-sm font-medium flex items-center gap-2">
                       <FileText className="w-4 h-4 text-orange-600" />
-                      Certificate of Registration *
+                      Certificate of Registration
                     </Label>
                     <div className="relative">
                       <input
@@ -449,7 +445,7 @@ export default function ManualApplicationPage() {
                   <div className="space-y-3">
                     <Label htmlFor="cog-upload" className="text-sm font-medium flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-orange-600" />
-                      Certificate of Grades *
+                      Certificate of Grades
                     </Label>
                     <div className="relative">
                       <input
@@ -492,7 +488,7 @@ export default function ManualApplicationPage() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="corSchool" className="text-sm font-medium">School *</Label>
+                    <Label htmlFor="corSchool" className="text-sm font-medium">School</Label>
                     <Input
                       id="corSchool"
                       {...register("corSchool")}
@@ -505,7 +501,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corSchoolYear" className="text-sm font-medium">School Year *</Label>
+                    <Label htmlFor="corSchoolYear" className="text-sm font-medium">School Year</Label>
                     <Input
                       id="corSchoolYear"
                       {...register("corSchoolYear")}
@@ -518,7 +514,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corSemester" className="text-sm font-medium">Semester *</Label>
+                    <Label htmlFor="corSemester" className="text-sm font-medium">Semester</Label>
                     <Input
                       id="corSemester"
                       {...register("corSemester")}
@@ -531,7 +527,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corCourse" className="text-sm font-medium">Course *</Label>
+                    <Label htmlFor="corCourse" className="text-sm font-medium">Course</Label>
                     <Input
                       id="corCourse"
                       {...register("corCourse")}
@@ -544,7 +540,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corName" className="text-sm font-medium">Student Name *</Label>
+                    <Label htmlFor="corName" className="text-sm font-medium">Student Name</Label>
                     <Input
                       id="corName"
                       {...register("corName")}
@@ -557,7 +553,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corTotalUnits" className="text-sm font-medium">Total Units *</Label>
+                    <Label htmlFor="corTotalUnits" className="text-sm font-medium">Total Units</Label>
                     <Input
                       id="corTotalUnits"
                       {...register("corTotalUnits")}
@@ -580,7 +576,7 @@ export default function ManualApplicationPage() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="cogSchool" className="text-sm font-medium">School *</Label>
+                    <Label htmlFor="cogSchool" className="text-sm font-medium">School</Label>
                     <Input
                       id="cogSchool"
                       {...register("cogSchool")}
@@ -593,7 +589,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cogSchoolYear" className="text-sm font-medium">School Year *</Label>
+                    <Label htmlFor="cogSchoolYear" className="text-sm font-medium">School Year</Label>
                     <Input
                       id="cogSchoolYear"
                       {...register("cogSchoolYear")}
@@ -606,7 +602,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cogSemester" className="text-sm font-medium">Semester *</Label>
+                    <Label htmlFor="cogSemester" className="text-sm font-medium">Semester</Label>
                     <Input
                       id="cogSemester"
                       {...register("cogSemester")}
@@ -619,7 +615,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cogCourse" className="text-sm font-medium">Course *</Label>
+                    <Label htmlFor="cogCourse" className="text-sm font-medium">Course</Label>
                     <Input
                       id="cogCourse"
                       {...register("cogCourse")}
@@ -632,7 +628,7 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="cogName" className="text-sm font-medium">Student Name *</Label>
+                    <Label htmlFor="cogName" className="text-sm font-medium">Student Name</Label>
                     <Input
                       id="cogName"
                       {...register("cogName")}
@@ -648,7 +644,7 @@ export default function ManualApplicationPage() {
                 {/* Subjects Section */}
                 <div className="space-y-4 mt-6">
                   <div className="flex items-center justify-between">
-                    <Label className="text-md font-semibold">Subjects *</Label>
+                    <Label className="text-md font-semibold">Subjects</Label>
                     <div className="flex items-center gap-3">
                       <Select
                         value={gradingSystem}
