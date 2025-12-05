@@ -221,12 +221,13 @@ export default function ManualApplicationPage() {
 
       const now = new Date().toISOString();
 
-      // Generate application ID (client-side UUID v4 generation)
-      const applicationId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
+      // Generate UUIDs from server-side API
+      const uuidResponse = await fetch("/api/uuid");
+      if (!uuidResponse.ok) {
+        toast.error("Failed to generate application ID");
+        return;
+      }
+      const { uuid: applicationId } = await uuidResponse.json();
 
       // Create application record with generated ID
       const { data: newApplication, error: insertError } = await supabase
@@ -242,47 +243,24 @@ export default function ManualApplicationPage() {
           remarks: "No document submitted",
           applicationDetails: {
             personalInfo: {
+              lastName: data.lastName,
               firstName: data.firstName,
               middleName: data.middleName || "",
-              lastName: data.lastName,
               dateOfBirth: data.dateOfBirth,
               placeOfBirth: data.placeOfBirth,
               age: data.age || "",
               sex: data.sex,
-            },
-            address: {
               houseNumber: data.houseNumber,
               purok: data.purok,
               barangay: data.barangay,
               municipality: data.municipality,
               province: data.province,
-            },
-            academicInfo: {
-              contactNumber: data.contactNumber,
               citizenship: data.citizenship,
+              contactNumber: data.contactNumber,
               religion: data.religion,
               course: data.course,
               yearLevel: data.yearLevel,
             },
-            corData: data.corSchool ? {
-              school: data.corSchool,
-              schoolYear: data.corSchoolYear,
-              semester: data.corSemester,
-              course: data.corCourse,
-              name: data.corName,
-              totalUnits: data.corTotalUnits,
-            } : null,
-            cogData: data.cogSchool ? {
-              school: data.cogSchool,
-              schoolYear: data.cogSchoolYear,
-              semester: data.cogSemester,
-              course: data.cogCourse,
-              name: data.cogName,
-              subjects: cogSubjects,
-              totalUnits: cogTotalUnits,
-              gwa: cogGwa,
-              gradingSystem: gradingSystem,
-            } : null,
           },
         })
         .select()
@@ -336,12 +314,9 @@ export default function ManualApplicationPage() {
 
         // Create CertificateOfGrades record if COG file was uploaded (data is optional)
         if (cogUrl) {
-          const cogId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-          });
-
+          const cogUuidResponse = await fetch("/api/uuid");
+          const { uuid: cogId } = await cogUuidResponse.json();
+          
           const { error: cogError } = await supabase
             .from("CertificateOfGrades")
             .insert({
@@ -365,12 +340,9 @@ export default function ManualApplicationPage() {
 
         // Create CertificateOfRegistration record if COR file was uploaded (data is optional)
         if (corUrl) {
-          const corId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-          });
-
+          const corUuidResponse = await fetch("/api/uuid");
+          const { uuid: corId } = await corUuidResponse.json();
+          
           const { error: corError } = await supabase
             .from("CertificateOfRegistration")
             .insert({
@@ -390,7 +362,7 @@ export default function ManualApplicationPage() {
           }
         }
 
-        // Update application with document URLs and remarks
+        // Update application with remarks
         const hasCog = !!cogUrl;
         const hasCor = !!corUrl;
         const remarks = getDocumentRemarks(hasCog, hasCor);
@@ -399,19 +371,11 @@ export default function ManualApplicationPage() {
           .from("Application")
           .update({
             remarks,
-            applicationDetails: {
-              ...newApplication.applicationDetails,
-              documents: {
-                idUrl,
-                corUrl,
-                cogUrl,
-              },
-            },
           })
           .eq("id", newApplication.id);
 
         if (updateError) {
-          throw new Error(`Failed to update application with document URLs: ${updateError.message}`);
+          throw new Error(`Failed to update application with remarks: ${updateError.message}`);
         }
       }
 
