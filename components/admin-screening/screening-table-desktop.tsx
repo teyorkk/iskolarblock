@@ -95,7 +95,7 @@ export function ScreeningTableDesktop({
           <TableHead className="hidden lg:table-cell">Type</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="hidden md:table-cell">Remarks</TableHead>
-          <TableHead className="hidden sm:table-cell">Submitted</TableHead>
+          <TableHead className="hidden sm:table-cell">Submitted At</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>

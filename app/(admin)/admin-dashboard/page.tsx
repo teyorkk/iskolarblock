@@ -435,15 +435,15 @@ export default function AdminDashboard() {
 
             {/* Application Period Selector */}
             {periods.length > 0 && (
-              <div className="mb-6 flex items-center gap-4">
+              <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                 <Label htmlFor="period-select" className="text-sm font-medium">
-                  View Period:
+                  View Application Cycle:
                 </Label>
                 <Select
                   value={selectedPeriodId || undefined}
                   onValueChange={(value) => setSelectedPeriodId(value)}
                 >
-                  <SelectTrigger id="period-select" className="w-[300px]">
+                  <SelectTrigger id="period-select" className="w-full sm:w-[300px]">
                     <SelectValue placeholder="Select application period" />
                   </SelectTrigger>
                   <SelectContent>
