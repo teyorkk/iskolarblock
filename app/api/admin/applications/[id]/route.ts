@@ -31,15 +31,32 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     // Prepare update object
-    const updateData: { status: string; updatedAt: string; remarks?: string } =
-      {
-        status,
-        updatedAt: new Date().toISOString(),
-      };
+    const updateData: {
+      status: string;
+      updatedAt: string;
+      remarks?: string | null;
+    } = {
+      status,
+      updatedAt: new Date().toISOString(),
+    };
 
-    // Include remarks if provided (especially for rejections)
-    if (remarks !== undefined) {
-      updateData.remarks = remarks;
+    // Handle remarks based on status
+    if (status === "APPROVED") {
+      // Set remarks to "Cleared" when approved
+      updateData.remarks = "Cleared";
+    } else if (status === "REJECTED") {
+      // Include remarks for rejections if provided
+      if (remarks !== undefined) {
+        updateData.remarks = remarks;
+      }
+    } else if (status === "GRANTED") {
+      // Don't update remarks for granted status
+      // Don't include remarks in updateData
+    } else {
+      // For other statuses, include remarks if provided
+      if (remarks !== undefined) {
+        updateData.remarks = remarks;
+      }
     }
 
     // Update application status

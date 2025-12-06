@@ -51,9 +51,26 @@ const statusIcons = {
   REJECTED: XCircle,
 };
 
-const getRemarksBadgeClass = (remarks?: string | null) => {
+const getRemarksBadgeClass = (remarks?: string | null, status?: string) => {
   const base =
     "inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border";
+
+  // If approved, show green
+  if (status === "APPROVED") {
+    return `${base} bg-green-50 text-green-700 border-green-100`;
+  }
+
+  // If rejected and has remarks, show red
+  if (status === "REJECTED" && remarks) {
+    return `${base} bg-red-50 text-red-700 border-red-100`;
+  }
+
+  // If granted, don't show remarks badge
+  if (status === "GRANTED") {
+    return ""; // Return empty string to hide badge
+  }
+
+  // Default behavior for other statuses
   if (!remarks) {
     return `${base} bg-gray-50 text-gray-500 border-gray-200`;
   }
@@ -137,11 +154,16 @@ export function ApplicationsTable({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={getRemarksBadgeClass(application.remarks)}
-                      >
-                        {application.remarks || "—"}
-                      </span>
+                      {application.status !== "GRANTED" && (
+                        <span
+                          className={getRemarksBadgeClass(
+                            application.remarks,
+                            application.status
+                          )}
+                        >
+                          {application.remarks || "—"}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -204,22 +226,24 @@ export function ApplicationsTable({
                         </Badge>
                       </div>
 
-                      {application.remarks && (
-                        <div>
-                          <span className="text-xs text-gray-500 font-medium">
-                            Remarks:
-                          </span>
-                          <div className="mt-1">
-                            <span
-                              className={getRemarksBadgeClass(
-                                application.remarks
-                              )}
-                            >
-                              {application.remarks}
+                      {application.status !== "GRANTED" &&
+                        application.remarks && (
+                          <div>
+                            <span className="text-xs text-gray-500 font-medium">
+                              Remarks:
                             </span>
+                            <div className="mt-1">
+                              <span
+                                className={getRemarksBadgeClass(
+                                  application.remarks,
+                                  application.status
+                                )}
+                              >
+                                {application.remarks}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       <div className="flex gap-2 pt-2 border-t">
                         {application.status === "PENDING" && (

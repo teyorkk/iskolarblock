@@ -187,12 +187,25 @@ export function ApplicationDetailsDialog({
 
     setIsUpdating(true);
     try {
+      const body: { status: string; remarks?: string | null } = {
+        status: newStatus,
+      };
+
+      // If approved, set remarks to "Cleared"
+      if (newStatus === "APPROVED") {
+        body.remarks = "Cleared";
+      }
+      // If granted, don't update remarks
+      else if (newStatus === "GRANTED") {
+        // Don't include remarks in body
+      }
+
       const response = await fetch(`/api/admin/applications/${applicationId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
