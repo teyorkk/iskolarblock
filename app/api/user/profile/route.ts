@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { logEvent } from "@/lib/services/log-events";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 export async function GET() {
   try {
@@ -117,7 +118,7 @@ export async function PATCH(req: Request) {
       bio?: string | null;
       updatedAt: string;
     } = {
-      updatedAt: new Date().toISOString(),
+      updatedAt: getCurrentTimePH(),
     };
 
     if (name !== undefined) updateData.name = name;

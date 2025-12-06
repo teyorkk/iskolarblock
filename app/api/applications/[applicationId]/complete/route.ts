@@ -7,6 +7,7 @@ import { randomUUID } from "crypto";
 import { logEvent } from "@/lib/services/log-events";
 import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 import type { PostgrestError } from "@supabase/supabase-js";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface RouteContext {
   params: Promise<{ applicationId: string }>;
@@ -150,11 +151,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const {
       data: userRecord,
       error: userError,
-    }: { data: UserRecord | null; error: PostgrestError | null } = await supabase
-      .from("User")
-      .select("id, name, email, role, profilePicture")
-      .eq("email", user.email)
-      .single();
+    }: { data: UserRecord | null; error: PostgrestError | null } =
+      await supabase
+        .from("User")
+        .select("id, name, email, role, profilePicture")
+        .eq("email", user.email)
+        .single();
 
     if (userError || !userRecord) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -329,7 +331,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .update({
         status: newStatus,
         remarks,
-        updatedAt: new Date().toISOString(),
+        updatedAt: getCurrentTimePH(),
       })
       .eq("id", applicationId);
 

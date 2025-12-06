@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface ApplicationPeriod {
   id: string;
@@ -156,7 +157,7 @@ export function EditApplicationPeriodDialog({
           description: description.trim() || "Scholarship application period",
           startDate: new Date(startDate).toISOString(),
           endDate: endDateTime.toISOString(),
-          updatedAt: new Date().toISOString(),
+          updatedAt: getCurrentTimePH(),
         })
         .eq("id", period.id);
 
@@ -197,7 +198,7 @@ export function EditApplicationPeriodDialog({
             .update({
               totalAmount: newTotalAmount,
               remainingAmount: Math.max(0, newRemainingAmount),
-              updatedAt: new Date().toISOString(),
+              updatedAt: getCurrentTimePH(),
             })
             .eq("id", budget.id);
 

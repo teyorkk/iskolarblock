@@ -12,13 +12,18 @@ interface LandingBlockchainFeedProps {
   records: LiveBlockchainRecord[];
 }
 
-const formatTimestamp = (timestamp: string) =>
-  new Date(timestamp).toLocaleString("en-US", {
+const formatTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return date.toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: true,
   });
+};
 
 export function LandingBlockchainFeed({
   records,

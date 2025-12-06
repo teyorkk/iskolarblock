@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/auth-server";
 import { expirePendingApplications } from "@/lib/services/application-status";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 export async function GET(request: Request) {
   try {
@@ -27,8 +28,8 @@ export async function GET(request: Request) {
       const { data: activePeriod } = await supabase
         .from("ApplicationPeriod")
         .select("id")
-        .lte("startDate", new Date().toISOString())
-        .gte("endDate", new Date().toISOString())
+        .lte("startDate", getCurrentTimePH())
+        .gte("endDate", getCurrentTimePH())
         .single();
 
       if (activePeriod) {

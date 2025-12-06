@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface LatestCycle {
   id: string;
@@ -200,8 +201,8 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           id: budgetId,
           totalAmount: budgetAmount,
           remainingAmount: budgetAmount,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: getCurrentTimePH(),
+          updatedAt: getCurrentTimePH(),
         })
         .select("id")
         .single();
@@ -240,8 +241,8 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           endDate: endDateTime.toISOString(),
           isOpen: false,
           budgetId: budgetData.id,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: getCurrentTimePH(),
+          updatedAt: getCurrentTimePH(),
         });
 
       if (periodError) {

@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/utils/auth-server";
 import { logAwardingToBlockchain } from "@/lib/services/blockchain";
 import { logEvent } from "@/lib/services/log-events";
 import { sendEmailNotification } from "@/lib/services/email-notification";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -72,7 +73,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       .from("Application")
       .update({
         status: statusValue,
-        updatedAt: new Date().toISOString(),
+        updatedAt: getCurrentTimePH(),
       })
       .eq("id", id)
       .select()
@@ -101,7 +102,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         .from("Application")
         .update({
           status: previousStatus,
-          updatedAt: new Date().toISOString(),
+          updatedAt: getCurrentTimePH(),
         })
         .eq("id", id);
 
@@ -299,7 +300,7 @@ async function adjustBudgetBalance({
     .from("Budget")
     .update({
       remainingAmount: newRemaining,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getCurrentTimePH(),
     })
     .eq("id", period.budgetId);
 
@@ -369,7 +370,7 @@ async function ensureAwardingRecord({
     name,
     applicationId,
     amountReceived: amount,
-    timestamp: new Date().toISOString(),
+    timestamp: getCurrentTimePH(),
   });
 
   if (insertError) {

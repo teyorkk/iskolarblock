@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateEnvironmentVariables } from "@/lib/utils/env-validation";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 /**
  * Health check endpoint that validates environment configuration
@@ -25,7 +26,7 @@ export async function GET() {
     return NextResponse.json({
       status: "healthy",
       message: "All environment variables are properly configured",
-      timestamp: new Date().toISOString(),
+      timestamp: getCurrentTimePH(),
     });
   } catch (error) {
     const errorMessage =

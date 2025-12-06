@@ -1,14 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  CheckCircle,
-  Clock,
-  Award,
-  XCircle,
-  Upload,
-  AlertCircle,
-} from "lucide-react";
+import { CheckCircle, Clock, Award, XCircle, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -91,6 +85,10 @@ export function ApplicationSuccess({
       ? "Rejected"
       : "Pending";
 
+  // Generate fallback ID once using useState with lazy initializer
+  // This ensures Date.now() is only called once during component initialization
+  const [fallbackId] = useState(() => `SCH-${Date.now()}`);
+
   // Check if remarks indicate incomplete documents
   // Only show upload button if documents are actually missing/incomplete
   const hasIncompleteDocuments =
@@ -129,9 +127,7 @@ export function ApplicationSuccess({
             <div className={`text-sm ${meta.textColor} break-words space-y-1`}>
               <p>
                 <strong>Application ID:</strong>{" "}
-                <span className="break-all">
-                  {applicationId || `SCH-${Date.now()}`}
-                </span>
+                <span className="break-all">{applicationId || fallbackId}</span>
               </p>
               <p>
                 <strong>Status:</strong> {statusLabel}

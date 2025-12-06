@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { expirePendingApplications } from "@/lib/services/application-status";
 import { randomUUID } from "crypto";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface RouteContext {
   params: Promise<{ applicationId: string }>;
@@ -319,7 +320,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .from("Application")
       .update({
         status: "APPROVED",
-        updatedAt: new Date().toISOString(),
+        updatedAt: getCurrentTimePH(),
       })
       .eq("id", applicationId);
 

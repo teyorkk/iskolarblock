@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 type MinimalDatabase = {
   public: {
@@ -125,7 +126,7 @@ export async function expirePendingApplications(
       .from("Application")
       .update({
         status: "REJECTED",
-        updatedAt: new Date().toISOString(),
+        updatedAt: getCurrentTimePH(),
       })
       .in("id", expiredApplicationIds);
   } catch (error) {

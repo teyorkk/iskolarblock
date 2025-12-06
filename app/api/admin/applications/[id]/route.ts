@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/auth-server";
 import { expirePendingApplications } from "@/lib/services/application-status";
 import { sendEmailNotification } from "@/lib/services/email-notification";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -37,7 +38,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       remarks?: string | null;
     } = {
       status,
-      updatedAt: new Date().toISOString(),
+      updatedAt: getCurrentTimePH(),
     };
 
     // Handle remarks based on status

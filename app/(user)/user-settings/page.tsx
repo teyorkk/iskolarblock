@@ -9,6 +9,7 @@ import { ChangePasswordDialog } from "@/components/settings/change-password-dial
 import { useSession } from "@/components/session-provider";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface UserData {
   id: string;
@@ -91,7 +92,7 @@ export default function SettingsPage() {
             phone: formData.phone || null,
             address: formData.address || null,
             bio: formData.bio || null,
-            updatedAt: new Date().toISOString(),
+            updatedAt: getCurrentTimePH(),
           }
         : null
     );

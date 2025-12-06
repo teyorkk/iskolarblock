@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { EditApplicationPeriodDialog } from "@/components/admin-dashboard/edit-application-period-dialog";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface ApplicationPeriodBannerProps {
   variant?: "admin" | "user";
@@ -83,7 +84,7 @@ export function ApplicationPeriodBanner({
               .from("ApplicationPeriod")
               .update({
                 isOpen: shouldBeOpen,
-                updatedAt: new Date().toISOString(),
+                updatedAt: getCurrentTimePH(),
               })
               .eq("id", data.id);
 
