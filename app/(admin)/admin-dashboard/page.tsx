@@ -56,6 +56,7 @@ interface Application {
       firstName?: string;
       middleName?: string | null;
       lastName?: string;
+      yearLevel?: string;
     };
   } | null;
 }
@@ -76,6 +77,9 @@ export default function AdminDashboard() {
   const [timeFilter, setTimeFilter] = useState<
     "all" | "monthly" | "weekly" | "daily"
   >("daily");
+  const [educationLevelFilter, setEducationLevelFilter] = useState<
+    "all" | "college" | "shs"
+  >("all");
 
   const quickActions = [
     {
@@ -210,7 +214,7 @@ export default function AdminDashboard() {
         }
       }
 
-      // Calculate statistics
+      // Calculate statistics (using all applications)
       const totalApplicantsCount = applications?.length || 0;
       const pendingCount =
         applications?.filter((app) => app.status === "PENDING").length || 0;
@@ -220,6 +224,45 @@ export default function AdminDashboard() {
         applications?.filter((app) => app.status === "REJECTED").length || 0;
       const grantedCount =
         applications?.filter((app) => app.status === "GRANTED").length || 0;
+
+      // Filter applications by application period and education level for pie chart only
+      let filteredApplications = applications || [];
+
+      // First, filter by application period if a period is selected
+      if (selectedPeriodId) {
+        filteredApplications = filteredApplications.filter(
+          (app) => app.applicationPeriodId === selectedPeriodId
+        );
+      }
+
+      // Then, filter by education level if not "all"
+      if (educationLevelFilter !== "all") {
+        filteredApplications = filteredApplications.filter((app) => {
+          const yearLevel =
+            app.applicationDetails?.personalInfo?.yearLevel || "";
+          if (educationLevelFilter === "college") {
+            return ["1", "2", "3", "4"].includes(yearLevel);
+          } else if (educationLevelFilter === "shs") {
+            return ["G11", "G12"].includes(yearLevel);
+          }
+          return true;
+        });
+      }
+
+      // Calculate pie chart statistics (using filtered applications)
+      const filteredPendingCount =
+        filteredApplications.filter((app) => app.status === "PENDING").length ||
+        0;
+      const filteredApprovedCount =
+        filteredApplications.filter((app) => app.status === "APPROVED")
+          .length || 0;
+      const filteredRejectedCount =
+        filteredApplications.filter((app) => app.status === "REJECTED")
+          .length || 0;
+      const filteredGrantedCount =
+        filteredApplications.filter((app) => app.status === "GRANTED").length ||
+        0;
+      const filteredTotalApplicants = filteredApplications.length || 0;
 
       // Calculate this month's applicants
       const now = new Date();
@@ -297,13 +340,14 @@ export default function AdminDashboard() {
         },
       ]);
 
-      // Set pie chart data
+      // Set pie chart data (using filtered applications)
       setPieData([
-        { name: "Approved", value: approvedCount, color: "#10b981" },
-        { name: "Pending", value: pendingCount, color: "#f97316" },
-        { name: "Rejected", value: rejectedCount, color: "#ef4444" },
-        { name: "Granted", value: grantedCount, color: "#a855f7" }, // Purple color
+        { name: "Approved", value: filteredApprovedCount, color: "#10b981" },
+        { name: "Pending", value: filteredPendingCount, color: "#f97316" },
+        { name: "Rejected", value: filteredRejectedCount, color: "#ef4444" },
+        { name: "Granted", value: filteredGrantedCount, color: "#a855f7" }, // Purple color
       ]);
+      setTotalApplicants(filteredTotalApplicants);
 
       // Generate chart data based on selected time filter
       const chartDataPoints: ChartDataPoint[] = [];
@@ -479,7 +523,7 @@ export default function AdminDashboard() {
         }) || [];
 
       setApplicants(recentApps);
-      setTotalApplicants(totalApplicantsCount);
+      // Note: totalApplicants for pie chart is set separately below
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -495,7 +539,7 @@ export default function AdminDashboard() {
       void fetchDashboardData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriodId, timeFilter]);
+  }, [selectedPeriodId, timeFilter, educationLevelFilter]);
 
   // Listen for refresh events from edit dialog
   useEffect(() => {
@@ -634,17 +678,38 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <PieChart
-                data={pieData}
-                total={totalApplicants}
-                title={
-                  <div className="flex items-center">
-                    <FileText className="w-5 h-5 mr-2 text-red-500" />
-                    Application Status
-                  </div>
-                }
-                description="Current distribution of applications"
-              />
+              <div className="relative">
+                <div className="absolute top-4 right-4 z-10">
+                  <Select
+                    value={educationLevelFilter}
+                    onValueChange={(value) =>
+                      setEducationLevelFilter(
+                        value as "all" | "college" | "shs"
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="college">College</SelectItem>
+                      <SelectItem value="shs">SHS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <PieChart
+                  data={pieData}
+                  total={totalApplicants}
+                  title={
+                    <div className="flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-red-500" />
+                      Application Status
+                    </div>
+                  }
+                  description="Current distribution of applications"
+                />
+              </div>
             </div>
 
             <RecentApplicants applicants={applicants} />
