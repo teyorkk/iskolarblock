@@ -73,7 +73,9 @@ export default function AdminDashboard() {
   const [totalApplicants, setTotalApplicants] = useState(0);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
-  const [timeFilter, setTimeFilter] = useState<"all" | "monthly" | "weekly" | "daily">("weekly");
+  const [timeFilter, setTimeFilter] = useState<
+    "all" | "monthly" | "weekly" | "daily"
+  >("daily");
 
   const quickActions = [
     {
@@ -137,13 +139,18 @@ export default function AdminDashboard() {
     try {
       const supabase = getSupabaseBrowserClient();
 
-      // Fetch applications - filter by selected period if one is selected
+      // Fetch applications - for "all" and "monthly" filters, get all applications
+      // For "weekly" and "daily", filter by selected period
       let applicationsQuery = supabase
         .from("Application")
         .select("*")
         .order("createdAt", { ascending: false });
 
-      if (selectedPeriodId) {
+      // Only filter by period for weekly and daily views
+      if (
+        selectedPeriodId &&
+        (timeFilter === "weekly" || timeFilter === "daily")
+      ) {
         applicationsQuery = applicationsQuery.eq(
           "applicationPeriodId",
           selectedPeriodId
@@ -298,51 +305,149 @@ export default function AdminDashboard() {
         { name: "Granted", value: grantedCount, color: "#a855f7" }, // Purple color
       ]);
 
-      // Generate week-by-week chart data from application period start to end date
+      // Generate chart data based on selected time filter
       const chartDataPoints: ChartDataPoint[] = [];
 
-      if (selectedPeriodId && periods.length > 0) {
-        const currentPeriod = periods.find((p) => p.id === selectedPeriodId);
-        if (currentPeriod) {
-          const periodStart = new Date(currentPeriod.startDate);
-          const periodEnd = new Date(currentPeriod.endDate);
+      if (applications && applications.length > 0) {
+        if (timeFilter === "all") {
+          // Group by month for all time
+          const monthMap = new Map<string, number>();
+          applications.forEach((app) => {
+            const date = new Date(app.createdAt);
+            const monthKey = date.toLocaleDateString("en-US", {
+              month: "short",
+              year: "numeric",
+            });
+            monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + 1);
+          });
 
-          // Calculate weeks from start to end
-          let weekStart = new Date(periodStart);
-          let weekNumber = 1;
-
-          while (weekStart <= periodEnd) {
-            // Calculate week end (6 days after week start, or period end if earlier)
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            if (weekEnd > periodEnd) {
-              weekEnd.setTime(periodEnd.getTime());
-            }
-
-            // Count applications in this week
-            const weekApps =
-              applications?.filter((app) => {
-                const appDate = new Date(app.createdAt);
-                return appDate >= weekStart && appDate <= weekEnd;
-              }).length || 0;
-
-            // Format week label (e.g., "Week 1", "Nov 1-7")
-            const weekLabel = `Week ${weekNumber}`;
-
-            chartDataPoints.push({
-              month: weekLabel,
-              applications: weekApps,
+          const sortedData = Array.from(monthMap.entries())
+            .map(([month, count]) => ({ month, applications: count }))
+            .sort((a, b) => {
+              const dateA = new Date(a.month);
+              const dateB = new Date(b.month);
+              return dateA.getTime() - dateB.getTime();
             });
 
-            // Move to next week
-            weekStart = new Date(weekEnd);
-            weekStart.setDate(weekStart.getDate() + 1);
-            weekNumber++;
+          chartDataPoints.push(...sortedData);
+        } else if (timeFilter === "monthly") {
+          // Group by month
+          const monthMap = new Map<string, number>();
+          applications.forEach((app) => {
+            const date = new Date(app.createdAt);
+            const monthKey = date.toLocaleDateString("en-US", {
+              month: "short",
+              year: "numeric",
+            });
+            monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + 1);
+          });
+
+          const sortedData = Array.from(monthMap.entries())
+            .map(([month, count]) => ({ month, applications: count }))
+            .sort((a, b) => {
+              const dateA = new Date(a.month);
+              const dateB = new Date(b.month);
+              return dateA.getTime() - dateB.getTime();
+            });
+
+          chartDataPoints.push(...sortedData);
+        } else if (timeFilter === "weekly") {
+          // Group by week - only for current period
+          if (selectedPeriodId && periods.length > 0) {
+            const currentPeriod = periods.find(
+              (p) => p.id === selectedPeriodId
+            );
+            if (currentPeriod) {
+              const periodStart = new Date(currentPeriod.startDate);
+              const periodEnd = new Date(currentPeriod.endDate);
+
+              let weekStart = new Date(periodStart);
+              let weekNumber = 1;
+
+              while (weekStart <= periodEnd) {
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                if (weekEnd > periodEnd) {
+                  weekEnd.setTime(periodEnd.getTime());
+                }
+
+                const weekApps =
+                  applications?.filter((app) => {
+                    const appDate = new Date(app.createdAt);
+                    return appDate >= weekStart && appDate <= weekEnd;
+                  }).length || 0;
+
+                const weekLabel = `Week ${weekNumber}`;
+
+                chartDataPoints.push({
+                  month: weekLabel,
+                  applications: weekApps,
+                });
+
+                weekStart = new Date(weekEnd);
+                weekStart.setDate(weekStart.getDate() + 1);
+                weekNumber++;
+              }
+            }
+          } else {
+            // If no period selected, show empty
+            chartDataPoints.push({
+              month: "No Period Selected",
+              applications: 0,
+            });
+          }
+        } else if (timeFilter === "daily") {
+          // Group by day - only show dates where applications were made within the cycle
+          if (selectedPeriodId && periods.length > 0) {
+            const currentPeriod = periods.find(
+              (p) => p.id === selectedPeriodId
+            );
+            if (currentPeriod) {
+              const periodStart = new Date(currentPeriod.startDate);
+              const periodEnd = new Date(currentPeriod.endDate);
+              periodStart.setHours(0, 0, 0, 0);
+              periodEnd.setHours(23, 59, 59, 999);
+
+              // Only create entries for days that have applications
+              const dayMap = new Map<string, number>();
+
+              // Count applications for each day within the period
+              applications.forEach((app) => {
+                const date = new Date(app.createdAt);
+                date.setHours(0, 0, 0, 0);
+
+                // Only count if within the period
+                if (date >= periodStart && date <= periodEnd) {
+                  const dayKey = date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  });
+                  dayMap.set(dayKey, (dayMap.get(dayKey) || 0) + 1);
+                }
+              });
+
+              // Only include days that have applications
+              const sortedData = Array.from(dayMap.entries())
+                .map(([day, count]) => ({ month: day, applications: count }))
+                .sort((a, b) => {
+                  const dateA = new Date(a.month);
+                  const dateB = new Date(b.month);
+                  return dateA.getTime() - dateB.getTime();
+                });
+
+              chartDataPoints.push(...sortedData);
+            }
+          } else {
+            // If no period selected, show empty
+            chartDataPoints.push({
+              month: "No Period Selected",
+              applications: 0,
+            });
           }
         }
       }
 
-      // If no period selected or no data, show empty chart
+      // If no data, show empty chart
       if (chartDataPoints.length === 0) {
         chartDataPoints.push({
           month: "No Data",
@@ -390,7 +495,7 @@ export default function AdminDashboard() {
       void fetchDashboardData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriodId]);
+  }, [selectedPeriodId, timeFilter]);
 
   // Listen for refresh events from edit dialog
   useEffect(() => {
@@ -486,17 +591,47 @@ export default function AdminDashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <LineChart
-                  data={chartData}
-                  color="#dc2626"
-                  title={
-                    <div className="flex items-center">
-                      <Calendar className="w-5 h-5 mr-2 text-red-500" />
-                      Application Trends
-                    </div>
-                  }
-                  description="Monthly scholarship application statistics"
-                />
+                <div className="relative">
+                  <div className="absolute top-4 right-4 z-10">
+                    <Select
+                      value={timeFilter}
+                      onValueChange={(value) =>
+                        setTimeFilter(
+                          value as "all" | "monthly" | "weekly" | "daily"
+                        )
+                      }
+                    >
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Time</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="daily">By Day</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <LineChart
+                    data={chartData}
+                    color="#dc2626"
+                    title={
+                      <div className="flex items-center">
+                        <Calendar className="w-5 h-5 mr-2 text-red-500" />
+                        Application Trends
+                      </div>
+                    }
+                    description={
+                      timeFilter === "all"
+                        ? "All-time scholarship application statistics"
+                        : timeFilter === "monthly"
+                        ? "Monthly scholarship application statistics"
+                        : timeFilter === "weekly"
+                        ? "Weekly scholarship application statistics"
+                        : "Daily application activity within the cycle"
+                    }
+                  />
+                </div>
               </div>
 
               <PieChart
