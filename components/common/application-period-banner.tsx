@@ -133,10 +133,10 @@ export function ApplicationPeriodBanner({
         console.error("Error toggling application period:", error);
         // Revert local state on error
         setPeriod({ ...period, isOpen: !newIsOpen });
-        toast.error("Failed to update application period status");
+        toast.error("Failed to update application cycle status");
       } else {
         toast.success(
-          `Application period is now ${newIsOpen ? "open" : "closed"}`
+          `Application cycle is now ${newIsOpen ? "open" : "closed"}`
         );
         // Refresh the period data but skip auto-update to respect manual toggle
         await fetchCurrentPeriod(periodId, true);
@@ -217,10 +217,10 @@ export function ApplicationPeriodBanner({
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              No Application Period Set
+              No Application Cycle Set
             </h2>
             <p className="text-sm text-gray-600">
-              Please set an application period to begin accepting applications.
+              Please set an application cycle to begin accepting applications.
             </p>
           </div>
         </div>

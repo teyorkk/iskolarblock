@@ -215,7 +215,7 @@ export default function ManualApplicationPage() {
         .single();
 
       if (periodError || !activePeriod) {
-        toast.error("No active application period found");
+        toast.error("No active application cycle found");
         return;
       }
 

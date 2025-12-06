@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     if (periodError || !periodData) {
       return NextResponse.json(
-        { error: "No open application period found" },
+        { error: "No open application cycle found" },
         { status: 400 }
       );
     }

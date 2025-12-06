@@ -1,10 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import type { StatsCard } from "@/types";
+import { generateExcelReport, generatePDFReport } from "@/lib/reports";
 
 // Convert image URL to base64
 // Note: Browser may show a warning in development (HTTP) but this is harmless
@@ -75,11 +82,13 @@ interface GenerateReportButtonProps {
     id: string;
     status: string;
     createdAt?: string;
+    remarks?: string | null;
     applicationDetails?: {
       personalInfo?: {
         firstName?: string;
         middleName?: string | null;
         lastName?: string;
+        yearLevel?: string;
       };
     } | null;
   }>;
@@ -99,7 +108,7 @@ export function GenerateReportButton({
     const loadImages = async () => {
       try {
         const [iskolarblockBase64, skLogoBase64] = await Promise.all([
-          imageToBase64("/iskolarblock.svg"),
+          imageToBase64("/iskolarblock.png"),
           imageToBase64("/sk-logo.png"),
         ]);
         setIskolarblockLogo(iskolarblockBase64);
@@ -115,11 +124,7 @@ export function GenerateReportButton({
   const handleGenerateReport = async () => {
     setIsGenerating(true);
     try {
-      // Dynamic import to avoid React 19 compatibility issues on page load
-      const { pdf } = await import("@react-pdf/renderer");
-      const { AdminReportPDF } = await import("./admin-report-pdf");
-
-      const element = AdminReportPDF({
+      const blob = await generatePDFReport({
         stats,
         pieData,
         period,
@@ -127,8 +132,6 @@ export function GenerateReportButton({
         iskolarblockLogo,
         skLogo,
       });
-
-      const blob = await pdf(element).toBlob();
 
       // Download the PDF
       const url = URL.createObjectURL(blob);
@@ -167,24 +170,87 @@ export function GenerateReportButton({
     }
   };
 
+  const handleGenerateExcel = async () => {
+    setIsGenerating(true);
+    try {
+      const excelBlob = await generateExcelReport({
+        stats,
+        applications,
+        period,
+      });
+
+      // Generate filename
+      const filename = `admin-dashboard-report-${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
+
+      // Download the file
+      const url = URL.createObjectURL(excelBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // Log the event
+      try {
+        await fetch("/api/log-events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            eventType: "ADMIN_REPORT_GENERATED",
+            message: "Generated dashboard Excel report",
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to log report generation:", error);
+      }
+
+      toast.success("Excel report generated successfully!");
+    } catch (error) {
+      console.error("Error generating Excel:", error);
+      toast.error("Failed to generate Excel report. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
-    <Button
-      variant="outline"
-      className="border-white text-red-600 hover:bg-gray-100"
-      onClick={handleGenerateReport}
-      disabled={isGenerating}
-    >
-      {isGenerating ? (
-        <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          Generating...
-        </>
-      ) : (
-        <>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className="border-white text-red-600 hover:bg-gray-100"
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <FileText className="w-4 h-4 mr-2" />
+              Generate Report
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={handleGenerateReport}>
           <FileText className="w-4 h-4 mr-2" />
-          Generate Report
-        </>
-      )}
-    </Button>
+          PDF Report
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleGenerateExcel}>
+          <FileSpreadsheet className="w-4 h-4 mr-2" />
+          Excel Report
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -137,7 +137,7 @@ export default function RenewalApplicationPage() {
 
         if (!periodData) {
           setIsPageLocked(true);
-          setLockReason("No application period is currently open.");
+          setLockReason("No application cycle is currently open.");
           setLockStatus(null);
           setIsCheckingEligibility(false);
           return;

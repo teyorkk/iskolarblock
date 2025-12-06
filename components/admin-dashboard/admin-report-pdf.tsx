@@ -291,10 +291,10 @@ export function AdminReportPDF({
 
         {/* Main Content */}
         <View style={styles.content}>
-          {/* Application Period Info */}
+          {/* Application Cycle Info */}
           {period && (
             <View style={styles.periodInfo}>
-              <Text style={styles.periodTitle}>Application Period</Text>
+              <Text style={styles.periodTitle}>Application Cycle</Text>
               <Text style={styles.periodDate}>{period.title}</Text>
               <Text style={styles.periodDate}>
                 Start:{" "}

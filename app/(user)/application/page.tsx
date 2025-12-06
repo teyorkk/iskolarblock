@@ -122,7 +122,7 @@ export default function ApplicationPage() {
               <div className="mb-6 flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0" />
                 <div>
-                  <p className="font-semibold">No active application period.</p>
+                  <p className="font-semibold">No active application cycle.</p>
                   <p>
                     Please wait for the next application cycle or watch for
                     announcements.
