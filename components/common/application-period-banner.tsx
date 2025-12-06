@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarRange, Clock, ToggleLeft, ToggleRight } from "lucide-react";
+import { CalendarRange, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
+import { EditApplicationPeriodDialog } from "@/components/admin-dashboard/edit-application-period-dialog";
 
 interface ApplicationPeriodBannerProps {
   variant?: "admin" | "user";
@@ -20,6 +19,7 @@ interface ApplicationPeriod {
   startDate: string;
   endDate: string;
   isOpen: boolean;
+  budgetId?: string | null;
 }
 
 export function ApplicationPeriodBanner({
@@ -28,7 +28,6 @@ export function ApplicationPeriodBanner({
 }: ApplicationPeriodBannerProps): React.JSX.Element {
   const [period, setPeriod] = useState<ApplicationPeriod | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isToggling, setIsToggling] = useState(false);
 
   const fetchCurrentPeriod = async (id?: string | null, skipAuto = false) => {
     try {
@@ -110,46 +109,6 @@ export function ApplicationPeriodBanner({
       console.error("Error fetching application period:", error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleToggleAccepting = async () => {
-    if (!period) return;
-
-    setIsToggling(true);
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const newIsOpen = !period.isOpen;
-
-      // Update local state immediately for better UX
-      setPeriod({ ...period, isOpen: newIsOpen });
-
-      const { error } = await supabase
-        .from("ApplicationPeriod")
-        .update({ isOpen: newIsOpen, updatedAt: new Date().toISOString() })
-        .eq("id", period.id);
-
-      if (error) {
-        console.error("Error toggling application period:", error);
-        // Revert local state on error
-        setPeriod({ ...period, isOpen: !newIsOpen });
-        toast.error("Failed to update application cycle status");
-      } else {
-        toast.success(
-          `Application cycle is now ${newIsOpen ? "open" : "closed"}`
-        );
-        // Refresh the period data but skip auto-update to respect manual toggle
-        await fetchCurrentPeriod(periodId, true);
-      }
-    } catch (error) {
-      console.error("Error toggling application period:", error);
-      // Revert local state on error
-      if (period) {
-        setPeriod({ ...period, isOpen: !period.isOpen });
-      }
-      toast.error("An unexpected error occurred");
-    } finally {
-      setIsToggling(false);
     }
   };
 
@@ -299,28 +258,20 @@ export function ApplicationPeriodBanner({
             </div>
           </div>
           {variant === "admin" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleToggleAccepting}
-              disabled={isToggling}
-              className="flex items-center gap-2"
-            >
-              {period.isOpen ? (
-                <ToggleRight className="w-5 h-5 text-green-600" />
-              ) : (
-                <ToggleLeft className="w-5 h-5 text-gray-400" />
-              )}
-              <span
-                className={period.isOpen ? "text-green-600" : "text-gray-500"}
-              >
-                {isToggling
-                  ? "Updating..."
-                  : period.isOpen
-                  ? "Accepting"
-                  : "Not Accepting"}
-              </span>
-            </Button>
+            <EditApplicationPeriodDialog
+              period={{
+                id: period.id,
+                title: period.title,
+                description: period.description,
+                startDate: period.startDate,
+                endDate: period.endDate,
+                isOpen: period.isOpen,
+                budgetId: period.budgetId || null,
+              }}
+              onUpdate={() => {
+                void fetchCurrentPeriod(periodId);
+              }}
+            />
           )}
         </div>
       </div>
