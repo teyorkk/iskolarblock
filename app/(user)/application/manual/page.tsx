@@ -24,7 +24,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, Loader2, CheckCircle2, FileText, User, Home, Plus, Trash2, IdCard, BookOpen } from "lucide-react";
+import {
+  Upload,
+  Loader2,
+  CheckCircle2,
+  FileText,
+  User,
+  Home,
+  Plus,
+  Trash2,
+  IdCard,
+  BookOpen,
+} from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 
@@ -96,7 +107,7 @@ export default function ManualApplicationPage() {
   const [cogSubjects, setCogSubjects] = useState<Subject[]>([
     { id: "1", description: "", units: 0, grade: 0 },
   ]);
-  
+
   // Grading system state
   const [gradingSystem, setGradingSystem] = useState<GradingSystem>("college");
 
@@ -121,19 +132,29 @@ export default function ManualApplicationPage() {
 
   // Calculate GWA and Total Units for COG
   const calculateCogStats = () => {
-    const totalUnits = cogSubjects.reduce((sum, subject) => sum + (subject.units || 0), 0);
-    
+    const totalUnits = cogSubjects.reduce(
+      (sum, subject) => sum + (subject.units || 0),
+      0
+    );
+
     if (gradingSystem === "shs") {
       // For SHS: Simple average of grades (60-99 scale)
-      const totalGrades = cogSubjects.reduce((sum, subject) => sum + (subject.grade || 0), 0);
-      const gwa = cogSubjects.length > 0 ? (totalGrades / cogSubjects.length).toFixed(2) : "0.00";
+      const totalGrades = cogSubjects.reduce(
+        (sum, subject) => sum + (subject.grade || 0),
+        0
+      );
+      const gwa =
+        cogSubjects.length > 0
+          ? (totalGrades / cogSubjects.length).toFixed(2)
+          : "0.00";
       return { totalUnits, gwa };
     } else {
       // For College: Weighted average (1.0-5.0 scale)
       const weightedGrades = cogSubjects.reduce((sum, subject) => {
         return sum + (subject.grade || 0) * (subject.units || 0);
       }, 0);
-      const gwa = totalUnits > 0 ? (weightedGrades / totalUnits).toFixed(2) : "0.00";
+      const gwa =
+        totalUnits > 0 ? (weightedGrades / totalUnits).toFixed(2) : "0.00";
       return { totalUnits, gwa };
     }
   };
@@ -156,7 +177,11 @@ export default function ManualApplicationPage() {
   };
 
   // Update Subject
-  const updateSubject = (id: string, field: keyof Subject, value: string | number) => {
+  const updateSubject = (
+    id: string,
+    field: keyof Subject,
+    value: string | number
+  ) => {
     setCogSubjects(
       cogSubjects.map((subject) =>
         subject.id === id ? { ...subject, [field]: value } : subject
@@ -171,9 +196,16 @@ export default function ManualApplicationPage() {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
-      const validTypes = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
+      const validTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "application/pdf",
+      ];
       if (!validTypes.includes(file.type)) {
-        toast.error("Invalid file type. Please upload JPG, PNG, or PDF files only.");
+        toast.error(
+          "Invalid file type. Please upload JPG, PNG, or PDF files only."
+        );
         return;
       }
 
@@ -268,7 +300,9 @@ export default function ManualApplicationPage() {
 
       if (insertError || !newApplication) {
         console.error("Insert error details:", insertError);
-        throw new Error(insertError?.message || "Failed to create application record");
+        throw new Error(
+          insertError?.message || "Failed to create application record"
+        );
       }
 
       console.log("Application created successfully:", newApplication);
@@ -279,7 +313,9 @@ export default function ManualApplicationPage() {
 
       // Upload files to Supabase Storage using the same path format as new/renew applications
       const uploadFile = async (file: File, type: string) => {
-        const filePath = `applications/${user.id}/${applicationId}/${type}-${Date.now()}-${file.name}`;
+        const filePath = `applications/${
+          user.id
+        }/${applicationId}/${type}-${Date.now()}-${file.name}`;
 
         const { error: uploadError } = await supabase.storage
           .from("documents")
@@ -301,7 +337,7 @@ export default function ManualApplicationPage() {
 
       if (uploadedFiles.id || uploadedFiles.cor || uploadedFiles.cog) {
         toast.info("Uploading documents...");
-        
+
         if (uploadedFiles.id) {
           idUrl = await uploadFile(uploadedFiles.id, "id");
         }
@@ -316,7 +352,7 @@ export default function ManualApplicationPage() {
         if (cogUrl) {
           const cogUuidResponse = await fetch("/api/uuid");
           const { uuid: cogId } = await cogUuidResponse.json();
-          
+
           const { error: cogError } = await supabase
             .from("CertificateOfGrades")
             .insert({
@@ -342,7 +378,7 @@ export default function ManualApplicationPage() {
         if (corUrl) {
           const corUuidResponse = await fetch("/api/uuid");
           const { uuid: corId } = await corUuidResponse.json();
-          
+
           const { error: corError } = await supabase
             .from("CertificateOfRegistration")
             .insert({
@@ -358,7 +394,10 @@ export default function ManualApplicationPage() {
             });
 
           if (corError) {
-            console.error("CertificateOfRegistration creation error:", corError);
+            console.error(
+              "CertificateOfRegistration creation error:",
+              corError
+            );
           }
         }
 
@@ -375,7 +414,9 @@ export default function ManualApplicationPage() {
           .eq("id", newApplication.id);
 
         if (updateError) {
-          throw new Error(`Failed to update application with remarks: ${updateError.message}`);
+          throw new Error(
+            `Failed to update application with remarks: ${updateError.message}`
+          );
         }
       }
 
@@ -400,14 +441,17 @@ export default function ManualApplicationPage() {
       // Display success message with blockchain transaction hash if available
       if (result.transactionHash) {
         toast.success(
-          `Application submitted successfully! Blockchain TX: ${result.transactionHash.substring(0, 10)}...`,
+          `Application submitted successfully! Blockchain TX: ${result.transactionHash.substring(
+            0,
+            10
+          )}...`,
           { duration: 5000 }
         );
         console.log("Blockchain transaction hash:", result.transactionHash);
       } else {
         toast.success("Application submitted successfully!");
       }
-      
+
       setTimeout(() => {
         router.push("/application");
       }, 2000);
@@ -447,7 +491,10 @@ export default function ManualApplicationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* ID Upload */}
                   <div className="space-y-3">
-                    <Label htmlFor="id-upload" className="text-sm font-medium flex items-center gap-2">
+                    <Label
+                      htmlFor="id-upload"
+                      className="text-sm font-medium flex items-center gap-2"
+                    >
                       <IdCard className="w-4 h-4 text-orange-600" />
                       Valid ID
                     </Label>
@@ -470,7 +517,9 @@ export default function ManualApplicationPage() {
                         {uploadedFiles.id ? (
                           <div className="flex flex-col items-center gap-2 w-full">
                             <CheckCircle2 className="w-6 h-6 text-green-600" />
-                            <span className="text-xs truncate w-full text-center">{uploadedFiles.id.name}</span>
+                            <span className="text-xs truncate w-full text-center">
+                              {uploadedFiles.id.name}
+                            </span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center gap-2 w-full">
@@ -484,7 +533,10 @@ export default function ManualApplicationPage() {
 
                   {/* COR Upload */}
                   <div className="space-y-3">
-                    <Label htmlFor="cor-upload" className="text-sm font-medium flex items-center gap-2">
+                    <Label
+                      htmlFor="cor-upload"
+                      className="text-sm font-medium flex items-center gap-2"
+                    >
                       <FileText className="w-4 h-4 text-orange-600" />
                       Certificate of Registration
                     </Label>
@@ -507,7 +559,9 @@ export default function ManualApplicationPage() {
                         {uploadedFiles.cor ? (
                           <div className="flex flex-col items-center gap-2 w-full">
                             <CheckCircle2 className="w-6 h-6 text-green-600" />
-                            <span className="text-xs truncate w-full text-center">{uploadedFiles.cor.name}</span>
+                            <span className="text-xs truncate w-full text-center">
+                              {uploadedFiles.cor.name}
+                            </span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center gap-2 w-full">
@@ -521,7 +575,10 @@ export default function ManualApplicationPage() {
 
                   {/* COG Upload */}
                   <div className="space-y-3">
-                    <Label htmlFor="cog-upload" className="text-sm font-medium flex items-center gap-2">
+                    <Label
+                      htmlFor="cog-upload"
+                      className="text-sm font-medium flex items-center gap-2"
+                    >
                       <BookOpen className="w-4 h-4 text-orange-600" />
                       Certificate of Grades
                     </Label>
@@ -544,7 +601,9 @@ export default function ManualApplicationPage() {
                         {uploadedFiles.cog ? (
                           <div className="flex flex-col items-center gap-2 w-full">
                             <CheckCircle2 className="w-6 h-6 text-green-600" />
-                            <span className="text-xs truncate w-full text-center">{uploadedFiles.cog.name}</span>
+                            <span className="text-xs truncate w-full text-center">
+                              {uploadedFiles.cog.name}
+                            </span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center gap-2 w-full">
@@ -566,81 +625,126 @@ export default function ManualApplicationPage() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="corSchool" className="text-sm font-medium">School</Label>
+                    <Label htmlFor="corSchool" className="text-sm font-medium">
+                      School
+                    </Label>
                     <Input
                       id="corSchool"
                       {...register("corSchool")}
                       placeholder="Enter school name"
-                      className={`rounded-lg ${errors.corSchool ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.corSchool ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.corSchool && (
-                      <p className="text-sm text-red-500">{errors.corSchool.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.corSchool.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corSchoolYear" className="text-sm font-medium">School Year</Label>
+                    <Label
+                      htmlFor="corSchoolYear"
+                      className="text-sm font-medium"
+                    >
+                      School Year
+                    </Label>
                     <Input
                       id="corSchoolYear"
                       {...register("corSchoolYear")}
                       placeholder="e.g., 2024-2025"
-                      className={`rounded-lg ${errors.corSchoolYear ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.corSchoolYear ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.corSchoolYear && (
-                      <p className="text-sm text-red-500">{errors.corSchoolYear.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.corSchoolYear.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corSemester" className="text-sm font-medium">Semester</Label>
+                    <Label
+                      htmlFor="corSemester"
+                      className="text-sm font-medium"
+                    >
+                      Semester
+                    </Label>
                     <Input
                       id="corSemester"
                       {...register("corSemester")}
                       placeholder="e.g., 1st Semester"
-                      className={`rounded-lg ${errors.corSemester ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.corSemester ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.corSemester && (
-                      <p className="text-sm text-red-500">{errors.corSemester.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.corSemester.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corCourse" className="text-sm font-medium">Course</Label>
+                    <Label htmlFor="corCourse" className="text-sm font-medium">
+                      Course
+                    </Label>
                     <Input
                       id="corCourse"
                       {...register("corCourse")}
                       placeholder="Enter course"
-                      className={`rounded-lg ${errors.corCourse ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.corCourse ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.corCourse && (
-                      <p className="text-sm text-red-500">{errors.corCourse.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.corCourse.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corName" className="text-sm font-medium">Student Name</Label>
+                    <Label htmlFor="corName" className="text-sm font-medium">
+                      Student Name
+                    </Label>
                     <Input
                       id="corName"
                       {...register("corName")}
                       placeholder="Enter student name"
-                      className={`rounded-lg ${errors.corName ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.corName ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.corName && (
-                      <p className="text-sm text-red-500">{errors.corName.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.corName.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="corTotalUnits" className="text-sm font-medium">Total Units</Label>
+                    <Label
+                      htmlFor="corTotalUnits"
+                      className="text-sm font-medium"
+                    >
+                      Total Units
+                    </Label>
                     <Input
                       id="corTotalUnits"
                       {...register("corTotalUnits")}
                       placeholder="Enter total units"
                       type="number"
-                      className={`rounded-lg ${errors.corTotalUnits ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.corTotalUnits ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.corTotalUnits && (
-                      <p className="text-sm text-red-500">{errors.corTotalUnits.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.corTotalUnits.message}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -654,67 +758,103 @@ export default function ManualApplicationPage() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="cogSchool" className="text-sm font-medium">School</Label>
+                    <Label htmlFor="cogSchool" className="text-sm font-medium">
+                      School
+                    </Label>
                     <Input
                       id="cogSchool"
                       {...register("cogSchool")}
                       placeholder="Enter school name"
-                      className={`rounded-lg ${errors.cogSchool ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.cogSchool ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.cogSchool && (
-                      <p className="text-sm text-red-500">{errors.cogSchool.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.cogSchool.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cogSchoolYear" className="text-sm font-medium">School Year</Label>
+                    <Label
+                      htmlFor="cogSchoolYear"
+                      className="text-sm font-medium"
+                    >
+                      School Year
+                    </Label>
                     <Input
                       id="cogSchoolYear"
                       {...register("cogSchoolYear")}
                       placeholder="e.g., 2024-2025"
-                      className={`rounded-lg ${errors.cogSchoolYear ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.cogSchoolYear ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.cogSchoolYear && (
-                      <p className="text-sm text-red-500">{errors.cogSchoolYear.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.cogSchoolYear.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cogSemester" className="text-sm font-medium">Semester</Label>
+                    <Label
+                      htmlFor="cogSemester"
+                      className="text-sm font-medium"
+                    >
+                      Semester
+                    </Label>
                     <Input
                       id="cogSemester"
                       {...register("cogSemester")}
                       placeholder="e.g., 1st Semester"
-                      className={`rounded-lg ${errors.cogSemester ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.cogSemester ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.cogSemester && (
-                      <p className="text-sm text-red-500">{errors.cogSemester.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.cogSemester.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cogCourse" className="text-sm font-medium">Course</Label>
+                    <Label htmlFor="cogCourse" className="text-sm font-medium">
+                      Course
+                    </Label>
                     <Input
                       id="cogCourse"
                       {...register("cogCourse")}
                       placeholder="Enter course"
-                      className={`rounded-lg ${errors.cogCourse ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.cogCourse ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.cogCourse && (
-                      <p className="text-sm text-red-500">{errors.cogCourse.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.cogCourse.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="cogName" className="text-sm font-medium">Student Name</Label>
+                    <Label htmlFor="cogName" className="text-sm font-medium">
+                      Student Name
+                    </Label>
                     <Input
                       id="cogName"
                       {...register("cogName")}
                       placeholder="Enter student name"
-                      className={`rounded-lg ${errors.cogName ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.cogName ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.cogName && (
-                      <p className="text-sm text-red-500">{errors.cogName.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.cogName.message}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -726,13 +866,17 @@ export default function ManualApplicationPage() {
                     <div className="flex items-center gap-3">
                       <Select
                         value={gradingSystem}
-                        onValueChange={(val) => setGradingSystem(val as GradingSystem)}
+                        onValueChange={(val) =>
+                          setGradingSystem(val as GradingSystem)
+                        }
                       >
                         <SelectTrigger className="w-[180px] rounded-lg">
                           <SelectValue placeholder="Grading System" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="college">College (1.0-5.0)</SelectItem>
+                          <SelectItem value="college">
+                            College (1.0-5.0)
+                          </SelectItem>
                           <SelectItem value="shs">SHS (60-99)</SelectItem>
                         </SelectContent>
                       </Select>
@@ -747,41 +891,69 @@ export default function ManualApplicationPage() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {cogSubjects.map((subject) => (
-                      <div key={subject.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-white rounded-xl border border-blue-100">
+                      <div
+                        key={subject.id}
+                        className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-white rounded-xl border border-blue-100"
+                      >
                         <div className="md:col-span-5 space-y-2">
-                          <Label className="text-xs font-medium text-gray-600">Subject Description</Label>
+                          <Label className="text-xs font-medium text-gray-600">
+                            Subject Description
+                          </Label>
                           <Input
                             placeholder="e.g., Mathematics"
                             value={subject.description}
-                            onChange={(e) => updateSubject(subject.id, "description", e.target.value)}
-                            className="rounded-lg"
-                          />
-                        </div>
-                        <div className="md:col-span-2 space-y-2">
-                          <Label className="text-xs font-medium text-gray-600">Units</Label>
-                          <Input
-                            type="number"
-                            placeholder="3"
-                            value={subject.units || ""}
-                            onChange={(e) => updateSubject(subject.id, "units", parseFloat(e.target.value) || 0)}
+                            onChange={(e) =>
+                              updateSubject(
+                                subject.id,
+                                "description",
+                                e.target.value
+                              )
+                            }
                             className="rounded-lg"
                           />
                         </div>
                         <div className="md:col-span-2 space-y-2">
                           <Label className="text-xs font-medium text-gray-600">
-                            Grade {gradingSystem === "shs" ? "(60-99)" : "(1.0-5.0)"}
+                            Units
+                          </Label>
+                          <Input
+                            type="number"
+                            placeholder="3"
+                            value={subject.units || ""}
+                            onChange={(e) =>
+                              updateSubject(
+                                subject.id,
+                                "units",
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="rounded-lg"
+                          />
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                          <Label className="text-xs font-medium text-gray-600">
+                            Grade{" "}
+                            {gradingSystem === "shs" ? "(60-99)" : "(1.0-5.0)"}
                           </Label>
                           <Input
                             type="number"
                             step={gradingSystem === "shs" ? "1" : "0.01"}
                             min={gradingSystem === "shs" ? "60" : "1.0"}
                             max={gradingSystem === "shs" ? "99" : "5.0"}
-                            placeholder={gradingSystem === "shs" ? "75" : "1.00"}
+                            placeholder={
+                              gradingSystem === "shs" ? "75" : "1.00"
+                            }
                             value={subject.grade || ""}
-                            onChange={(e) => updateSubject(subject.id, "grade", parseFloat(e.target.value) || 0)}
+                            onChange={(e) =>
+                              updateSubject(
+                                subject.id,
+                                "grade",
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
                             className="rounded-lg"
                           />
                         </div>
@@ -805,14 +977,23 @@ export default function ManualApplicationPage() {
                   {/* Auto-computed Stats */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 p-4 bg-linear-to-r from-blue-100 to-blue-50 rounded-xl border border-blue-200">
                     <div className="space-y-1">
-                      <Label className="text-sm font-medium text-blue-800">Total Units</Label>
-                      <div className="text-2xl font-bold text-blue-900">{cogTotalUnits}</div>
+                      <Label className="text-sm font-medium text-blue-800">
+                        Total Units
+                      </Label>
+                      <div className="text-2xl font-bold text-blue-900">
+                        {cogTotalUnits}
+                      </div>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-sm font-medium text-blue-800">
-                        GWA {gradingSystem === "shs" ? "(Average)" : "(Weighted Average)"}
+                        GWA{" "}
+                        {gradingSystem === "shs"
+                          ? "(Average)"
+                          : "(Weighted Average)"}
                       </Label>
-                      <div className="text-2xl font-bold text-blue-900">{cogGwa}</div>
+                      <div className="text-2xl font-bold text-blue-900">
+                        {cogGwa}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -826,33 +1007,47 @@ export default function ManualApplicationPage() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="lastName" className="text-sm font-medium">Last Name *</Label>
+                    <Label htmlFor="lastName" className="text-sm font-medium">
+                      Last Name *
+                    </Label>
                     <Input
                       id="lastName"
                       {...register("lastName")}
                       placeholder="Enter last name"
-                      className={`rounded-lg ${errors.lastName ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.lastName ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.lastName && (
-                      <p className="text-sm text-red-500">{errors.lastName.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.lastName.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="firstName" className="text-sm font-medium">First Name *</Label>
+                    <Label htmlFor="firstName" className="text-sm font-medium">
+                      First Name *
+                    </Label>
                     <Input
                       id="firstName"
                       {...register("firstName")}
                       placeholder="Enter first name"
-                      className={`rounded-lg ${errors.firstName ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.firstName ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.firstName && (
-                      <p className="text-sm text-red-500">{errors.firstName.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.firstName.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="middleName" className="text-sm font-medium">Middle Name</Label>
+                    <Label htmlFor="middleName" className="text-sm font-medium">
+                      Middle Name
+                    </Label>
                     <Input
                       id="middleName"
                       {...register("middleName")}
@@ -864,35 +1059,55 @@ export default function ManualApplicationPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth" className="text-sm font-medium">Date of Birth *</Label>
+                    <Label
+                      htmlFor="dateOfBirth"
+                      className="text-sm font-medium"
+                    >
+                      Date of Birth *
+                    </Label>
                     <Input
                       id="dateOfBirth"
                       type="date"
                       {...register("dateOfBirth")}
-                      className={`rounded-lg ${errors.dateOfBirth ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.dateOfBirth ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.dateOfBirth && (
-                      <p className="text-sm text-red-500">{errors.dateOfBirth.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.dateOfBirth.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="placeOfBirth" className="text-sm font-medium">Place of Birth *</Label>
+                    <Label
+                      htmlFor="placeOfBirth"
+                      className="text-sm font-medium"
+                    >
+                      Place of Birth *
+                    </Label>
                     <Input
                       id="placeOfBirth"
                       {...register("placeOfBirth")}
                       placeholder="Enter place of birth"
-                      className={`rounded-lg ${errors.placeOfBirth ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.placeOfBirth ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.placeOfBirth && (
-                      <p className="text-sm text-red-500">{errors.placeOfBirth.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.placeOfBirth.message}
+                      </p>
                     )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="age" className="text-sm font-medium">Age</Label>
+                    <Label htmlFor="age" className="text-sm font-medium">
+                      Age
+                    </Label>
                     <Input
                       id="age"
                       type="number"
@@ -903,12 +1118,20 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sex" className="text-sm font-medium">Sex *</Label>
+                    <Label htmlFor="sex" className="text-sm font-medium">
+                      Sex *
+                    </Label>
                     <Select
                       value={sex}
-                      onValueChange={(val) => setValue("sex", val as "male" | "female")}
+                      onValueChange={(val) =>
+                        setValue("sex", val as "male" | "female")
+                      }
                     >
-                      <SelectTrigger className={`rounded-lg ${errors.sex ? "border-red-500" : ""}`}>
+                      <SelectTrigger
+                        className={`rounded-lg ${
+                          errors.sex ? "border-red-500" : ""
+                        }`}
+                      >
                         <SelectValue placeholder="Select sex" />
                       </SelectTrigger>
                       <SelectContent>
@@ -917,7 +1140,9 @@ export default function ManualApplicationPage() {
                       </SelectContent>
                     </Select>
                     {errors.sex && (
-                      <p className="text-sm text-red-500">{errors.sex.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.sex.message}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -929,36 +1154,53 @@ export default function ManualApplicationPage() {
                   <Home className="w-6 h-6 text-orange-600" />
                   Address & Academic Information
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="houseNumber" className="text-sm font-medium">House Number *</Label>
+                    <Label
+                      htmlFor="houseNumber"
+                      className="text-sm font-medium"
+                    >
+                      House Number *
+                    </Label>
                     <Input
                       id="houseNumber"
                       {...register("houseNumber")}
                       placeholder="Enter house number"
-                      className={`rounded-lg ${errors.houseNumber ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.houseNumber ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.houseNumber && (
-                      <p className="text-sm text-red-500">{errors.houseNumber.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.houseNumber.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="purok" className="text-sm font-medium">Purok/Street *</Label>
+                    <Label htmlFor="purok" className="text-sm font-medium">
+                      Purok/Street *
+                    </Label>
                     <Input
                       id="purok"
                       {...register("purok")}
                       placeholder="Enter purok/street"
-                      className={`rounded-lg ${errors.purok ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.purok ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.purok && (
-                      <p className="text-sm text-red-500">{errors.purok.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.purok.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="barangay" className="text-sm font-medium">Barangay</Label>
+                    <Label htmlFor="barangay" className="text-sm font-medium">
+                      Barangay
+                    </Label>
                     <Input
                       id="barangay"
                       {...register("barangay")}
@@ -969,7 +1211,12 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="municipality" className="text-sm font-medium">Municipality</Label>
+                    <Label
+                      htmlFor="municipality"
+                      className="text-sm font-medium"
+                    >
+                      Municipality
+                    </Label>
                     <Input
                       id="municipality"
                       {...register("municipality")}
@@ -980,7 +1227,9 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="province" className="text-sm font-medium">Province</Label>
+                    <Label htmlFor="province" className="text-sm font-medium">
+                      Province
+                    </Label>
                     <Input
                       id="province"
                       {...register("province")}
@@ -991,7 +1240,12 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="citizenship" className="text-sm font-medium">Citizenship</Label>
+                    <Label
+                      htmlFor="citizenship"
+                      className="text-sm font-medium"
+                    >
+                      Citizenship
+                    </Label>
                     <Input
                       id="citizenship"
                       {...register("citizenship")}
@@ -1002,51 +1256,83 @@ export default function ManualApplicationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contactNumber" className="text-sm font-medium">Contact Number *</Label>
+                    <Label
+                      htmlFor="contactNumber"
+                      className="text-sm font-medium"
+                    >
+                      Contact Number *
+                    </Label>
                     <Input
                       id="contactNumber"
                       {...register("contactNumber")}
                       placeholder="Enter contact number"
-                      className={`rounded-lg ${errors.contactNumber ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.contactNumber ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.contactNumber && (
-                      <p className="text-sm text-red-500">{errors.contactNumber.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.contactNumber.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="religion" className="text-sm font-medium">Religion *</Label>
+                    <Label htmlFor="religion" className="text-sm font-medium">
+                      Religion *
+                    </Label>
                     <Input
                       id="religion"
                       {...register("religion")}
                       placeholder="Enter religion"
-                      className={`rounded-lg ${errors.religion ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.religion ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.religion && (
-                      <p className="text-sm text-red-500">{errors.religion.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.religion.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="course" className="text-sm font-medium">Course/Strand *</Label>
+                    <Label htmlFor="course" className="text-sm font-medium">
+                      Course/Strand *
+                    </Label>
                     <Input
                       id="course"
                       {...register("course")}
                       placeholder="Enter course or strand"
-                      className={`rounded-lg ${errors.course ? "border-red-500" : ""}`}
+                      className={`rounded-lg ${
+                        errors.course ? "border-red-500" : ""
+                      }`}
                     />
                     {errors.course && (
-                      <p className="text-sm text-red-500">{errors.course.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.course.message}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="yearLevel" className="text-sm font-medium">Year Level *</Label>
+                    <Label htmlFor="yearLevel" className="text-sm font-medium">
+                      Year Level *
+                    </Label>
                     <Select
                       value={yearLevel}
-                      onValueChange={(val) => setValue("yearLevel", val as "G11" | "G12" | "1" | "2" | "3" | "4")}
+                      onValueChange={(val) =>
+                        setValue(
+                          "yearLevel",
+                          val as "G11" | "G12" | "1" | "2" | "3" | "4"
+                        )
+                      }
                     >
-                      <SelectTrigger className={`rounded-lg ${errors.yearLevel ? "border-red-500" : ""}`}>
+                      <SelectTrigger
+                        className={`rounded-lg ${
+                          errors.yearLevel ? "border-red-500" : ""
+                        }`}
+                      >
                         <SelectValue placeholder="Select year level" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1059,7 +1345,9 @@ export default function ManualApplicationPage() {
                       </SelectContent>
                     </Select>
                     {errors.yearLevel && (
-                      <p className="text-sm text-red-500">{errors.yearLevel.message}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.yearLevel.message}
+                      </p>
                     )}
                   </div>
                 </div>

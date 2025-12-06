@@ -252,8 +252,8 @@ export function ApplicationDetailsDialog({
   const blockchainDisplayHash =
     blockchainRecord?.transactionHash ?? blockchainRecord?.id ?? "";
   const isActionDisabled =
-    application?.status === "APPROVED" || 
-    application?.status === "GRANTED" || 
+    application?.status === "APPROVED" ||
+    application?.status === "GRANTED" ||
     application?.status === "REJECTED";
 
   // Helper function to check if value is null/empty

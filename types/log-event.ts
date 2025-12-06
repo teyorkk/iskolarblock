@@ -27,3 +27,4 @@ export interface LogEventRecord {
   metadata: Record<string, unknown> | null;
   created_at: string;
 }
+

@@ -443,7 +443,10 @@ export default function AdminDashboard() {
                   value={selectedPeriodId || undefined}
                   onValueChange={(value) => setSelectedPeriodId(value)}
                 >
-                  <SelectTrigger id="period-select" className="w-full sm:w-[300px]">
+                  <SelectTrigger
+                    id="period-select"
+                    className="w-full sm:w-[300px]"
+                  >
                     <SelectValue placeholder="Select application period" />
                   </SelectTrigger>
                   <SelectContent>
