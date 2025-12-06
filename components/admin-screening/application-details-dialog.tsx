@@ -252,7 +252,9 @@ export function ApplicationDetailsDialog({
   const blockchainDisplayHash =
     blockchainRecord?.transactionHash ?? blockchainRecord?.id ?? "";
   const isActionDisabled =
-    application?.status === "APPROVED" || application?.status === "GRANTED";
+    application?.status === "APPROVED" || 
+    application?.status === "GRANTED" || 
+    application?.status === "REJECTED";
 
   // Helper function to check if value is null/empty
   const hasValue = (value: string | number | null | undefined): boolean => {
@@ -658,7 +660,7 @@ export function ApplicationDetailsDialog({
                   <p className="text-xs uppercase tracking-wide text-gray-500">
                     Blockchain Record
                   </p>
-                  <p className="font-mono text-sm text-gray-900 truncate max-w-[240px]">
+                  <p className="font-mono text-sm text-gray-900 truncate max-w-60">
                     {blockchainDisplayHash}
                   </p>
                 </div>
