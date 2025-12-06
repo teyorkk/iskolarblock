@@ -41,6 +41,12 @@ const styles = StyleSheet.create({
     height: 50,
     objectFit: "contain",
   },
+  roundedLogo: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: "hidden",
+  },
   headerText: {
     flex: 1,
     marginLeft: 15,
@@ -284,12 +290,14 @@ export function AdminReportPDF({
           <View style={styles.headerContent}>
             <View style={styles.logoContainer}>
               {iskolarblockLogoUrl && (
-                <Image src={iskolarblockLogoUrl} style={styles.logo} />
+                <View style={styles.roundedLogo}>
+                  <Image src={iskolarblockLogoUrl} style={styles.logo} />
+                </View>
               )}
               {skLogoUrl && <Image src={skLogoUrl} style={styles.logo} />}
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Admin Dashboard Report</Text>
+              <Text style={styles.headerTitle}>IskolarBlock Report</Text>
               <Text style={styles.headerSubtitle}>
                 Barangay San Miguel Scholarship Program
               </Text>

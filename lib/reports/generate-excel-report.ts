@@ -167,7 +167,7 @@ export async function generateExcelReport({
 
   // Title
   const statsTitleRow = statsSheet.getRow(1);
-  statsTitleRow.getCell(1).value = "Application Statistics";
+  statsTitleRow.getCell(1).value = "IskolarBlock Report";
   statsTitleRow.getCell(1).font = { bold: true, size: 16 };
   statsTitleRow.getCell(1).alignment = {
     horizontal: "center",
