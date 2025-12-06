@@ -125,7 +125,7 @@ export default function NewApplicationPage() {
 
         if (!periodData) {
           setIsPageLocked(true);
-          setLockReason("No application period is currently open.");
+          setLockReason("No application cycle is currently open.");
           setLockStatus(null);
           setEligibilityChecked(true);
           return;

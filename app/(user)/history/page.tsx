@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { UserSidebar } from "@/components/user-sidebar";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw, Loader2, AlertCircle } from "lucide-react";
@@ -9,6 +10,9 @@ import { StatsCards } from "../../../components/user-history/StatsCards";
 import { FilterTabs } from "../../../components/user-history/FilterTabs";
 import { ApplicationsTable } from "../../../components/user-history/ApplicationsTable";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSession } from "@/components/session-provider";
+import { getApplicationRoute } from "@/lib/utils/application-navigation";
+import { toast } from "sonner";
 
 interface Application {
   id: string;
@@ -30,10 +34,13 @@ const statusColors = {
 };
 
 export default function HistoryPage() {
+  const router = useRouter();
+  const { user } = useSession();
   const [filter, setFilter] = useState<string>("all");
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     fetchApplications();
@@ -119,7 +126,27 @@ export default function HistoryPage() {
                   )}
                   Refresh
                 </Button>
-                <Button onClick={() => (window.location.href = "/application")}>
+                <Button
+                  onClick={async () => {
+                    if (isNavigating) return;
+                    setIsNavigating(true);
+                    try {
+                      const target = await getApplicationRoute(user);
+                      router.push(target);
+                    } catch (error) {
+                      console.error(
+                        "Failed to navigate to application:",
+                        error
+                      );
+                      toast.error(
+                        "Unable to open your application form right now. Please try again."
+                      );
+                    } finally {
+                      setIsNavigating(false);
+                    }
+                  }}
+                  disabled={isNavigating}
+                >
                   New Application
                 </Button>
               </div>

@@ -18,11 +18,12 @@ const styles = StyleSheet.create({
   },
   // Header with logos
   pageHeader: {
-    backgroundColor: "#f97316",
+    backgroundColor: "#ffffff",
     padding: 20,
     paddingTop: 30,
     paddingBottom: 25,
     marginBottom: 0,
+    borderBottom: "2 solid #f97316",
   },
   headerContent: {
     flexDirection: "row",
@@ -40,6 +41,12 @@ const styles = StyleSheet.create({
     height: 50,
     objectFit: "contain",
   },
+  roundedLogo: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
   headerText: {
     flex: 1,
     marginLeft: 15,
@@ -47,16 +54,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#f97316",
     marginBottom: 3,
   },
   headerSubtitle: {
     fontSize: 11,
-    color: "#fff7ed",
+    color: "#666666",
   },
   headerDate: {
     fontSize: 9,
-    color: "#fff7ed",
+    color: "#666666",
     marginTop: 10,
   },
   // Main content area
@@ -140,6 +147,12 @@ const styles = StyleSheet.create({
     flex: 1.2,
     color: "#333",
   },
+  tableCellRemarks: {
+    fontSize: 8,
+    paddingHorizontal: 5,
+    flex: 2,
+    color: "#333",
+  },
   periodInfo: {
     backgroundColor: "#fff7ed",
     padding: 12,
@@ -182,11 +195,13 @@ interface Application {
   id: string;
   status: string;
   createdAt?: string;
+  remarks?: string | null;
   applicationDetails?: {
     personalInfo?: {
       firstName?: string;
       middleName?: string | null;
       lastName?: string;
+      yearLevel?: string;
     };
   } | null;
 }
@@ -275,12 +290,14 @@ export function AdminReportPDF({
           <View style={styles.headerContent}>
             <View style={styles.logoContainer}>
               {iskolarblockLogoUrl && (
-                <Image src={iskolarblockLogoUrl} style={styles.logo} />
+                <View style={styles.roundedLogo}>
+                  <Image src={iskolarblockLogoUrl} style={styles.logo} />
+                </View>
               )}
               {skLogoUrl && <Image src={skLogoUrl} style={styles.logo} />}
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Admin Dashboard Report</Text>
+              <Text style={styles.headerTitle}>IskolarBlock Report</Text>
               <Text style={styles.headerSubtitle}>
                 Barangay San Miguel Scholarship Program
               </Text>
@@ -291,10 +308,10 @@ export function AdminReportPDF({
 
         {/* Main Content */}
         <View style={styles.content}>
-          {/* Application Period Info */}
+          {/* Application Cycle Info */}
           {period && (
             <View style={styles.periodInfo}>
-              <Text style={styles.periodTitle}>Application Period</Text>
+              <Text style={styles.periodTitle}>Application Cycle</Text>
               <Text style={styles.periodDate}>{period.title}</Text>
               <Text style={styles.periodDate}>
                 Start:{" "}
@@ -319,17 +336,24 @@ export function AdminReportPDF({
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Key Statistics</Text>
             <View style={styles.statsContainer}>
-              {stats.map((stat, index) => (
-                <View key={index} style={styles.statBox}>
-                  <Text style={styles.statLabel}>{stat.title}</Text>
-                  <Text style={styles.statValue}>
-                    {stat.title.includes("Budget")
-                      ? formatCurrency(stat.value)
-                      : stat.value}
-                  </Text>
-                  <Text style={styles.statLabel}>{stat.description}</Text>
-                </View>
-              ))}
+              {/* Total Applicants */}
+              <View style={styles.statBox}>
+                <Text style={styles.statLabel}>Total Applicants</Text>
+                <Text style={styles.statValue}>{applications.length}</Text>
+                <Text style={styles.statLabel}>All applications</Text>
+              </View>
+              {/* Remaining Budget */}
+              {stats
+                .filter((stat) => stat.title === "Remaining Budget")
+                .map((stat, index) => (
+                  <View key={index} style={styles.statBox}>
+                    <Text style={styles.statLabel}>{stat.title}</Text>
+                    <Text style={styles.statValue}>
+                      {formatCurrency(stat.value)}
+                    </Text>
+                    <Text style={styles.statLabel}>{stat.description}</Text>
+                  </View>
+                ))}
             </View>
           </View>
 
@@ -366,45 +390,106 @@ export function AdminReportPDF({
             </View>
           </View>
 
-          {/* Applicants List */}
-          {applications.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>List of Applicants</Text>
-              <View style={styles.table}>
-                <View style={[styles.tableRow, styles.tableHeader]}>
-                  <Text style={styles.tableCellId}>Application ID</Text>
-                  <Text style={styles.tableCellName}>Name</Text>
-                  <Text style={styles.tableCell}>Status</Text>
-                  <Text style={styles.tableCellDate}>Date Submitted</Text>
-                </View>
-                {applications.map((application) => (
-                  <View key={application.id} style={styles.tableRow}>
-                    <Text style={styles.tableCellId}>
-                      {application.id.substring(0, 8)}...
-                    </Text>
-                    <Text style={styles.tableCellName}>
-                      {getApplicantName(application)}
-                    </Text>
-                    <Text style={styles.tableCell}>
-                      {formatStatus(application.status)}
-                    </Text>
-                    <Text style={styles.tableCellDate}>
-                      {application.createdAt
-                        ? new Date(application.createdAt).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            }
-                          )
-                        : "N/A"}
-                    </Text>
+          {/* SHS Applicants List */}
+          {(() => {
+            const shsApplicants = applications.filter((app) => {
+              const yearLevel = app.applicationDetails?.personalInfo?.yearLevel;
+              return yearLevel === "G11" || yearLevel === "G12";
+            });
+            return shsApplicants.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  SHS Applicants ({shsApplicants.length})
+                </Text>
+                <View style={styles.table}>
+                  <View style={[styles.tableRow, styles.tableHeader]}>
+                    <Text style={styles.tableCellName}>Name</Text>
+                    <Text style={styles.tableCell}>Status</Text>
+                    <Text style={styles.tableCellRemarks}>Remarks</Text>
+                    <Text style={styles.tableCellDate}>Date Submitted</Text>
                   </View>
-                ))}
+                  {shsApplicants.map((application) => (
+                    <View key={application.id} style={styles.tableRow}>
+                      <Text style={styles.tableCellName}>
+                        {getApplicantName(application)}
+                      </Text>
+                      <Text style={styles.tableCell}>
+                        {formatStatus(application.status)}
+                      </Text>
+                      <Text style={styles.tableCellRemarks}>
+                        {application.remarks || "N/A"}
+                      </Text>
+                      <Text style={styles.tableCellDate}>
+                        {application.createdAt
+                          ? new Date(application.createdAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )
+                          : "N/A"}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
-          )}
+            ) : null;
+          })()}
+
+          {/* College Applicants List */}
+          {(() => {
+            const collegeApplicants = applications.filter((app) => {
+              const yearLevel = app.applicationDetails?.personalInfo?.yearLevel;
+              return (
+                yearLevel === "1" ||
+                yearLevel === "2" ||
+                yearLevel === "3" ||
+                yearLevel === "4"
+              );
+            });
+            return collegeApplicants.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  College Applicants ({collegeApplicants.length})
+                </Text>
+                <View style={styles.table}>
+                  <View style={[styles.tableRow, styles.tableHeader]}>
+                    <Text style={styles.tableCellName}>Name</Text>
+                    <Text style={styles.tableCell}>Status</Text>
+                    <Text style={styles.tableCellRemarks}>Remarks</Text>
+                    <Text style={styles.tableCellDate}>Date Submitted</Text>
+                  </View>
+                  {collegeApplicants.map((application) => (
+                    <View key={application.id} style={styles.tableRow}>
+                      <Text style={styles.tableCellName}>
+                        {getApplicantName(application)}
+                      </Text>
+                      <Text style={styles.tableCell}>
+                        {formatStatus(application.status)}
+                      </Text>
+                      <Text style={styles.tableCellRemarks}>
+                        {application.remarks || "N/A"}
+                      </Text>
+                      <Text style={styles.tableCellDate}>
+                        {application.createdAt
+                          ? new Date(application.createdAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )
+                          : "N/A"}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null;
+          })()}
         </View>
       </Page>
     </Document>

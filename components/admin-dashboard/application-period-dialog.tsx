@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, ToggleLeft, ToggleRight, AlertTriangle } from "lucide-react";
+import { Settings, AlertTriangle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,6 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [isAccepting, setIsAccepting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [budget, setBudget] = useState<string>("");
   const [latestCycle, setLatestCycle] = useState<LatestCycle | null>(null);
@@ -239,7 +238,7 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
           description: description.trim() || "Scholarship application period",
           startDate: new Date(startDate).toISOString(),
           endDate: endDateTime.toISOString(),
-          isOpen: isAccepting,
+          isOpen: false,
           budgetId: budgetData.id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -269,7 +268,6 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
               startDate,
               endDate,
               budget: budgetAmount,
-              isAccepting,
             },
           }),
         });
@@ -283,7 +281,6 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
       setStartDate("");
       setEndDate("");
       setBudget("");
-      setIsAccepting(false);
 
       // Refresh the page to show updated data
       window.location.reload();
@@ -427,33 +424,6 @@ export function ApplicationPeriodDialog(): React.JSX.Element {
                 }}
                 className="pl-7"
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Accepting Applications</Label>
-            <div className="col-span-3 flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAccepting(!isAccepting)}
-                className="flex items-center gap-2"
-              >
-                {isAccepting ? (
-                  <ToggleRight className="w-5 h-5 text-green-600" />
-                ) : (
-                  <ToggleLeft className="w-5 h-5 text-gray-400" />
-                )}
-                <span
-                  className={isAccepting ? "text-green-600" : "text-gray-500"}
-                >
-                  {isAccepting ? "Open" : "Closed"}
-                </span>
-              </Button>
-              <p className="text-sm text-gray-500">
-                {isAccepting
-                  ? "Applications are being accepted"
-                  : "Applications are not being accepted"}
-              </p>
             </div>
           </div>
         </div>

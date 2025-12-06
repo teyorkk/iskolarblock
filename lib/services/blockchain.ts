@@ -24,8 +24,9 @@ const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
  * Get Polygon Amoy provider instance with fallback support
  */
 export function getPolygonAmoyProvider(): JsonRpcProvider {
-  const rpcUrl = process.env.POLYGON_AMOY_RPC_URL || POLYGON_AMOY_FALLBACK_RPCS[0];
-  
+  const rpcUrl =
+    process.env.POLYGON_AMOY_RPC_URL || POLYGON_AMOY_FALLBACK_RPCS[0];
+
   try {
     return new JsonRpcProvider(rpcUrl, {
       name: "amoy",
@@ -34,7 +35,7 @@ export function getPolygonAmoyProvider(): JsonRpcProvider {
   } catch (error) {
     console.error("Failed to create provider with primary RPC:", rpcUrl);
     console.log("Trying fallback RPC...");
-    
+
     // Try fallback RPCs
     for (const fallbackRpc of POLYGON_AMOY_FALLBACK_RPCS) {
       if (fallbackRpc !== rpcUrl) {
@@ -49,7 +50,7 @@ export function getPolygonAmoyProvider(): JsonRpcProvider {
         }
       }
     }
-    
+
     throw new Error("All RPC endpoints failed");
   }
 }
@@ -104,10 +105,10 @@ export async function logApplicationToBlockchain(
     console.log("Starting blockchain logging...");
     console.log("Application ID:", applicationId);
     console.log("User ID:", userId);
-    
+
     const wallet = getBlockchainWallet();
     console.log("Wallet address:", wallet.address);
-    
+
     const timestamp = new Date().toISOString();
 
     // Create hash identifier
@@ -123,10 +124,10 @@ export async function logApplicationToBlockchain(
     if (!provider) {
       throw new Error("Wallet provider is not initialized");
     }
-    
+
     const balance = await provider.getBalance(wallet.address);
     console.log("Wallet balance (MATIC):", balance.toString());
-    
+
     if (balance === BigInt(0)) {
       console.warn("Wallet has no MATIC balance for gas fees");
       return null;

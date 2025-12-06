@@ -200,6 +200,13 @@ export function PersonalInfoStepPart1({
               <Input
                 id="dateOfBirth"
                 type="date"
+                max={
+                  new Date(
+                    new Date().setFullYear(new Date().getFullYear() - 15)
+                  )
+                    .toISOString()
+                    .split("T")[0]
+                }
                 {...register("dateOfBirth")}
               />
               {errors.dateOfBirth && (

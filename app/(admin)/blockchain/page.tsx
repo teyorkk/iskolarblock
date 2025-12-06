@@ -201,12 +201,10 @@ export default function BlockchainPage() {
       : "bg-purple-50 text-purple-700 border border-purple-200";
 
   const formatDate = (timestamp: string) =>
-    new Date(timestamp).toLocaleString("en-US", {
+    new Date(timestamp).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
 
   return (
@@ -250,7 +248,7 @@ export default function BlockchainPage() {
 
                   <div className="w-full lg:w-auto">
                     <div className="flex items-center gap-2">
-                      <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <Filter className="w-4 h-4 text-gray-500 shrink-0" />
                       <div className="flex flex-wrap gap-2">
                         {filterOptions.map((option) => (
                           <Button

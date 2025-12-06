@@ -3,7 +3,11 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/components/session-provider";
+import { getApplicationRoute } from "@/lib/utils/application-navigation";
+import { toast } from "sonner";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface UserData {
@@ -23,7 +27,27 @@ export function UserDashboardHeader({
   user,
   userData,
 }: UserDashboardHeaderProps): React.JSX.Element {
+  const router = useRouter();
+  const { user: sessionUser } = useSession();
+  const [isNavigating, setIsNavigating] = useState(false);
   const userName = userData?.name || user?.email?.split("@")[0] || "User";
+
+  const handleNewApplication = async () => {
+    if (isNavigating) return;
+
+    setIsNavigating(true);
+    try {
+      const target = await getApplicationRoute(sessionUser);
+      router.push(target);
+    } catch (error) {
+      console.error("Failed to navigate to application:", error);
+      toast.error(
+        "Unable to open your application form right now. Please try again."
+      );
+    } finally {
+      setIsNavigating(false);
+    }
+  };
 
   return (
     <motion.div
@@ -40,15 +64,15 @@ export function UserDashboardHeader({
           Track your scholarship applications and manage your academic journey
           with IskolarBlock.
         </p>
-        <Link href="/application">
-          <Button
-            variant="secondary"
-            className="bg-white text-orange-600 hover:bg-gray-100"
-          >
-            New Application
-            <ArrowRight className="ml-2 w-4 h-4" />
-          </Button>
-        </Link>
+        <Button
+          variant="secondary"
+          className="bg-white text-orange-600 hover:bg-gray-100"
+          onClick={handleNewApplication}
+          disabled={isNavigating}
+        >
+          New Application
+          <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
       </div>
     </motion.div>
   );

@@ -13,7 +13,7 @@ interface ScreeningTableMobileProps {
   handleSelectApplication: (id: string, checked: boolean) => void;
   handleViewDetails: (id: string) => void;
   getStatusColor: (status: string) => string;
-  getRemarksBadgeClass: (remarks?: string | null) => string;
+  getRemarksBadgeClass: (remarks?: string | null, status?: string) => string;
   formatDate: (date: string) => string;
   canApproveReject: (app: ScreeningApplication) => boolean;
   setConfirmApproveId: (id: string) => void;
@@ -108,13 +108,18 @@ export function ScreeningTableMobile({
               </span>
             </div>
 
-            {application.remarks && (
+            {application.status !== "GRANTED" && application.remarks && (
               <div>
                 <span className="text-xs text-gray-500 font-medium">
                   Remarks:
                 </span>
                 <div className="mt-1">
-                  <span className={getRemarksBadgeClass(application.remarks)}>
+                  <span
+                    className={getRemarksBadgeClass(
+                      application.remarks,
+                      application.status
+                    )}
+                  >
                     {application.remarks}
                   </span>
                 </div>

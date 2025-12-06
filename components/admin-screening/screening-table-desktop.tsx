@@ -22,7 +22,7 @@ interface ScreeningTableDesktopProps {
   handleSelectApplication: (id: string, checked: boolean) => void;
   handleViewDetails: (id: string) => void;
   getStatusColor: (status: string) => string;
-  getRemarksBadgeClass: (remarks?: string | null) => string;
+  getRemarksBadgeClass: (remarks?: string | null, status?: string) => string;
   formatDate: (date: string) => string;
   canApproveReject: (app: ScreeningApplication) => boolean;
   setConfirmApproveId: (id: string) => void;
@@ -95,7 +95,7 @@ export function ScreeningTableDesktop({
           <TableHead className="hidden lg:table-cell">Type</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="hidden md:table-cell">Remarks</TableHead>
-          <TableHead className="hidden sm:table-cell">Submitted</TableHead>
+          <TableHead className="hidden sm:table-cell">Submitted At</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -119,9 +119,16 @@ export function ScreeningTableDesktop({
                   {application.User.email}
                 </span>
                 <span className="md:hidden mt-1">
-                  <span className={getRemarksBadgeClass(application.remarks)}>
-                    {application.remarks || "—"}
-                  </span>
+                  {application.status !== "GRANTED" && (
+                    <span
+                      className={getRemarksBadgeClass(
+                        application.remarks,
+                        application.status
+                      )}
+                    >
+                      {application.remarks || "—"}
+                    </span>
+                  )}
                 </span>
                 <span className="text-xs text-gray-400 sm:hidden">
                   Submitted {formatDate(application.createdAt)}
@@ -137,9 +144,16 @@ export function ScreeningTableDesktop({
               </Badge>
             </TableCell>
             <TableCell className="hidden md:table-cell max-w-xs">
-              <span className={getRemarksBadgeClass(application.remarks)}>
-                {application.remarks || "—"}
-              </span>
+              {application.status !== "GRANTED" && (
+                <span
+                  className={getRemarksBadgeClass(
+                    application.remarks,
+                    application.status
+                  )}
+                >
+                  {application.remarks || "—"}
+                </span>
+              )}
             </TableCell>
             <TableCell className="hidden sm:table-cell">
               {formatDate(application.createdAt)}

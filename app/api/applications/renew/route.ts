@@ -19,6 +19,27 @@ interface RenewApplicationRequest {
   cogFileName?: string;
   corFileName?: string;
 
+  // Personal Information (submitted by user)
+  personalInfo?: {
+    lastName?: string;
+    firstName?: string;
+    middleName?: string;
+    dateOfBirth?: string;
+    placeOfBirth?: string;
+    age?: string;
+    sex?: string;
+    houseNumber?: string;
+    purok?: string;
+    barangay?: string;
+    municipality?: string;
+    province?: string;
+    citizenship?: string;
+    contactNumber?: string;
+    religion?: string;
+    course?: string;
+    yearLevel?: string;
+  };
+
   // OCR Data
   idOcr?: {
     rawText: string;
@@ -131,22 +152,6 @@ export async function POST(request: NextRequest) {
 
     const userId = userData.id;
 
-    // Fetch the most recent application for this user to get personal info
-    const { data: previousApplication, error: prevAppError } = await supabase
-      .from("Application")
-      .select("id, applicationDetails")
-      .eq("userId", userId)
-      .order("createdAt", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (prevAppError || !previousApplication) {
-      return NextResponse.json(
-        { error: "No previous application found" },
-        { status: 404 }
-      );
-    }
-
     // Get current application period
     const { data: periodData, error: periodError } = await supabase
       .from("ApplicationPeriod")
@@ -158,20 +163,15 @@ export async function POST(request: NextRequest) {
 
     if (periodError || !periodData) {
       return NextResponse.json(
-        { error: "No open application period found" },
+        { error: "No open application cycle found" },
         { status: 400 }
       );
     }
 
     const applicationId = randomUUID();
-    const previousDetails = previousApplication.applicationDetails;
-    const personalInfoData =
-      previousDetails &&
-      typeof previousDetails === "object" &&
-      "personalInfo" in previousDetails
-        ? (previousDetails as { personalInfo?: Record<string, string> })
-            .personalInfo
-        : previousDetails;
+
+    // Use submitted personal info (now required in renewal applications)
+    const personalInfoData = body.personalInfo || {};
 
     // Upload images to storage
     let idImageUrl = "";

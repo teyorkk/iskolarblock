@@ -187,12 +187,25 @@ export function ApplicationDetailsDialog({
 
     setIsUpdating(true);
     try {
+      const body: { status: string; remarks?: string | null } = {
+        status: newStatus,
+      };
+
+      // If approved, set remarks to "Cleared"
+      if (newStatus === "APPROVED") {
+        body.remarks = "Cleared";
+      }
+      // If granted, don't update remarks
+      else if (newStatus === "GRANTED") {
+        // Don't include remarks in body
+      }
+
       const response = await fetch(`/api/admin/applications/${applicationId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -252,7 +265,9 @@ export function ApplicationDetailsDialog({
   const blockchainDisplayHash =
     blockchainRecord?.transactionHash ?? blockchainRecord?.id ?? "";
   const isActionDisabled =
-    application?.status === "APPROVED" || application?.status === "GRANTED";
+    application?.status === "APPROVED" ||
+    application?.status === "GRANTED" ||
+    application?.status === "REJECTED";
 
   // Helper function to check if value is null/empty
   const hasValue = (value: string | number | null | undefined): boolean => {
@@ -658,7 +673,7 @@ export function ApplicationDetailsDialog({
                   <p className="text-xs uppercase tracking-wide text-gray-500">
                     Blockchain Record
                   </p>
-                  <p className="font-mono text-sm text-gray-900 truncate max-w-[240px]">
+                  <p className="font-mono text-sm text-gray-900 truncate max-w-60">
                     {blockchainDisplayHash}
                   </p>
                 </div>

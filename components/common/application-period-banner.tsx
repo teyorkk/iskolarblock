@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarRange, Clock, ToggleLeft, ToggleRight } from "lucide-react";
+import { CalendarRange, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
+import { EditApplicationPeriodDialog } from "@/components/admin-dashboard/edit-application-period-dialog";
 
 interface ApplicationPeriodBannerProps {
   variant?: "admin" | "user";
@@ -20,6 +19,7 @@ interface ApplicationPeriod {
   startDate: string;
   endDate: string;
   isOpen: boolean;
+  budgetId?: string | null;
 }
 
 export function ApplicationPeriodBanner({
@@ -28,7 +28,6 @@ export function ApplicationPeriodBanner({
 }: ApplicationPeriodBannerProps): React.JSX.Element {
   const [period, setPeriod] = useState<ApplicationPeriod | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isToggling, setIsToggling] = useState(false);
 
   const fetchCurrentPeriod = async (id?: string | null, skipAuto = false) => {
     try {
@@ -113,46 +112,6 @@ export function ApplicationPeriodBanner({
     }
   };
 
-  const handleToggleAccepting = async () => {
-    if (!period) return;
-
-    setIsToggling(true);
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const newIsOpen = !period.isOpen;
-
-      // Update local state immediately for better UX
-      setPeriod({ ...period, isOpen: newIsOpen });
-
-      const { error } = await supabase
-        .from("ApplicationPeriod")
-        .update({ isOpen: newIsOpen, updatedAt: new Date().toISOString() })
-        .eq("id", period.id);
-
-      if (error) {
-        console.error("Error toggling application period:", error);
-        // Revert local state on error
-        setPeriod({ ...period, isOpen: !newIsOpen });
-        toast.error("Failed to update application period status");
-      } else {
-        toast.success(
-          `Application period is now ${newIsOpen ? "open" : "closed"}`
-        );
-        // Refresh the period data but skip auto-update to respect manual toggle
-        await fetchCurrentPeriod(periodId, true);
-      }
-    } catch (error) {
-      console.error("Error toggling application period:", error);
-      // Revert local state on error
-      if (period) {
-        setPeriod({ ...period, isOpen: !period.isOpen });
-      }
-      toast.error("An unexpected error occurred");
-    } finally {
-      setIsToggling(false);
-    }
-  };
-
   useEffect(() => {
     void fetchCurrentPeriod(periodId);
   }, [periodId]);
@@ -186,11 +145,11 @@ export function ApplicationPeriodBanner({
   const styles =
     variant === "user"
       ? {
-          card: "border-orange-100",
+          card: "border-orange-200",
           icon: "bg-orange-100 text-orange-600",
         }
       : {
-          card: "border-red-100",
+          card: "border-red-200",
           icon: "bg-red-100 text-red-600",
         };
 
@@ -217,10 +176,10 @@ export function ApplicationPeriodBanner({
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              No Application Period Set
+              No Application Cycle Set
             </h2>
             <p className="text-sm text-gray-600">
-              Please set an application period to begin accepting applications.
+              Please set an application cycle to begin accepting applications.
             </p>
           </div>
         </div>
@@ -232,97 +191,100 @@ export function ApplicationPeriodBanner({
   const endDate = new Date(period.endDate);
   const now = new Date();
   const isActive = now >= startDate && now <= endDate && period.isOpen;
+  const isPast = now > endDate;
 
   return (
     <Card
       className={`p-4 md:p-5 mb-6 border-2 bg-white shadow-sm ${styles.card}`}
     >
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col gap-4">
+        {/* Header Section */}
         <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-full ${styles.icon}`}>
-            <CalendarRange className="w-5 h-5" />
+          <div className={`p-2.5 rounded-full shrink-0 ${styles.icon}`}>
+            <CalendarRange className="w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h2 className="text-lg font-semibold text-gray-900">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 mb-1.5">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">
                 {period.title}
               </h2>
               <Badge
                 className={
                   isActive
-                    ? "bg-green-100 text-green-700 hover:bg-green-100"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-100"
+                    ? "bg-green-100 text-green-700 hover:bg-green-100 w-fit"
+                    : period.isOpen
+                    ? "bg-blue-100 text-blue-700 hover:bg-blue-100 w-fit"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-100 w-fit"
                 }
               >
                 {isActive ? "On-going" : period.isOpen ? "Upcoming" : "Closed"}
               </Badge>
             </div>
-            <p className="text-sm text-gray-600">{period.description}</p>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {period.description}
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
-            <div className="flex items-center gap-2">
-              <div className="rounded-md bg-gray-100 p-2 text-gray-600">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
-                  Start Date
-                </p>
-                <p className="font-medium text-gray-900">
-                  {startDate.toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
+        {/* Dates Section - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 border-t-2 border-gray-200">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-gray-50 p-2.5 text-gray-600 shrink-0">
+              <Clock className="w-4 h-4" />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="rounded-md bg-gray-100 p-2 text-gray-600">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
-                  End Date
-                </p>
-                <p className="font-medium text-gray-900">
-                  {endDate.toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                Start Date
+              </p>
+              <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                {startDate.toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
             </div>
           </div>
-          {variant === "admin" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleToggleAccepting}
-              disabled={isToggling}
-              className="flex items-center gap-2"
-            >
-              {period.isOpen ? (
-                <ToggleRight className="w-5 h-5 text-green-600" />
-              ) : (
-                <ToggleLeft className="w-5 h-5 text-gray-400" />
-              )}
-              <span
-                className={period.isOpen ? "text-green-600" : "text-gray-500"}
-              >
-                {isToggling
-                  ? "Updating..."
-                  : period.isOpen
-                  ? "Accepting"
-                  : "Not Accepting"}
-              </span>
-            </Button>
-          )}
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-gray-50 p-2.5 text-gray-600 shrink-0">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                End Date
+              </p>
+              <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                {endDate.toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* Edit Button - Mobile Optimized */}
+        {variant === "admin" && !isPast && (
+          <div className="flex justify-end pt-3 border-t-2 border-gray-200">
+            <EditApplicationPeriodDialog
+              period={{
+                id: period.id,
+                title: period.title,
+                description: period.description,
+                startDate: period.startDate,
+                endDate: period.endDate,
+                isOpen: period.isOpen,
+                budgetId: period.budgetId || null,
+              }}
+              onUpdate={() => {
+                void fetchCurrentPeriod(periodId);
+                // Trigger a custom event to refresh dashboard stats
+                window.dispatchEvent(new CustomEvent("refreshDashboard"));
+              }}
+            />
+          </div>
+        )}
       </div>
     </Card>
   );

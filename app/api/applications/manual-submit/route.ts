@@ -29,10 +29,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !userData) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get application data
@@ -54,9 +51,12 @@ export async function POST(request: NextRequest) {
     // This creates an immutable record on Polygon Amoy testnet
     let transactionHash: string | null = null;
     try {
-      transactionHash = await logApplicationToBlockchain(applicationId, userData.id);
+      transactionHash = await logApplicationToBlockchain(
+        applicationId,
+        userData.id
+      );
       console.log("Blockchain transaction hash:", transactionHash);
-      
+
       // Persist blockchain record in database when available
       if (transactionHash) {
         try {
@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
     // Send email notification
     try {
       await sendEmailNotification({
-        applicantName: applicationData.applicationDetails?.personalInfo?.firstName
+        applicantName: applicationData.applicationDetails?.personalInfo
+          ?.firstName
           ? `${applicationData.applicationDetails.personalInfo.firstName} ${applicationData.applicationDetails.personalInfo.lastName}`
           : userData.name || "Applicant",
         applicantEmail: userData.email,

@@ -49,7 +49,7 @@ export function LandingNavigation({
                 handleSmoothScroll("blockchain-feed");
               }}
             >
-              Blockchain Feed
+              Blockchain
             </Link>
             <Link
               href="#live-impact"
@@ -59,7 +59,7 @@ export function LandingNavigation({
                 handleSmoothScroll("live-impact");
               }}
             >
-              Live Impact
+              Live
             </Link>
             <Link
               href="#features"

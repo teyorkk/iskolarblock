@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["rimraf", "fstream"],
   // Webpack fallback for production builds
   webpack: (config) => {
     config.resolve.alias.canvas = false;

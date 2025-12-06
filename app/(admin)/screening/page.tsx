@@ -159,8 +159,24 @@ export default function ScreeningPage() {
     remarks?: string
   ) => {
     try {
-      const body: { status: string; remarks?: string } = { status: newStatus };
-      if (remarks !== undefined) {
+      const body: { status: string; remarks?: string | null } = {
+        status: newStatus,
+      };
+
+      // If approved, set remarks to "Cleared"
+      if (newStatus === "APPROVED") {
+        body.remarks = "Cleared";
+      }
+      // If rejected and remarks provided, use them
+      else if (newStatus === "REJECTED" && remarks !== undefined) {
+        body.remarks = remarks;
+      }
+      // If granted, don't update remarks (don't include in body)
+      else if (newStatus === "GRANTED") {
+        // Don't include remarks in body
+      }
+      // For other statuses, include remarks if provided
+      else if (remarks !== undefined) {
         body.remarks = remarks;
       }
 
@@ -233,9 +249,26 @@ export default function ScreeningPage() {
     });
   };
 
-  const getRemarksBadgeClass = (remarks?: string | null) => {
+  const getRemarksBadgeClass = (remarks?: string | null, status?: string) => {
     const base =
       "inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border";
+
+    // If approved, show green
+    if (status === "APPROVED") {
+      return `${base} bg-green-50 text-green-700 border-green-100`;
+    }
+
+    // If rejected and has remarks, show red
+    if (status === "REJECTED" && remarks) {
+      return `${base} bg-red-50 text-red-700 border-red-100`;
+    }
+
+    // If granted, don't show remarks badge
+    if (status === "GRANTED") {
+      return ""; // Return empty string to hide badge
+    }
+
+    // Default behavior for other statuses
     if (!remarks) {
       return `${base} bg-gray-50 text-gray-500 border-gray-200`;
     }
@@ -613,111 +646,205 @@ export default function ScreeningPage() {
       />
 
       {/* Approve Confirmation Dialog */}
-      {confirmApproveId && (
-        <AlertDialog
-          open={confirmApproveId !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setConfirmApproveId(null);
+      {confirmApproveId &&
+        (() => {
+          const application = applications.find(
+            (app) => app.id === confirmApproveId
+          );
+          const getApplicantName = (app: typeof application): string => {
+            if (!app) return "Unknown";
+
+            // Try to extract name from applicationDetails first
+            if (app.applicationDetails) {
+              const details = app.applicationDetails;
+              let personalInfo: Record<string, unknown> | null = null;
+
+              if (typeof details === "object" && details !== null) {
+                if ("personalInfo" in details && details.personalInfo) {
+                  personalInfo = details.personalInfo as Record<
+                    string,
+                    unknown
+                  >;
+                } else {
+                  personalInfo = details as Record<string, unknown>;
+                }
+              }
+
+              if (personalInfo) {
+                const firstName = personalInfo.firstName as string | undefined;
+                const middleName = personalInfo.middleName as
+                  | string
+                  | undefined;
+                const lastName = personalInfo.lastName as string | undefined;
+                const nameParts = [firstName, middleName, lastName].filter(
+                  Boolean
+                );
+                if (nameParts.length > 0) {
+                  return nameParts.join(" ");
+                }
+              }
             }
-          }}
-        >
-          <AlertDialogContent className="border border-orange-100 bg-white">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
-                <CheckCircle className="w-5 h-5 text-orange-600" />
-                Confirm Approval
-              </AlertDialogTitle>
-              <AlertDialogDescription className="pt-2 text-gray-600">
-                Are you sure you want to approve the application for{" "}
-                <span className="font-semibold text-gray-900">
-                  {
-                    applications.find((app) => app.id === confirmApproveId)
-                      ?.User.name
-                  }
-                </span>
-                ?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => handleStatusUpdate(confirmApproveId, "APPROVED")}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+
+            // Fallback to User.name
+            return app.User?.name || "Unknown";
+          };
+
+          return (
+            <AlertDialog
+              open={confirmApproveId !== null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setConfirmApproveId(null);
+                }
+              }}
+            >
+              <AlertDialogContent
+                className="border border-orange-100 bg-white data-[state=closed]:!translate-x-0 data-[state=closed]:!translate-y-0 data-[state=open]:!translate-x-0 data-[state=open]:!translate-y-0"
+                style={{
+                  transform: "translate(-50%, -50%)",
+                }}
               >
-                Confirm Approval
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
+                    <CheckCircle className="w-5 h-5 text-orange-600" />
+                    Confirm Approval
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="pt-2 text-gray-600">
+                    Are you sure you want to approve the application for{" "}
+                    <span className="font-semibold text-gray-900">
+                      {getApplicantName(application)}
+                    </span>
+                    ?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() =>
+                      handleStatusUpdate(confirmApproveId, "APPROVED")
+                    }
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Confirm Approval
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          );
+        })()}
 
       {/* Reject Confirmation Dialog */}
-      {confirmRejectId && (
-        <AlertDialog
-          open={confirmRejectId !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setConfirmRejectId(null);
-              setRejectionReason("");
+      {confirmRejectId &&
+        (() => {
+          const application = applications.find(
+            (app) => app.id === confirmRejectId
+          );
+          const getApplicantName = (app: typeof application): string => {
+            if (!app) return "Unknown";
+
+            // Try to extract name from applicationDetails first
+            if (app.applicationDetails) {
+              const details = app.applicationDetails;
+              let personalInfo: Record<string, unknown> | null = null;
+
+              if (typeof details === "object" && details !== null) {
+                if ("personalInfo" in details && details.personalInfo) {
+                  personalInfo = details.personalInfo as Record<
+                    string,
+                    unknown
+                  >;
+                } else {
+                  personalInfo = details as Record<string, unknown>;
+                }
+              }
+
+              if (personalInfo) {
+                const firstName = personalInfo.firstName as string | undefined;
+                const middleName = personalInfo.middleName as
+                  | string
+                  | undefined;
+                const lastName = personalInfo.lastName as string | undefined;
+                const nameParts = [firstName, middleName, lastName].filter(
+                  Boolean
+                );
+                if (nameParts.length > 0) {
+                  return nameParts.join(" ");
+                }
+              }
             }
-          }}
-        >
-          <AlertDialogContent className="border border-orange-100 bg-white">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
-                <XCircle className="w-5 h-5 text-orange-600" />
-                Confirm Rejection
-              </AlertDialogTitle>
-              <AlertDialogDescription className="pt-2 text-gray-600">
-                Are you sure you want to reject the application for{" "}
-                <span className="font-semibold text-gray-900">
-                  {
-                    applications.find((app) => app.id === confirmRejectId)?.User
-                      .name
-                  }
-                </span>
-                ?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-4">
-              <Label
-                htmlFor="rejection-reason"
-                className="text-sm font-medium text-gray-700"
-              >
-                Reason for Rejection (Required)
-              </Label>
-              <Textarea
-                id="rejection-reason"
-                placeholder="Enter the reason for rejection..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="mt-2 min-h-[100px]"
-              />
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (!rejectionReason.trim()) {
-                    toast.error("Please provide a reason for rejection");
-                    return;
-                  }
-                  handleStatusUpdate(
-                    confirmRejectId,
-                    "REJECTED",
-                    rejectionReason.trim()
-                  );
+
+            // Fallback to User.name
+            return app.User?.name || "Unknown";
+          };
+
+          return (
+            <AlertDialog
+              open={confirmRejectId !== null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setConfirmRejectId(null);
+                  setRejectionReason("");
+                }
+              }}
+            >
+              <AlertDialogContent
+                className="border border-orange-100 bg-white data-[state=closed]:!translate-x-0 data-[state=closed]:!translate-y-0 data-[state=open]:!translate-x-0 data-[state=open]:!translate-y-0"
+                style={{
+                  transform: "translate(-50%, -50%)",
                 }}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
-                disabled={!rejectionReason.trim()}
               >
-                Confirm Rejection
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
+                    <XCircle className="w-5 h-5 text-orange-600" />
+                    Confirm Rejection
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="pt-2 text-gray-600">
+                    Are you sure you want to reject the application for{" "}
+                    <span className="font-semibold text-gray-900">
+                      {getApplicantName(application)}
+                    </span>
+                    ?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-4">
+                  <Label
+                    htmlFor="rejection-reason"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Reason for Rejection (Required)
+                  </Label>
+                  <Textarea
+                    id="rejection-reason"
+                    placeholder="Enter the reason for rejection..."
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    className="mt-2 min-h-[100px]"
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (!rejectionReason.trim()) {
+                        toast.error("Please provide a reason for rejection");
+                        return;
+                      }
+                      handleStatusUpdate(
+                        confirmRejectId,
+                        "REJECTED",
+                        rejectionReason.trim()
+                      );
+                    }}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                    disabled={!rejectionReason.trim()}
+                  >
+                    Confirm Rejection
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          );
+        })()}
     </div>
   );
 }
