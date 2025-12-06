@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/auth-server";
 import { logEvent } from "@/lib/services/log-events";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -24,9 +25,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const { applicationDetails } = body;
 
-    let adminProfile:
-      | { id: string; name: string | null; email: string | null; role: string | null; profilePicture: string | null }
-      | null = null;
+    let adminProfile: {
+      id: string;
+      name: string | null;
+      email: string | null;
+      role: string | null;
+      profilePicture: string | null;
+    } | null = null;
     if (adminInfo?.email) {
       const { data: adminUser } = await supabase
         .from("User")
@@ -41,7 +46,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       .from("Application")
       .update({
         applicationDetails,
-        updatedAt: new Date().toISOString(),
+        updatedAt: getCurrentTimePH(),
       })
       .eq("id", id)
       .select()
@@ -78,4 +83,3 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 }
-

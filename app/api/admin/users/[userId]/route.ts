@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/utils/auth-server";
 import { logEvent } from "@/lib/services/log-events";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 // PATCH /api/admin/users/[userId]
 // Update a user (admin only)
@@ -71,7 +72,7 @@ export async function PATCH(
         phone: phone?.trim() || null,
         address: address?.trim() || null,
         role: role || "USER",
-        updatedAt: new Date().toISOString(),
+        updatedAt: getCurrentTimePH(),
       })
       .eq("id", userId)
       .select()

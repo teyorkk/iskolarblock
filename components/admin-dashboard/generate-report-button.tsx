@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import type { StatsCard } from "@/types";
 import { generateExcelReport, generatePDFReport } from "@/lib/reports";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 // Convert image URL to base64
 // Note: Browser may show a warning in development (HTTP) but this is harmless
@@ -138,7 +139,7 @@ export function GenerateReportButton({
       const link = document.createElement("a");
       link.href = url;
       link.download = `admin-dashboard-report-${
-        new Date().toISOString().split("T")[0]
+        getCurrentTimePH().split("T")[0]
       }.pdf`;
       document.body.appendChild(link);
       link.click();
@@ -181,7 +182,7 @@ export function GenerateReportButton({
 
       // Generate filename
       const filename = `admin-dashboard-report-${
-        new Date().toISOString().split("T")[0]
+        getCurrentTimePH().split("T")[0]
       }.xlsx`;
 
       // Download the file

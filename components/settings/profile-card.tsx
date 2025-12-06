@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar, Lock, Camera, CheckCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface ProfileCardProps {
   userData: {
@@ -128,7 +129,7 @@ export function ProfileCard({
         .from("User")
         .update({
           profilePicture: publicUrl,
-          updatedAt: new Date().toISOString(),
+          updatedAt: getCurrentTimePH(),
         })
         .eq("email", userData.email.toLowerCase().trim());
 
@@ -174,7 +175,7 @@ export function ProfileCard({
         .from("User")
         .update({
           profilePicture: null,
-          updatedAt: new Date().toISOString(),
+          updatedAt: getCurrentTimePH(),
         })
         .eq("email", userData.email.toLowerCase().trim());
 

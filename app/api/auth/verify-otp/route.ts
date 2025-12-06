@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 // POST /api/auth/verify-otp { email, code, context }
 // context: 'register' | 'forgot'
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
           name: name,
           password: "", // Password is stored in auth.users, not in User table
           role: role,
-          updatedAt: new Date().toISOString(),
+          updatedAt: getCurrentTimePH(),
         },
         {
           onConflict: "id",

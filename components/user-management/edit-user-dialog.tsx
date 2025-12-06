@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,18 +43,27 @@ export function EditUserDialog({
   const [role, setRole] = useState<"ADMIN" | "USER">("USER");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const previousUserId = useRef<string | null>(null);
 
+  // Reset form when dialog opens with a new user
   useEffect(() => {
-    if (user) {
-      setName(user.name || "");
-      setEmail(user.email || "");
-      setPhone(user.phone || "");
-      setAddress(user.address || "");
-      setRole(user.role);
-      setPassword("");
-      setErrors({});
+    if (isOpen && user && user.id !== previousUserId.current) {
+      previousUserId.current = user.id;
+      // Use a microtask to avoid synchronous setState in effect
+      Promise.resolve().then(() => {
+        setName(user.name || "");
+        setEmail(user.email || "");
+        setPhone(user.phone || "");
+        setAddress(user.address || "");
+        setRole(user.role);
+        setPassword("");
+        setErrors({});
+      });
+    } else if (!isOpen) {
+      // Reset ref when dialog closes
+      previousUserId.current = null;
     }
-  }, [user]);
+  }, [isOpen, user]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};

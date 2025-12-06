@@ -2,6 +2,8 @@
  * Email notification service for sending application status updates
  */
 
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
+
 interface SendEmailNotificationParams {
   applicantName: string;
   applicantEmail: string;
@@ -28,7 +30,7 @@ export async function sendEmailNotification(
       applicationType: params.applicationType,
       status: params.status,
       rejectionReason: params.rejectionReason || "",
-      submissionDate: params.submissionDate || new Date().toISOString(),
+      submissionDate: params.submissionDate || getCurrentTimePH(),
     };
 
     console.log("📧 Sending email notification:", {

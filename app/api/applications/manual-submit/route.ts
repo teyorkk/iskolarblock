@@ -5,6 +5,7 @@ import { logApplicationToBlockchain } from "@/lib/services/blockchain";
 import { logEvent } from "@/lib/services/log-events";
 import { sendEmailNotification } from "@/lib/services/email-notification";
 import { getDocumentRemarks } from "@/lib/utils/application-remarks";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
             transactionHash,
             applicationId,
             userId: userData.id,
-            timestamp: new Date().toISOString(),
+            timestamp: getCurrentTimePH(),
           };
 
           const { error: brError } = await supabase

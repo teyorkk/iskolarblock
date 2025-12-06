@@ -11,6 +11,7 @@ import {
 } from "@/lib/utils";
 import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 import { sendEmailNotification } from "@/lib/services/email-notification";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface SubmitApplicationRequest {
   // Form data
@@ -236,7 +237,7 @@ export async function POST(request: NextRequest) {
     const capitalizedFormData = capitalizeFormData(body.formData);
 
     // Create Application record
-    const now = new Date().toISOString();
+    const now = getCurrentTimePH();
     const { error: appError } = await supabase.from("Application").insert({
       id: applicationId,
       userId: userId,

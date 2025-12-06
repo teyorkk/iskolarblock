@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils";
 import { getDocumentRemarks } from "@/lib/utils/application-remarks";
 import { sendEmailNotification } from "@/lib/services/email-notification";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 interface RenewApplicationRequest {
   // Images (base64 strings)
@@ -238,7 +239,7 @@ export async function POST(request: NextRequest) {
       : {};
 
     // Create Application record using personal info from previous application
-    const now = new Date().toISOString();
+    const now = getCurrentTimePH();
     const { error: appError } = await supabase.from("Application").insert({
       id: applicationId,
       userId: userId,

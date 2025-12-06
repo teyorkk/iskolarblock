@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getDocumentRemarks } from "@/lib/utils/application-remarks";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 // Subject type for COG
 type Subject = {
@@ -242,8 +243,8 @@ export default function ManualApplicationPage() {
       const { data: activePeriod, error: periodError } = await supabase
         .from("ApplicationPeriod")
         .select("id")
-        .lte("startDate", new Date().toISOString())
-        .gte("endDate", new Date().toISOString())
+        .lte("startDate", getCurrentTimePH())
+        .gte("endDate", getCurrentTimePH())
         .single();
 
       if (periodError || !activePeriod) {
@@ -251,7 +252,7 @@ export default function ManualApplicationPage() {
         return;
       }
 
-      const now = new Date().toISOString();
+      const now = getCurrentTimePH();
 
       // Generate UUIDs from server-side API
       const uuidResponse = await fetch("/api/uuid");

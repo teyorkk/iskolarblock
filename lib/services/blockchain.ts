@@ -4,6 +4,7 @@
  */
 
 import { JsonRpcProvider, Wallet, keccak256, toUtf8Bytes } from "ethers";
+import { getCurrentTimePH } from "@/lib/utils/date-formatting";
 
 // Polygon Amoy Testnet Configuration
 const POLYGON_AMOY_CHAIN_ID = 80002;
@@ -109,7 +110,7 @@ export async function logApplicationToBlockchain(
     const wallet = getBlockchainWallet();
     console.log("Wallet address:", wallet.address);
 
-    const timestamp = new Date().toISOString();
+    const timestamp = getCurrentTimePH();
 
     // Create hash identifier
     const applicationHash = createApplicationHash(
@@ -177,7 +178,7 @@ export async function logAwardingToBlockchain(
 ): Promise<string | null> {
   try {
     const wallet = getBlockchainWallet();
-    const timestamp = new Date().toISOString();
+    const timestamp = getCurrentTimePH();
     const awardingHash = createAwardingHash(
       awardingId,
       applicationId,
