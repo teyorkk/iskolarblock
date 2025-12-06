@@ -145,11 +145,11 @@ export function ApplicationPeriodBanner({
   const styles =
     variant === "user"
       ? {
-          card: "border-orange-100",
+          card: "border-orange-200",
           icon: "bg-orange-100 text-orange-600",
         }
       : {
-          card: "border-red-100",
+          card: "border-red-200",
           icon: "bg-red-100 text-red-600",
         };
 
@@ -191,73 +191,82 @@ export function ApplicationPeriodBanner({
   const endDate = new Date(period.endDate);
   const now = new Date();
   const isActive = now >= startDate && now <= endDate && period.isOpen;
+  const isPast = now > endDate;
 
   return (
     <Card
       className={`p-4 md:p-5 mb-6 border-2 bg-white shadow-sm ${styles.card}`}
     >
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col gap-4">
+        {/* Header Section */}
         <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-full ${styles.icon}`}>
-            <CalendarRange className="w-5 h-5" />
+          <div className={`p-2.5 rounded-full shrink-0 ${styles.icon}`}>
+            <CalendarRange className="w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h2 className="text-lg font-semibold text-gray-900">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2 mb-1.5">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">
                 {period.title}
               </h2>
               <Badge
                 className={
                   isActive
-                    ? "bg-green-100 text-green-700 hover:bg-green-100"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-100"
+                    ? "bg-green-100 text-green-700 hover:bg-green-100 w-fit"
+                    : period.isOpen
+                    ? "bg-blue-100 text-blue-700 hover:bg-blue-100 w-fit"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-100 w-fit"
                 }
               >
                 {isActive ? "On-going" : period.isOpen ? "Upcoming" : "Closed"}
               </Badge>
             </div>
-            <p className="text-sm text-gray-600">{period.description}</p>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {period.description}
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
-            <div className="flex items-center gap-2">
-              <div className="rounded-md bg-gray-100 p-2 text-gray-600">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
-                  Start Date
-                </p>
-                <p className="font-medium text-gray-900">
-                  {startDate.toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
+        {/* Dates Section - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 border-t-2 border-gray-200">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-gray-50 p-2.5 text-gray-600 shrink-0">
+              <Clock className="w-4 h-4" />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="rounded-md bg-gray-100 p-2 text-gray-600">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
-                  End Date
-                </p>
-                <p className="font-medium text-gray-900">
-                  {endDate.toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                Start Date
+              </p>
+              <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                {startDate.toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
             </div>
           </div>
-          {variant === "admin" && (
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-gray-50 p-2.5 text-gray-600 shrink-0">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                End Date
+              </p>
+              <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                {endDate.toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Edit Button - Mobile Optimized */}
+        {variant === "admin" && !isPast && (
+          <div className="flex justify-end pt-3 border-t-2 border-gray-200">
             <EditApplicationPeriodDialog
               period={{
                 id: period.id,
@@ -270,10 +279,12 @@ export function ApplicationPeriodBanner({
               }}
               onUpdate={() => {
                 void fetchCurrentPeriod(periodId);
+                // Trigger a custom event to refresh dashboard stats
+                window.dispatchEvent(new CustomEvent("refreshDashboard"));
               }}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </Card>
   );
