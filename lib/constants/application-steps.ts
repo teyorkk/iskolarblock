@@ -10,7 +10,9 @@ export const newApplicationSteps: ApplicationStep[] = [
 
 export const renewalApplicationSteps: ApplicationStep[] = [
   { id: 1, name: "Upload ID", icon: Upload },
-  { id: 2, name: "Upload Documents", icon: Files },
+  { id: 2, name: "Personal Info", icon: User },
+  { id: 3, name: "Address & Academic", icon: User },
+  { id: 4, name: "Upload Documents", icon: Files },
 ];
 
 export const applicationSteps: ApplicationStep[] = [

@@ -24,11 +24,14 @@ import { useDropzone } from "react-dropzone";
 import { renewalApplicationSteps } from "@/lib/constants/application-steps";
 import { ApplicationProgress } from "@/components/application/application-progress";
 import { IdUploadStep } from "@/components/application/id-upload-step";
+import { PersonalInfoStepPart1 } from "@/components/application/personal-info-step-part1";
+import { PersonalInfoStepPart2 } from "@/components/application/personal-info-step-part2";
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
 import { ApplicationSuccess } from "@/components/application/application-success";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useSession } from "@/components/session-provider";
 import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
+import { StepErrorBoundary } from "@/components/application/error-boundary";
 import type {
   COGExtractionResponse,
   CORExtractionResponse,
@@ -294,7 +297,7 @@ export default function RenewalApplicationPage() {
     maxFiles: 1,
   });
 
-  const onSubmit = async (): Promise<void> => {
+  const onSubmit = async (data: RenewalApplicationFormData): Promise<void> => {
     console.log("🚀 Renewal submission called");
     try {
       setIsSubmitting(true);
@@ -329,8 +332,27 @@ export default function RenewalApplicationPage() {
         }
       }
 
-      // Prepare submission data
+      // Prepare submission data with personal info
       const submissionData = {
+        personalInfo: {
+          lastName: data.lastName,
+          firstName: data.firstName,
+          middleName: data.middleName || null,
+          dateOfBirth: data.dateOfBirth,
+          placeOfBirth: data.placeOfBirth,
+          age: data.age,
+          sex: data.sex,
+          houseNumber: data.houseNumber,
+          purok: data.purok,
+          barangay: data.barangay,
+          municipality: data.municipality,
+          province: data.province,
+          citizenship: data.citizenship,
+          contactNumber: data.contactNumber,
+          religion: data.religion,
+          course: data.course,
+          yearLevel: data.yearLevel,
+        },
         idImage: idImageBase64,
         idOcr: {
           rawText: idOcrText,
@@ -562,6 +584,28 @@ export default function RenewalApplicationPage() {
               )}
 
               {currentStep === 2 && (
+                <StepErrorBoundary>
+                  <PersonalInfoStepPart1
+                    register={register}
+                    errors={errors}
+                    setValue={setValue}
+                    watch={watch}
+                  />
+                </StepErrorBoundary>
+              )}
+
+              {currentStep === 3 && (
+                <StepErrorBoundary>
+                  <PersonalInfoStepPart2
+                    register={register}
+                    errors={errors}
+                    setValue={setValue}
+                    watch={watch}
+                  />
+                </StepErrorBoundary>
+              )}
+
+              {currentStep === 4 && (
                 <DocumentsUploadStep<RenewalApplicationFormData>
                   register={register}
                   errors={errors}
@@ -625,7 +669,7 @@ export default function RenewalApplicationPage() {
                   isSubmitting ||
                   (currentStep === 1 &&
                     (!uploadedFile || !isIdProcessingDone)) ||
-                  (isLastStep && documentsProcessing)
+                  (currentStep === 4 && documentsProcessing)
                 }
               >
                 {isSubmitting && isLastStep ? (
