@@ -68,6 +68,32 @@ export function ScreeningTableMobile({
     return application.User.name || "Unknown";
   };
 
+  const getLevel = (application: ScreeningApplication): string => {
+    if (application.applicationDetails) {
+      const details = application.applicationDetails;
+      let personalInfo: Record<string, unknown> | null = null;
+
+      if (typeof details === "object" && details !== null) {
+        if ("personalInfo" in details && details.personalInfo) {
+          personalInfo = details.personalInfo as Record<string, unknown>;
+        } else {
+          personalInfo = details as Record<string, unknown>;
+        }
+      }
+
+      if (personalInfo) {
+        const yearLevel = (personalInfo.yearLevel as string | undefined)?.toLowerCase() ?? "";
+        if (yearLevel === "g11" || yearLevel === "g12" || yearLevel.includes("grade 11") || yearLevel.includes("grade 12")) {
+          return "SHS";
+        }
+        if (yearLevel === "1" || yearLevel === "2" || yearLevel === "3" || yearLevel === "4") {
+          return "College";
+        }
+      }
+    }
+    return "—";
+  };
+
   return (
     <div className="space-y-4">
       {applications.map((application) => (
@@ -101,7 +127,7 @@ export function ScreeningTableMobile({
 
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className="text-xs">
-                {application.applicationType}
+                {getLevel(application)}
               </Badge>
               <span className="text-xs text-gray-500">
                 {formatDate(application.createdAt)}

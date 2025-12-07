@@ -79,6 +79,32 @@ export function ScreeningTableDesktop({
     return application.User.name || "Unknown";
   };
 
+  const getLevel = (application: ScreeningApplication): string => {
+    if (application.applicationDetails) {
+      const details = application.applicationDetails;
+      let personalInfo: Record<string, unknown> | null = null;
+
+      if (typeof details === "object" && details !== null) {
+        if ("personalInfo" in details && details.personalInfo) {
+          personalInfo = details.personalInfo as Record<string, unknown>;
+        } else {
+          personalInfo = details as Record<string, unknown>;
+        }
+      }
+
+      if (personalInfo) {
+        const yearLevel = (personalInfo.yearLevel as string | undefined)?.toLowerCase() ?? "";
+        if (yearLevel === "g11" || yearLevel === "g12" || yearLevel.includes("grade 11") || yearLevel.includes("grade 12")) {
+          return "SHS";
+        }
+        if (yearLevel === "1" || yearLevel === "2" || yearLevel === "3" || yearLevel === "4") {
+          return "College";
+        }
+      }
+    }
+    return "—";
+  };
+
   return (
     <Table className="min-w-full text-sm">
       <TableHeader>
@@ -92,7 +118,7 @@ export function ScreeningTableDesktop({
             />
           </TableHead>
           <TableHead>Name</TableHead>
-          <TableHead className="hidden lg:table-cell">Type</TableHead>
+          <TableHead className="hidden lg:table-cell">Level</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="hidden md:table-cell">Remarks</TableHead>
           <TableHead className="hidden sm:table-cell">Submitted At</TableHead>
@@ -136,7 +162,7 @@ export function ScreeningTableDesktop({
               </div>
             </TableCell>
             <TableCell className="hidden lg:table-cell">
-              <Badge variant="outline">{application.applicationType}</Badge>
+              <Badge variant="outline">{getLevel(application)}</Badge>
             </TableCell>
             <TableCell>
               <Badge className={getStatusColor(application.status)}>
