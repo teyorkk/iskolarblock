@@ -70,9 +70,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
   }, [session, updateActivity]);
 
-  // Check for session timeout
+  // Check for session timeout (skip for admin users)
   useEffect(() => {
     if (!session) return;
+    // Skip timeout check for admin users
+    if (userRole === "ADMIN") return;
 
     const interval = setInterval(() => {
       const now = Date.now();
@@ -85,7 +87,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, [session, lastActivity, handleLogout]);
+  }, [session, lastActivity, handleLogout, userRole]);
 
   // Fetch user role from database when session changes
   useEffect(() => {
