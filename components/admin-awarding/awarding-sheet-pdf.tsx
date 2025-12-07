@@ -79,8 +79,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#f97316",
     marginBottom: 10,
+    paddingBottom: 8,
+  },
+  sectionTitleLine: {
     borderBottom: "2 solid #f97316",
-    paddingBottom: 5,
+    marginBottom: 10,
   },
   table: {
     width: "100%",
@@ -89,8 +92,9 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: "row",
     borderBottom: "1 solid #fed7aa",
-    paddingVertical: 8,
+    paddingVertical: 6,
     minHeight: 25,
+    alignItems: "center",
   },
   tableHeader: {
     backgroundColor: "#fff7ed",
@@ -120,9 +124,12 @@ const styles = StyleSheet.create({
     fontSize: 9,
     paddingHorizontal: 5,
     flex: 2,
-    color: "#333",
+    color: "",
     borderLeft: "1 solid #fed7aa",
     minHeight: 30,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   periodInfo: {
     backgroundColor: "#fff7ed",
@@ -135,11 +142,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
     color: "#f97316",
-    marginBottom: 5,
+    marginBottom: 8,
   },
   periodDate: {
     fontSize: 10,
     color: "#666",
+    marginBottom: 4,
+    lineHeight: 1.4,
   },
 });
 
@@ -217,11 +226,22 @@ function getApplicantName(application: Application): string {
 function getLevel(application: Application): string {
   const personalInfo = extractPersonalInfo(application.applicationDetails);
   if (personalInfo) {
-    const yearLevel = (personalInfo.yearLevel as string | undefined)?.toLowerCase() ?? "";
-    if (yearLevel === "g11" || yearLevel === "g12" || yearLevel.includes("grade 11") || yearLevel.includes("grade 12")) {
+    const yearLevel =
+      (personalInfo.yearLevel as string | undefined)?.toLowerCase() ?? "";
+    if (
+      yearLevel === "g11" ||
+      yearLevel === "g12" ||
+      yearLevel.includes("grade 11") ||
+      yearLevel.includes("grade 12")
+    ) {
       return "SHS";
     }
-    if (yearLevel === "1" || yearLevel === "2" || yearLevel === "3" || yearLevel === "4") {
+    if (
+      yearLevel === "1" ||
+      yearLevel === "2" ||
+      yearLevel === "3" ||
+      yearLevel === "4"
+    ) {
       return "College";
     }
   }
@@ -276,11 +296,22 @@ export function AwardingSheetPDF({
 
   // Helper to render applicant table rows with pagination
   const renderApplicantTable = (applicants: Application[]) => {
-    const rowsPerPage = 20;
+    const firstPageRows = 20;
+    const subsequentPageRows = 20;
     const pages: Application[][] = [];
 
-    for (let i = 0; i < applicants.length; i += rowsPerPage) {
-      pages.push(applicants.slice(i, i + rowsPerPage));
+    // First page: 18 rows
+    if (applicants.length > 0) {
+      pages.push(applicants.slice(0, firstPageRows));
+
+      // Subsequent pages: 20 rows each
+      for (
+        let i = firstPageRows;
+        i < applicants.length;
+        i += subsequentPageRows
+      ) {
+        pages.push(applicants.slice(i, i + subsequentPageRows));
+      }
     }
 
     return pages.map((pageApplicants, pageIndex) => (
@@ -313,42 +344,23 @@ export function AwardingSheetPDF({
 
         {/* Main Content */}
         <View style={styles.content}>
-          {pageIndex === 0 && (
-            <>
-              {/* Application Cycle Info */}
-              {period && (
-                <View style={styles.periodInfo}>
-                  <Text style={styles.periodTitle}>Application Cycle</Text>
-                  <Text style={styles.periodDate}>{period.title}</Text>
-                  <Text style={styles.periodDate}>
-                    Start:{" "}
-                    {new Date(period.startDate).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </Text>
-                  <Text style={styles.periodDate}>
-                    End:{" "}
-                    {new Date(period.endDate).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </Text>
-                </View>
-              )}
-            </>
-          )}
-
           {/* Applicant List Section */}
           <View style={styles.section} wrap={false}>
-            <Text style={styles.sectionTitle}>Scholars List</Text>
+            {pageIndex === 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Scholars List</Text>
+                <View style={styles.sectionTitleLine} />
+              </>
+            )}
             <View style={styles.table} wrap={false}>
               <View style={[styles.tableRow, styles.tableHeader]}>
                 <Text style={styles.tableCellName}>Name</Text>
                 <Text style={styles.tableCellLevel}>Level</Text>
-                <Text style={styles.tableCellSignature}>Signature</Text>
+                <View style={styles.tableCellSignature}>
+                  <Text style={[styles.tableHeader, { color: "#000000" }]}>
+                    Signature
+                  </Text>
+                </View>
               </View>
               {pageApplicants.map((application) => (
                 <View key={application.id} style={styles.tableRow}>
@@ -370,4 +382,3 @@ export function AwardingSheetPDF({
 
   return <Document>{renderApplicantTable(sortedApplications)}</Document>;
 }
-
