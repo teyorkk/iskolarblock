@@ -19,6 +19,7 @@ import {
   FileSearch,
   Filter,
   Search,
+  ArrowUpDown,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,9 @@ export default function ScreeningPage() {
   >("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<"default" | "az" | "za">(
+    "default"
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmApproveId, setConfirmApproveId] = useState<string | null>(null);
   const [confirmRejectId, setConfirmRejectId] = useState<string | null>(null);
@@ -300,8 +304,43 @@ export default function ScreeningPage() {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
+  // Helper function to get applicant name from applicationDetails or User.name
+  const getApplicantName = (app: Application): string => {
+    // Try to extract name from applicationDetails first
+    if (app.applicationDetails) {
+      const details = app.applicationDetails;
+      let personalInfo: Record<string, unknown> | null = null;
+
+      if (typeof details === "object" && details !== null) {
+        if ("personalInfo" in details && details.personalInfo) {
+          personalInfo = details.personalInfo as Record<string, unknown>;
+        } else {
+          personalInfo = details as Record<string, unknown>;
+        }
+      }
+
+      if (personalInfo) {
+        const firstName = personalInfo.firstName as string | undefined;
+        const middleName = personalInfo.middleName as string | undefined;
+        const lastName = personalInfo.lastName as string | undefined;
+        const nameParts = [firstName, middleName, lastName].filter(Boolean);
+        if (nameParts.length > 0) {
+          return nameParts.join(" ");
+        }
+      }
+    }
+
+    // Fallback to User.name
+    return app.User?.name || "Unknown";
+  };
+
+  // Helper function to get applicant name for sorting (lowercase)
+  const getApplicantNameForSort = (app: Application): string => {
+    return getApplicantName(app).toLowerCase();
+  };
+
   const filteredApplications = useMemo(() => {
-    return applications.filter((app) => {
+    let filtered = applications.filter((app) => {
       const matchesStatus =
         statusFilter === "ALL" || app.status === statusFilter;
       if (!matchesStatus) return false;
@@ -309,13 +348,32 @@ export default function ScreeningPage() {
       if (!debouncedSearchTerm) return true;
 
       const term = debouncedSearchTerm;
+      const applicantName = getApplicantName(app).toLowerCase();
+
       return (
+        applicantName.includes(term) ||
         app.User.name.toLowerCase().includes(term) ||
         app.User.email.toLowerCase().includes(term) ||
         app.applicationType.toLowerCase().includes(term)
       );
     });
-  }, [applications, statusFilter, debouncedSearchTerm]);
+
+    // Apply sorting
+    if (sortOrder !== "default") {
+      filtered = [...filtered].sort((a, b) => {
+        const nameA = getApplicantNameForSort(a);
+        const nameB = getApplicantNameForSort(b);
+
+        if (sortOrder === "az") {
+          return nameA.localeCompare(nameB);
+        } else {
+          return nameB.localeCompare(nameA);
+        }
+      });
+    }
+
+    return filtered;
+  }, [applications, statusFilter, debouncedSearchTerm, sortOrder]);
 
   const statusFilters = [
     { label: "All", value: "ALL" as const, count: stats.total },
@@ -342,7 +400,7 @@ export default function ScreeningPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, debouncedSearchTerm]);
+  }, [statusFilter, debouncedSearchTerm, sortOrder]);
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
@@ -421,9 +479,9 @@ export default function ScreeningPage() {
               </div>
             )}
 
-            {/* Search Bar */}
-            <div className="mb-4">
-              <div className="relative w-full md:w-80">
+            {/* Search Bar and Sort */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative w-full sm:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search by name, email, or type..."
@@ -431,6 +489,26 @@ export default function ScreeningPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
+              </div>
+              <div className="w-full sm:w-auto">
+                <Select
+                  value={sortOrder}
+                  onValueChange={(value: "default" | "az" | "za") =>
+                    setSortOrder(value)
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="w-4 h-4 text-gray-500" />
+                      <SelectValue placeholder="Sort by name" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="az">A-Z</SelectItem>
+                    <SelectItem value="za">Z-A</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
