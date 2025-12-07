@@ -68,9 +68,6 @@ export default function ScreeningPage() {
     string | null
   >(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedApplications, setSelectedApplications] = useState<Set<string>>(
-    new Set()
-  );
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
   const [latestPeriodId, setLatestPeriodId] = useState<string | null>(null);
@@ -208,28 +205,6 @@ export default function ScreeningPage() {
       console.error("Error updating application:", error);
       toast.error("An error occurred while updating application status");
     }
-  };
-
-  const handleSelectAll = (checked: boolean, targetApps: Application[]) => {
-    if (checked) {
-      const newSelected = new Set(selectedApplications);
-      targetApps.forEach((app) => newSelected.add(app.id));
-      setSelectedApplications(newSelected);
-    } else {
-      const newSelected = new Set(selectedApplications);
-      targetApps.forEach((app) => newSelected.delete(app.id));
-      setSelectedApplications(newSelected);
-    }
-  };
-
-  const handleSelectApplication = (applicationId: string, checked: boolean) => {
-    const newSelected = new Set(selectedApplications);
-    if (checked) {
-      newSelected.add(applicationId);
-    } else {
-      newSelected.delete(applicationId);
-    }
-    setSelectedApplications(newSelected);
   };
 
   const getStatusColor = (status: string) => {
@@ -430,10 +405,6 @@ export default function ScreeningPage() {
   }, [filteredApplications, currentPage, itemsPerPage]);
 
   const visibleApplications = paginatedApplications;
-
-  const allVisibleSelected =
-    visibleApplications.length > 0 &&
-    visibleApplications.every((app) => selectedApplications.has(app.id));
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -696,10 +667,6 @@ export default function ScreeningPage() {
                     desktopView={
                       <ScreeningTableDesktop
                         applications={visibleApplications}
-                        selectedApplications={selectedApplications}
-                        allVisibleSelected={allVisibleSelected}
-                        handleSelectAll={handleSelectAll}
-                        handleSelectApplication={handleSelectApplication}
                         handleViewDetails={handleViewDetails}
                         getStatusColor={getStatusColor}
                         getRemarksBadgeClass={getRemarksBadgeClass}
@@ -716,8 +683,6 @@ export default function ScreeningPage() {
                     mobileView={
                       <ScreeningTableMobile
                         applications={visibleApplications}
-                        selectedApplications={selectedApplications}
-                        handleSelectApplication={handleSelectApplication}
                         handleViewDetails={handleViewDetails}
                         getStatusColor={getStatusColor}
                         getRemarksBadgeClass={getRemarksBadgeClass}
