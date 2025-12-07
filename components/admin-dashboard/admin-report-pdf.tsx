@@ -70,11 +70,12 @@ const styles = StyleSheet.create({
   content: {
     padding: 40,
     paddingTop: 30,
-    paddingBottom: 40,
-    minHeight: 600, // Ensure minimum height for content
+    paddingBottom: 60, // Increased bottom padding to prevent overflow
+    marginBottom: 20, // Additional bottom margin
+    maxHeight: 650, // Limit maximum height to prevent overflow
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 15, // Reduced margin to fit more content
   },
   sectionTitle: {
     fontSize: 16,
@@ -115,7 +116,8 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: "row",
     borderBottom: "1 solid #fed7aa",
-    paddingVertical: 8,
+    paddingVertical: 6, // Reduced padding to fit more rows
+    minHeight: 20, // Minimum row height
   },
   tableHeader: {
     backgroundColor: "#fff7ed",
@@ -314,9 +316,26 @@ export function AdminReportPDF({
     return status.charAt(0) + status.slice(1).toLowerCase();
   };
 
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
+  // Helper to render applicant table rows with pagination
+  const renderApplicantTable = (
+    applicants: Application[],
+    sectionTitle: string,
+    startPageNumber: number
+  ) => {
+    const rowsPerPage = 20; // Reduced to account for margins and prevent overflow
+    const pages: Application[][] = [];
+
+    for (let i = 0; i < applicants.length; i += rowsPerPage) {
+      pages.push(applicants.slice(i, i + rowsPerPage));
+    }
+
+    return pages.map((pageApplicants, pageIndex) => (
+      <Page
+        key={`${sectionTitle}-${pageIndex}`}
+        size="A4"
+        style={styles.page}
+        break={pageIndex > 0 || startPageNumber > 2}
+      >
         {/* Header with Logos */}
         <View style={styles.pageHeader}>
           <View style={styles.headerContent}>
@@ -339,6 +358,95 @@ export function AdminReportPDF({
         </View>
 
         {/* Main Content */}
+        <View style={styles.content}>
+          {/* Applicant List Section */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+            <View style={styles.table} wrap={false}>
+              <View style={[styles.tableRow, styles.tableHeader]}>
+                <Text style={styles.tableCellName}>Name</Text>
+                <Text style={styles.tableCell}>Status</Text>
+                <Text style={styles.tableCellRemarks}>Remarks</Text>
+                <Text style={styles.tableCellDate}>Date Submitted</Text>
+              </View>
+              {pageApplicants.map((application) => (
+                <View key={application.id} style={styles.tableRow}>
+                  <Text style={styles.tableCellName}>
+                    {getApplicantName(application)}
+                  </Text>
+                  <Text style={styles.tableCell}>
+                    {formatStatus(application.status)}
+                  </Text>
+                  <Text style={styles.tableCellRemarks}>
+                    {application.remarks || "N/A"}
+                  </Text>
+                  <Text style={styles.tableCellDate}>
+                    {application.createdAt
+                      ? new Date(application.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          }
+                        )
+                      : "N/A"}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Page>
+    ));
+  };
+
+  // Prepare applicant lists
+  const shsApplicants = applications.filter((app) => {
+    const yearLevel = app.applicationDetails?.personalInfo?.yearLevel;
+    return yearLevel === "G11" || yearLevel === "G12";
+  });
+  const sortedShsApplicants = sortByLastName(shsApplicants);
+
+  const collegeApplicants = applications.filter((app) => {
+    const yearLevel = app.applicationDetails?.personalInfo?.yearLevel;
+    return (
+      yearLevel === "1" ||
+      yearLevel === "2" ||
+      yearLevel === "3" ||
+      yearLevel === "4"
+    );
+  });
+  const sortedCollegeApplicants = sortByLastName(collegeApplicants);
+
+  // Calculate starting page number for college applicants
+  const shsPages = Math.ceil(sortedShsApplicants.length / 20);
+  const collegeStartPage = 2 + shsPages;
+
+  return (
+    <Document>
+      {/* Page 1: Key Statistics */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.pageHeader}>
+          <View style={styles.headerContent}>
+            <View style={styles.logoContainer}>
+              {iskolarblockLogoUrl && (
+                <View style={styles.roundedLogo}>
+                  <Image src={iskolarblockLogoUrl} style={styles.logo} />
+                </View>
+              )}
+              {skLogoUrl && <Image src={skLogoUrl} style={styles.logo} />}
+            </View>
+            <View style={styles.headerText}>
+              <Text style={styles.headerTitle}>IskolarBlock Report</Text>
+              <Text style={styles.headerSubtitle}>
+                Barangay San Miguel Scholarship Program
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.headerDate}>Generated on: {currentDate}</Text>
+        </View>
+
         <View style={styles.content}>
           {/* Application Cycle Info */}
           {period && (
@@ -421,113 +529,20 @@ export function AdminReportPDF({
               })()}
             </View>
           </View>
-
-          {/* SHS Applicants List */}
-          {(() => {
-            const shsApplicants = applications.filter((app) => {
-              const yearLevel = app.applicationDetails?.personalInfo?.yearLevel;
-              return yearLevel === "G11" || yearLevel === "G12";
-            });
-            // Sort by lastname alphabetically
-            const sortedShsApplicants = sortByLastName(shsApplicants);
-            return sortedShsApplicants.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                  SHS Applicants ({sortedShsApplicants.length})
-                </Text>
-                <View style={styles.table}>
-                  <View style={[styles.tableRow, styles.tableHeader]}>
-                    <Text style={styles.tableCellName}>Name</Text>
-                    <Text style={styles.tableCell}>Status</Text>
-                    <Text style={styles.tableCellRemarks}>Remarks</Text>
-                    <Text style={styles.tableCellDate}>Date Submitted</Text>
-                  </View>
-                  {sortedShsApplicants.map((application) => (
-                    <View key={application.id} style={styles.tableRow}>
-                      <Text style={styles.tableCellName}>
-                        {getApplicantName(application)}
-                      </Text>
-                      <Text style={styles.tableCell}>
-                        {formatStatus(application.status)}
-                      </Text>
-                      <Text style={styles.tableCellRemarks}>
-                        {application.remarks || "N/A"}
-                      </Text>
-                      <Text style={styles.tableCellDate}>
-                        {application.createdAt
-                          ? new Date(application.createdAt).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              }
-                            )
-                          : "N/A"}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ) : null;
-          })()}
-
-          {/* College Applicants List */}
-          {(() => {
-            const collegeApplicants = applications.filter((app) => {
-              const yearLevel = app.applicationDetails?.personalInfo?.yearLevel;
-              return (
-                yearLevel === "1" ||
-                yearLevel === "2" ||
-                yearLevel === "3" ||
-                yearLevel === "4"
-              );
-            });
-            // Sort by lastname alphabetically
-            const sortedCollegeApplicants = sortByLastName(collegeApplicants);
-            return sortedCollegeApplicants.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                  College Applicants ({sortedCollegeApplicants.length})
-                </Text>
-                <View style={styles.table}>
-                  <View style={[styles.tableRow, styles.tableHeader]}>
-                    <Text style={styles.tableCellName}>Name</Text>
-                    <Text style={styles.tableCell}>Status</Text>
-                    <Text style={styles.tableCellRemarks}>Remarks</Text>
-                    <Text style={styles.tableCellDate}>Date Submitted</Text>
-                  </View>
-                  {sortedCollegeApplicants.map((application) => (
-                    <View key={application.id} style={styles.tableRow}>
-                      <Text style={styles.tableCellName}>
-                        {getApplicantName(application)}
-                      </Text>
-                      <Text style={styles.tableCell}>
-                        {formatStatus(application.status)}
-                      </Text>
-                      <Text style={styles.tableCellRemarks}>
-                        {application.remarks || "N/A"}
-                      </Text>
-                      <Text style={styles.tableCellDate}>
-                        {application.createdAt
-                          ? new Date(application.createdAt).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              }
-                            )
-                          : "N/A"}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ) : null;
-          })()}
         </View>
       </Page>
+
+      {/* Page 2+: SHS Applicants */}
+      {sortedShsApplicants.length > 0 &&
+        renderApplicantTable(sortedShsApplicants, "SHS Applicants", 2)}
+
+      {/* College Applicants pages */}
+      {sortedCollegeApplicants.length > 0 &&
+        renderApplicantTable(
+          sortedCollegeApplicants,
+          "College Applicants",
+          collegeStartPage
+        )}
     </Document>
   );
 }
