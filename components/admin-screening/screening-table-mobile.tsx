@@ -1,6 +1,5 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Eye, XCircle } from "lucide-react";
@@ -9,8 +8,6 @@ import type { ScreeningApplication } from "@/types/components";
 
 interface ScreeningTableMobileProps {
   applications: ScreeningApplication[];
-  selectedApplications: Set<string>;
-  handleSelectApplication: (id: string, checked: boolean) => void;
   handleViewDetails: (id: string) => void;
   getStatusColor: (status: string) => string;
   getRemarksBadgeClass: (remarks?: string | null, status?: string) => string;
@@ -23,8 +20,6 @@ interface ScreeningTableMobileProps {
 
 export function ScreeningTableMobile({
   applications,
-  selectedApplications,
-  handleSelectApplication,
   handleViewDetails,
   getStatusColor,
   getRemarksBadgeClass,
@@ -116,25 +111,16 @@ export function ScreeningTableMobile({
         <MobileCard key={application.id}>
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-3 flex-1 min-w-0">
-                <Checkbox
-                  checked={selectedApplications.has(application.id)}
-                  onCheckedChange={(checked) =>
-                    handleSelectApplication(application.id, checked as boolean)
-                  }
-                  className="mt-1"
-                />
-                <div className="flex-1 min-w-0">
-                  <p
-                    className="font-medium text-sm truncate"
-                    title={getApplicantName(application)}
-                  >
-                    {truncateName(getApplicantName(application))}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
-                    {application.User.email}
-                  </p>
-                </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className="font-medium text-sm truncate"
+                  title={getApplicantName(application)}
+                >
+                  {truncateName(getApplicantName(application))}
+                </p>
+                <p className="text-xs text-gray-500 truncate mt-0.5">
+                  {application.User.email}
+                </p>
               </div>
               <Badge className={getStatusColor(application.status)}>
                 {application.status}

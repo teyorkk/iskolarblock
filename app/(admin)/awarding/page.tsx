@@ -446,8 +446,20 @@ export default function AwardingPage() {
         skLogo: skLogoBase64,
       });
 
-      // Download the PDF
+      // Create PDF URL and open for printing
       const url = URL.createObjectURL(blob);
+
+      // Open PDF in new window for printing
+      const printWindow = window.open(url, "_blank");
+      if (printWindow) {
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        };
+      }
+
+      // Also download the PDF
       const link = document.createElement("a");
       link.href = url;
       const periodTitle =
@@ -462,9 +474,13 @@ export default function AwardingPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
 
-      toast.success("Awarding sheet generated successfully!");
+      // Clean up URL after a delay to allow printing
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+
+      toast.success("Awarding sheet generated and opened for printing!");
     } catch (error) {
       console.error("Error generating awarding sheet:", error);
       toast.error("Failed to generate awarding sheet. Please try again.");

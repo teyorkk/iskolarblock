@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Eye, XCircle } from "lucide-react";
@@ -16,10 +15,6 @@ import type { ScreeningApplication } from "@/types/components";
 
 interface ScreeningTableDesktopProps {
   applications: ScreeningApplication[];
-  selectedApplications: Set<string>;
-  allVisibleSelected: boolean;
-  handleSelectAll: (checked: boolean, apps: ScreeningApplication[]) => void;
-  handleSelectApplication: (id: string, checked: boolean) => void;
   handleViewDetails: (id: string) => void;
   getStatusColor: (status: string) => string;
   getRemarksBadgeClass: (remarks?: string | null, status?: string) => string;
@@ -32,10 +27,6 @@ interface ScreeningTableDesktopProps {
 
 export function ScreeningTableDesktop({
   applications,
-  selectedApplications,
-  allVisibleSelected,
-  handleSelectAll,
-  handleSelectApplication,
   handleViewDetails,
   getStatusColor,
   getRemarksBadgeClass,
@@ -109,11 +100,22 @@ export function ScreeningTableDesktop({
       }
 
       if (personalInfo) {
-        const yearLevel = (personalInfo.yearLevel as string | undefined)?.toLowerCase() ?? "";
-        if (yearLevel === "g11" || yearLevel === "g12" || yearLevel.includes("grade 11") || yearLevel.includes("grade 12")) {
+        const yearLevel =
+          (personalInfo.yearLevel as string | undefined)?.toLowerCase() ?? "";
+        if (
+          yearLevel === "g11" ||
+          yearLevel === "g12" ||
+          yearLevel.includes("grade 11") ||
+          yearLevel.includes("grade 12")
+        ) {
           return "SHS";
         }
-        if (yearLevel === "1" || yearLevel === "2" || yearLevel === "3" || yearLevel === "4") {
+        if (
+          yearLevel === "1" ||
+          yearLevel === "2" ||
+          yearLevel === "3" ||
+          yearLevel === "4"
+        ) {
           return "College";
         }
       }
@@ -125,14 +127,6 @@ export function ScreeningTableDesktop({
     <Table className="min-w-full text-sm">
       <TableHeader>
         <TableRow>
-          <TableHead className="w-12">
-            <Checkbox
-              checked={allVisibleSelected}
-              onCheckedChange={(checked) =>
-                handleSelectAll(checked === true, applications)
-              }
-            />
-          </TableHead>
           <TableHead>Name</TableHead>
           <TableHead className="hidden lg:table-cell">Level</TableHead>
           <TableHead>Status</TableHead>
@@ -144,14 +138,6 @@ export function ScreeningTableDesktop({
       <TableBody>
         {applications.map((application) => (
           <TableRow key={application.id}>
-            <TableCell>
-              <Checkbox
-                checked={selectedApplications.has(application.id)}
-                onCheckedChange={(checked) =>
-                  handleSelectApplication(application.id, checked as boolean)
-                }
-              />
-            </TableCell>
             <TableCell className="font-medium">
               <div className="flex flex-col">
                 <span title={getApplicantName(application)}>

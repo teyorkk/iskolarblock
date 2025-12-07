@@ -134,8 +134,20 @@ export function GenerateReportButton({
         skLogo,
       });
 
-      // Download the PDF
+      // Create PDF URL and open for printing
       const url = URL.createObjectURL(blob);
+
+      // Open PDF in new window for printing
+      const printWindow = window.open(url, "_blank");
+      if (printWindow) {
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        };
+      }
+
+      // Also download the PDF
       const link = document.createElement("a");
       link.href = url;
       link.download = `admin-dashboard-report-${
@@ -144,7 +156,11 @@ export function GenerateReportButton({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+
+      // Clean up URL after a delay to allow printing
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
 
       // Log the event
       try {
@@ -162,7 +178,7 @@ export function GenerateReportButton({
         console.error("Failed to log report generation:", error);
       }
 
-      toast.success("Report generated successfully!");
+      toast.success("Report generated and opened for printing!");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate report. Please try again.");
