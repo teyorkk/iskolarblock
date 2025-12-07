@@ -21,7 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Award, CheckCircle, Clock, Coins, Filter, Search } from "lucide-react";
+import {
+  CheckCircle,
+  Clock,
+  Coins,
+  Filter,
+  Search,
+  ArrowUpDown,
+  FileText,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/common/pagination";
 import { ResponsiveTableWrapper } from "@/components/common/responsive-table-wrapper";
@@ -65,9 +74,25 @@ function deriveFullName(application: AwardingApplication) {
     const firstName = personalInfo.firstName as string | undefined;
     const middleName = personalInfo.middleName as string | undefined;
     const lastName = personalInfo.lastName as string | undefined;
-    const segments = [firstName, middleName, lastName].filter(Boolean);
-    if (segments.length) {
-      return segments.join(" ");
+
+    // Format as "LastName, FirstName M.I."
+    if (lastName) {
+      const parts: string[] = [lastName];
+      if (firstName) {
+        let namePart = firstName;
+        // Add middle initial if middle name exists
+        if (middleName && middleName.trim()) {
+          const middleInitial = middleName.trim().charAt(0).toUpperCase();
+          namePart += ` ${middleInitial}.`;
+        }
+        parts.push(namePart);
+      }
+      return parts.join(", ") || "N/A";
+    }
+    // Fallback if no lastname
+    const nameParts = [firstName, middleName].filter(Boolean);
+    if (nameParts.length > 0) {
+      return nameParts.join(" ");
     }
   }
 
@@ -76,6 +101,21 @@ function deriveFullName(application: AwardingApplication) {
   }
 
   return "Unnamed Scholar";
+}
+
+// Helper function to get lastname for sorting
+function getLastName(application: AwardingApplication): string {
+  const personalInfo = extractPersonalInfo(application.applicationDetails);
+  if (personalInfo) {
+    const lastName = personalInfo.lastName as string | undefined;
+    return (lastName || "").toLowerCase().trim();
+  }
+  // Fallback to User.name if no applicationDetails
+  const fullName = deriveFullName(application);
+  const nameParts = fullName.split(" ");
+  return nameParts.length > 0
+    ? nameParts[nameParts.length - 1].toLowerCase()
+    : "";
 }
 
 function deriveLevel(application: AwardingApplication): LevelFilter {
@@ -127,6 +167,9 @@ export default function AwardingPage() {
   const [latestPeriodId, setLatestPeriodId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<"default" | "az" | "za">(
+    "default"
+  );
   const [statusFilters, setStatusFilters] = useState<Set<AwardingStatus>>(
     new Set()
   );
@@ -134,6 +177,8 @@ export default function AwardingPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmGrantId, setConfirmGrantId] = useState<string | null>(null);
+  const [isGeneratingAwardingSheet, setIsGeneratingAwardingSheet] =
+    useState(false);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -258,7 +303,7 @@ export default function AwardingPage() {
   }, [applications]);
 
   const filteredApplications = useMemo(() => {
-    return applications.filter((app) => {
+    let filtered = applications.filter((app) => {
       const status = (app.status as AwardingStatus) ?? "APPROVED";
       if (statusFilters.size > 0 && !statusFilters.has(status)) {
         return false;
@@ -273,6 +318,7 @@ export default function AwardingPage() {
         return true;
       }
 
+      // Search in name from application details
       const name = deriveFullName(app).toLowerCase();
       const email = (app.User?.email ?? "").toLowerCase();
       const type = app.applicationType.toLowerCase();
@@ -282,7 +328,28 @@ export default function AwardingPage() {
         type.includes(debouncedSearchTerm)
       );
     });
-  }, [applications, statusFilters, levelFilters, debouncedSearchTerm]);
+
+    // Apply sorting by lastname (always sort, default is A-Z)
+    filtered = [...filtered].sort((a, b) => {
+      const lastNameA = getLastName(a);
+      const lastNameB = getLastName(b);
+
+      if (sortOrder === "za") {
+        return lastNameB.localeCompare(lastNameA);
+      } else {
+        // Default and "az" both sort A-Z
+        return lastNameA.localeCompare(lastNameB);
+      }
+    });
+
+    return filtered;
+  }, [
+    applications,
+    statusFilters,
+    levelFilters,
+    debouncedSearchTerm,
+    sortOrder,
+  ]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
@@ -295,7 +362,7 @@ export default function AwardingPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilters, levelFilters, debouncedSearchTerm]);
+  }, [statusFilters, levelFilters, debouncedSearchTerm, sortOrder]);
 
   const handleGrantScholarship = async (applicationId: string) => {
     setUpdatingId(applicationId);
@@ -327,6 +394,82 @@ export default function AwardingPage() {
       toast.error("An error occurred while updating status");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleGenerateAwardingSheet = async () => {
+    if (applications.length === 0) {
+      toast.error("No applications available to generate awarding sheet");
+      return;
+    }
+
+    setIsGeneratingAwardingSheet(true);
+    try {
+      // Convert images to base64
+      const imageToBase64 = async (url: string): Promise<string> => {
+        try {
+          const response = await fetch(url, { cache: "no-cache" });
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
+          }
+          const blob = await response.blob();
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (typeof reader.result === "string") {
+                resolve(reader.result);
+              } else {
+                reject(new Error("Failed to convert image to base64"));
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return "";
+        }
+      };
+
+      const [iskolarblockBase64, skLogoBase64] = await Promise.all([
+        imageToBase64("/iskolarblock.png"),
+        imageToBase64("/sk-logo.png"),
+      ]);
+
+      const { generateAwardingSheetPDF } = await import(
+        "@/lib/reports/generate-awarding-sheet-pdf"
+      );
+
+      const blob = await generateAwardingSheetPDF({
+        applications: filteredApplications,
+        period: periods.find((p) => p.id === selectedPeriodId) || null,
+        iskolarblockLogo: iskolarblockBase64,
+        skLogo: skLogoBase64,
+      });
+
+      // Download the PDF
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const periodTitle =
+        periods.find((p) => p.id === selectedPeriodId)?.title ||
+        "awarding-sheet";
+      const sanitizedTitle = periodTitle
+        .replace(/[^a-z0-9]/gi, "-")
+        .toLowerCase();
+      link.download = `awarding-sheet-${sanitizedTitle}-${
+        new Date().toISOString().split("T")[0]
+      }.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Awarding sheet generated successfully!");
+    } catch (error) {
+      console.error("Error generating awarding sheet:", error);
+      toast.error("Failed to generate awarding sheet. Please try again.");
+    } finally {
+      setIsGeneratingAwardingSheet(false);
     }
   };
 
@@ -375,16 +518,25 @@ export default function AwardingPage() {
                   period
                 </p>
               </div>
-              {selectedPeriodId && (
-                <Badge
-                  variant="outline"
-                  className="bg-white text-gray-700 border-gray-200 py-2 px-4"
-                >
-                  <Award className="w-4 h-4 mr-2 text-orange-500" />
-                  {periods.find((p) => p.id === selectedPeriodId)?.title ??
-                    "No period selected"}
-                </Badge>
-              )}
+              <Button
+                onClick={handleGenerateAwardingSheet}
+                disabled={
+                  isGeneratingAwardingSheet || applications.length === 0
+                }
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {isGeneratingAwardingSheet ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Generate Awarding Sheet
+                  </>
+                )}
+              </Button>
             </div>
 
             {/* Application Period Selector */}
@@ -424,9 +576,9 @@ export default function AwardingPage() {
               </div>
             )}
 
-            {/* Search & Filters */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-              <div className="relative w-full md:max-w-md">
+            {/* Search & Sort */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative w-full sm:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search by name, email, or type..."
@@ -435,53 +587,25 @@ export default function AwardingPage() {
                   className="pl-10"
                 />
               </div>
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Filter className="w-4 h-4" />
-                  <span className="text-sm font-medium">Filters</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(["APPROVED", "GRANTED"] as AwardingStatus[]).map(
-                    (status) => (
-                      <Button
-                        key={status}
-                        type="button"
-                        variant={
-                          statusFilters.has(status) ? "default" : "outline"
-                        }
-                        size="sm"
-                        className={
-                          statusFilters.has(status)
-                            ? "bg-orange-600 hover:bg-orange-700 text-white"
-                            : undefined
-                        }
-                        onClick={() => toggleStatusFilter(status)}
-                      >
-                        {status === "GRANTED" ? "Granted" : "Pending"}
-                      </Button>
-                    )
-                  )}
-                  {(["SENIOR_HIGH", "COLLEGE"] as LevelFilter[]).map(
-                    (level) => (
-                      <Button
-                        key={level}
-                        type="button"
-                        variant={
-                          levelFilters.has(level) ? "default" : "outline"
-                        }
-                        size="sm"
-                        className={
-                          levelFilters.has(level)
-                            ? "bg-orange-600 hover:bg-orange-700 text-white"
-                            : undefined
-                        }
-                        onClick={() => toggleLevelFilter(level)}
-                      >
-                        {formatLevel(level)}
-                      </Button>
-                    )
-                  )}
-                </div>
+              <div className="w-full sm:w-auto">
+                <Select
+                  value={sortOrder}
+                  onValueChange={(value: "default" | "az" | "za") =>
+                    setSortOrder(value)
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="w-4 h-4 text-gray-500" />
+                      <SelectValue placeholder="Sort by name" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="az">A-Z</SelectItem>
+                    <SelectItem value="za">Z-A</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -536,6 +660,58 @@ export default function AwardingPage() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Status Filters */}
+            <div className="mb-4">
+              <div className="flex flex-wrap items-center gap-3 bg-white border rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Filter className="w-4 h-4" />
+                  <span className="text-sm font-medium">Filter by status:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(["APPROVED", "GRANTED"] as AwardingStatus[]).map(
+                    (status) => (
+                      <Button
+                        key={status}
+                        type="button"
+                        variant={
+                          statusFilters.has(status) ? "default" : "outline"
+                        }
+                        size="sm"
+                        className={
+                          statusFilters.has(status)
+                            ? "bg-orange-500 hover:bg-orange-600 text-white"
+                            : undefined
+                        }
+                        onClick={() => toggleStatusFilter(status)}
+                      >
+                        {status === "GRANTED" ? "Granted" : "Pending"}
+                      </Button>
+                    )
+                  )}
+                  {(["SENIOR_HIGH", "COLLEGE"] as LevelFilter[]).map(
+                    (level) => (
+                      <Button
+                        key={level}
+                        type="button"
+                        variant={
+                          levelFilters.has(level) ? "default" : "outline"
+                        }
+                        size="sm"
+                        className={
+                          levelFilters.has(level)
+                            ? "bg-orange-500 hover:bg-orange-600 text-white"
+                            : undefined
+                        }
+                        onClick={() => toggleLevelFilter(level)}
+                      >
+                        {formatLevel(level)}
+                      </Button>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Scholars Table */}

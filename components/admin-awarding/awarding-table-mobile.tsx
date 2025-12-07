@@ -85,21 +85,13 @@ export function AwardingTableMobile({
 
               <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                 <div>
-                  <span className="text-xs text-gray-500 font-medium">Type</span>
-                  <div className="mt-1">
-                    <Badge variant="outline" className="text-xs">
-                      {application.applicationType === "NEW" ? "New" : "Renewal"}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
                   <span className="text-xs text-gray-500 font-medium">Level</span>
                   <div className="flex items-center gap-2 mt-1">
                     <GraduationCap className="w-3.5 h-3.5 text-orange-600" />
                     <span className="text-sm">{formatLevel(level)}</span>
                   </div>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <span className="text-xs text-gray-500 font-medium">Amount</span>
                   <p className="font-semibold text-sm mt-1">
                     {currencyFormatter.format(amount)}
@@ -140,19 +132,9 @@ export function AwardingTableMobile({
                           </p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-500">Type</p>
-                          <p className="font-medium">
-                            {application.applicationType === "NEW"
-                              ? "New"
-                              : "Renewal"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Level</p>
-                          <p className="font-medium">{formatLevel(level)}</p>
-                        </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Level</p>
+                        <p className="font-medium">{formatLevel(level)}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -230,14 +212,6 @@ export function AwardingTableMobile({
                             <span className="text-gray-600">Level:</span>
                             <span className="font-semibold text-gray-900">
                               {formatLevel(level)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Type:</span>
-                            <span className="font-semibold text-gray-900">
-                              {application.applicationType === "NEW"
-                                ? "New"
-                                : "Renewal"}
                             </span>
                           </div>
                         </div>

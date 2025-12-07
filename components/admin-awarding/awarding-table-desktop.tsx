@@ -43,7 +43,9 @@ interface AwardingTableDesktopProps {
   formatLevel: (level: LevelFilter) => string;
   formatDateTime: (date: string) => string;
   currencyFormatter: Intl.NumberFormat;
-  renderStatusBadge: (status: AwardingStatus | null | undefined) => React.ReactNode;
+  renderStatusBadge: (
+    status: AwardingStatus | null | undefined
+  ) => React.ReactNode;
   canModifyAwards: boolean;
   updatingId: string | null;
   confirmGrantId: string | null;
@@ -71,7 +73,6 @@ export function AwardingTableDesktop({
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>
-          <TableHead>Type</TableHead>
           <TableHead>Level</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Amount</TableHead>
@@ -93,11 +94,6 @@ export function AwardingTableDesktop({
                     {application.User.email}
                   </p>
                 )}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline">
-                  {application.applicationType === "NEW" ? "New" : "Renewal"}
-                </Badge>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -142,19 +138,9 @@ export function AwardingTableDesktop({
                             </p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-gray-500">Type</p>
-                            <p className="font-medium">
-                              {application.applicationType === "NEW"
-                                ? "New"
-                                : "Renewal"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Level</p>
-                            <p className="font-medium">{formatLevel(level)}</p>
-                          </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Level</p>
+                          <p className="font-medium">{formatLevel(level)}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -166,7 +152,9 @@ export function AwardingTableDesktop({
                           <div>
                             <p className="text-sm text-gray-500">Status</p>
                             <p className="font-medium">
-                              {currentStatus === "GRANTED" ? "Granted" : "Pending"}
+                              {currentStatus === "GRANTED"
+                                ? "Granted"
+                                : "Pending"}
                             </p>
                           </div>
                         </div>
@@ -232,19 +220,13 @@ export function AwardingTableDesktop({
                                 {formatLevel(level)}
                               </span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Type:</span>
-                              <span className="font-semibold text-gray-900">
-                                {application.applicationType === "NEW"
-                                  ? "New"
-                                  : "Renewal"}
-                              </span>
-                            </div>
                           </div>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleGrantScholarship(application.id)}
+                              onClick={() =>
+                                handleGrantScholarship(application.id)
+                              }
                               className="bg-orange-600 hover:bg-orange-700 text-white"
                             >
                               Confirm Grant
@@ -267,4 +249,3 @@ export function AwardingTableDesktop({
     </Table>
   );
 }
-

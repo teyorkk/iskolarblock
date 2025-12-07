@@ -57,7 +57,23 @@ export function ScreeningTableMobile({
         const firstName = personalInfo.firstName as string | undefined;
         const middleName = personalInfo.middleName as string | undefined;
         const lastName = personalInfo.lastName as string | undefined;
-        const nameParts = [firstName, middleName, lastName].filter(Boolean);
+
+        // Format as "LastName, FirstName M.I."
+        if (lastName) {
+          const parts: string[] = [lastName];
+          if (firstName) {
+            let namePart = firstName;
+            // Add middle initial if middle name exists
+            if (middleName && middleName.trim()) {
+              const middleInitial = middleName.trim().charAt(0).toUpperCase();
+              namePart += ` ${middleInitial}.`;
+            }
+            parts.push(namePart);
+          }
+          return parts.join(", ") || "N/A";
+        }
+        // Fallback if no lastname
+        const nameParts = [firstName, middleName].filter(Boolean);
         if (nameParts.length > 0) {
           return nameParts.join(" ");
         }
@@ -66,6 +82,32 @@ export function ScreeningTableMobile({
 
     // Fallback to User.name if applicationDetails doesn't have name
     return application.User.name || "Unknown";
+  };
+
+  const getLevel = (application: ScreeningApplication): string => {
+    if (application.applicationDetails) {
+      const details = application.applicationDetails;
+      let personalInfo: Record<string, unknown> | null = null;
+
+      if (typeof details === "object" && details !== null) {
+        if ("personalInfo" in details && details.personalInfo) {
+          personalInfo = details.personalInfo as Record<string, unknown>;
+        } else {
+          personalInfo = details as Record<string, unknown>;
+        }
+      }
+
+      if (personalInfo) {
+        const yearLevel = (personalInfo.yearLevel as string | undefined)?.toLowerCase() ?? "";
+        if (yearLevel === "g11" || yearLevel === "g12" || yearLevel.includes("grade 11") || yearLevel.includes("grade 12")) {
+          return "SHS";
+        }
+        if (yearLevel === "1" || yearLevel === "2" || yearLevel === "3" || yearLevel === "4") {
+          return "College";
+        }
+      }
+    }
+    return "—";
   };
 
   return (
@@ -101,7 +143,7 @@ export function ScreeningTableMobile({
 
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className="text-xs">
-                {application.applicationType}
+                {getLevel(application)}
               </Badge>
               <span className="text-xs text-gray-500">
                 {formatDate(application.createdAt)}
