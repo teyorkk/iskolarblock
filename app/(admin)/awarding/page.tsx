@@ -21,7 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Award, CheckCircle, Clock, Coins, Filter, Search } from "lucide-react";
+import {
+  Award,
+  CheckCircle,
+  Clock,
+  Coins,
+  Filter,
+  Search,
+  ArrowUpDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/common/pagination";
 import { ResponsiveTableWrapper } from "@/components/common/responsive-table-wrapper";
@@ -78,6 +86,21 @@ function deriveFullName(application: AwardingApplication) {
   return "Unnamed Scholar";
 }
 
+// Helper function to get lastname for sorting
+function getLastName(application: AwardingApplication): string {
+  const personalInfo = extractPersonalInfo(application.applicationDetails);
+  if (personalInfo) {
+    const lastName = personalInfo.lastName as string | undefined;
+    return (lastName || "").toLowerCase().trim();
+  }
+  // Fallback to User.name if no applicationDetails
+  const fullName = deriveFullName(application);
+  const nameParts = fullName.split(" ");
+  return nameParts.length > 0
+    ? nameParts[nameParts.length - 1].toLowerCase()
+    : "";
+}
+
 function deriveLevel(application: AwardingApplication): LevelFilter {
   const personalInfo = extractPersonalInfo(application.applicationDetails);
   const yearLevel =
@@ -127,6 +150,9 @@ export default function AwardingPage() {
   const [latestPeriodId, setLatestPeriodId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<"default" | "az" | "za">(
+    "default"
+  );
   const [statusFilters, setStatusFilters] = useState<Set<AwardingStatus>>(
     new Set()
   );
@@ -258,7 +284,7 @@ export default function AwardingPage() {
   }, [applications]);
 
   const filteredApplications = useMemo(() => {
-    return applications.filter((app) => {
+    let filtered = applications.filter((app) => {
       const status = (app.status as AwardingStatus) ?? "APPROVED";
       if (statusFilters.size > 0 && !statusFilters.has(status)) {
         return false;
@@ -273,6 +299,7 @@ export default function AwardingPage() {
         return true;
       }
 
+      // Search in name from application details
       const name = deriveFullName(app).toLowerCase();
       const email = (app.User?.email ?? "").toLowerCase();
       const type = app.applicationType.toLowerCase();
@@ -282,7 +309,29 @@ export default function AwardingPage() {
         type.includes(debouncedSearchTerm)
       );
     });
-  }, [applications, statusFilters, levelFilters, debouncedSearchTerm]);
+
+    // Apply sorting
+    if (sortOrder !== "default") {
+      filtered = [...filtered].sort((a, b) => {
+        const lastNameA = getLastName(a);
+        const lastNameB = getLastName(b);
+
+        if (sortOrder === "az") {
+          return lastNameA.localeCompare(lastNameB);
+        } else {
+          return lastNameB.localeCompare(lastNameA);
+        }
+      });
+    }
+
+    return filtered;
+  }, [
+    applications,
+    statusFilters,
+    levelFilters,
+    debouncedSearchTerm,
+    sortOrder,
+  ]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
@@ -295,7 +344,7 @@ export default function AwardingPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilters, levelFilters, debouncedSearchTerm]);
+  }, [statusFilters, levelFilters, debouncedSearchTerm, sortOrder]);
 
   const handleGrantScholarship = async (applicationId: string) => {
     setUpdatingId(applicationId);
@@ -424,9 +473,9 @@ export default function AwardingPage() {
               </div>
             )}
 
-            {/* Search & Filters */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-              <div className="relative w-full md:max-w-md">
+            {/* Search & Sort */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative w-full sm:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search by name, email, or type..."
@@ -435,53 +484,25 @@ export default function AwardingPage() {
                   className="pl-10"
                 />
               </div>
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Filter className="w-4 h-4" />
-                  <span className="text-sm font-medium">Filters</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(["APPROVED", "GRANTED"] as AwardingStatus[]).map(
-                    (status) => (
-                      <Button
-                        key={status}
-                        type="button"
-                        variant={
-                          statusFilters.has(status) ? "default" : "outline"
-                        }
-                        size="sm"
-                        className={
-                          statusFilters.has(status)
-                            ? "bg-orange-600 hover:bg-orange-700 text-white"
-                            : undefined
-                        }
-                        onClick={() => toggleStatusFilter(status)}
-                      >
-                        {status === "GRANTED" ? "Granted" : "Pending"}
-                      </Button>
-                    )
-                  )}
-                  {(["SENIOR_HIGH", "COLLEGE"] as LevelFilter[]).map(
-                    (level) => (
-                      <Button
-                        key={level}
-                        type="button"
-                        variant={
-                          levelFilters.has(level) ? "default" : "outline"
-                        }
-                        size="sm"
-                        className={
-                          levelFilters.has(level)
-                            ? "bg-orange-600 hover:bg-orange-700 text-white"
-                            : undefined
-                        }
-                        onClick={() => toggleLevelFilter(level)}
-                      >
-                        {formatLevel(level)}
-                      </Button>
-                    )
-                  )}
-                </div>
+              <div className="w-full sm:w-auto">
+                <Select
+                  value={sortOrder}
+                  onValueChange={(value: "default" | "az" | "za") =>
+                    setSortOrder(value)
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="w-4 h-4 text-gray-500" />
+                      <SelectValue placeholder="Sort by name" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="az">A-Z</SelectItem>
+                    <SelectItem value="za">Z-A</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -536,6 +557,58 @@ export default function AwardingPage() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Status Filters */}
+            <div className="mb-4">
+              <div className="flex flex-wrap items-center gap-3 bg-white border rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Filter className="w-4 h-4" />
+                  <span className="text-sm font-medium">Filter by status:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(["APPROVED", "GRANTED"] as AwardingStatus[]).map(
+                    (status) => (
+                      <Button
+                        key={status}
+                        type="button"
+                        variant={
+                          statusFilters.has(status) ? "default" : "outline"
+                        }
+                        size="sm"
+                        className={
+                          statusFilters.has(status)
+                            ? "bg-orange-500 hover:bg-orange-600 text-white"
+                            : undefined
+                        }
+                        onClick={() => toggleStatusFilter(status)}
+                      >
+                        {status === "GRANTED" ? "Granted" : "Pending"}
+                      </Button>
+                    )
+                  )}
+                  {(["SENIOR_HIGH", "COLLEGE"] as LevelFilter[]).map(
+                    (level) => (
+                      <Button
+                        key={level}
+                        type="button"
+                        variant={
+                          levelFilters.has(level) ? "default" : "outline"
+                        }
+                        size="sm"
+                        className={
+                          levelFilters.has(level)
+                            ? "bg-orange-500 hover:bg-orange-600 text-white"
+                            : undefined
+                        }
+                        onClick={() => toggleLevelFilter(level)}
+                      >
+                        {formatLevel(level)}
+                      </Button>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Scholars Table */}
