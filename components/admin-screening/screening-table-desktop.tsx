@@ -68,7 +68,23 @@ export function ScreeningTableDesktop({
         const firstName = personalInfo.firstName as string | undefined;
         const middleName = personalInfo.middleName as string | undefined;
         const lastName = personalInfo.lastName as string | undefined;
-        const nameParts = [firstName, middleName, lastName].filter(Boolean);
+
+        // Format as "LastName, FirstName M.I."
+        if (lastName) {
+          const parts: string[] = [lastName];
+          if (firstName) {
+            let namePart = firstName;
+            // Add middle initial if middle name exists
+            if (middleName && middleName.trim()) {
+              const middleInitial = middleName.trim().charAt(0).toUpperCase();
+              namePart += ` ${middleInitial}.`;
+            }
+            parts.push(namePart);
+          }
+          return parts.join(", ") || "N/A";
+        }
+        // Fallback if no lastname
+        const nameParts = [firstName, middleName].filter(Boolean);
         if (nameParts.length > 0) {
           return nameParts.join(" ");
         }

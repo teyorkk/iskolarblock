@@ -22,13 +22,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Award,
   CheckCircle,
   Clock,
   Coins,
   Filter,
   Search,
   ArrowUpDown,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/common/pagination";
@@ -73,9 +74,25 @@ function deriveFullName(application: AwardingApplication) {
     const firstName = personalInfo.firstName as string | undefined;
     const middleName = personalInfo.middleName as string | undefined;
     const lastName = personalInfo.lastName as string | undefined;
-    const segments = [firstName, middleName, lastName].filter(Boolean);
-    if (segments.length) {
-      return segments.join(" ");
+
+    // Format as "LastName, FirstName M.I."
+    if (lastName) {
+      const parts: string[] = [lastName];
+      if (firstName) {
+        let namePart = firstName;
+        // Add middle initial if middle name exists
+        if (middleName && middleName.trim()) {
+          const middleInitial = middleName.trim().charAt(0).toUpperCase();
+          namePart += ` ${middleInitial}.`;
+        }
+        parts.push(namePart);
+      }
+      return parts.join(", ") || "N/A";
+    }
+    // Fallback if no lastname
+    const nameParts = [firstName, middleName].filter(Boolean);
+    if (nameParts.length > 0) {
+      return nameParts.join(" ");
     }
   }
 
@@ -160,6 +177,8 @@ export default function AwardingPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmGrantId, setConfirmGrantId] = useState<string | null>(null);
+  const [isGeneratingAwardingSheet, setIsGeneratingAwardingSheet] =
+    useState(false);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -310,19 +329,18 @@ export default function AwardingPage() {
       );
     });
 
-    // Apply sorting
-    if (sortOrder !== "default") {
-      filtered = [...filtered].sort((a, b) => {
-        const lastNameA = getLastName(a);
-        const lastNameB = getLastName(b);
+    // Apply sorting by lastname (always sort, default is A-Z)
+    filtered = [...filtered].sort((a, b) => {
+      const lastNameA = getLastName(a);
+      const lastNameB = getLastName(b);
 
-        if (sortOrder === "az") {
-          return lastNameA.localeCompare(lastNameB);
-        } else {
-          return lastNameB.localeCompare(lastNameA);
-        }
-      });
-    }
+      if (sortOrder === "za") {
+        return lastNameB.localeCompare(lastNameA);
+      } else {
+        // Default and "az" both sort A-Z
+        return lastNameA.localeCompare(lastNameB);
+      }
+    });
 
     return filtered;
   }, [
@@ -379,6 +397,82 @@ export default function AwardingPage() {
     }
   };
 
+  const handleGenerateAwardingSheet = async () => {
+    if (applications.length === 0) {
+      toast.error("No applications available to generate awarding sheet");
+      return;
+    }
+
+    setIsGeneratingAwardingSheet(true);
+    try {
+      // Convert images to base64
+      const imageToBase64 = async (url: string): Promise<string> => {
+        try {
+          const response = await fetch(url, { cache: "no-cache" });
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
+          }
+          const blob = await response.blob();
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (typeof reader.result === "string") {
+                resolve(reader.result);
+              } else {
+                reject(new Error("Failed to convert image to base64"));
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return "";
+        }
+      };
+
+      const [iskolarblockBase64, skLogoBase64] = await Promise.all([
+        imageToBase64("/iskolarblock.png"),
+        imageToBase64("/sk-logo.png"),
+      ]);
+
+      const { generateAwardingSheetPDF } = await import(
+        "@/lib/reports/generate-awarding-sheet-pdf"
+      );
+
+      const blob = await generateAwardingSheetPDF({
+        applications: filteredApplications,
+        period: periods.find((p) => p.id === selectedPeriodId) || null,
+        iskolarblockLogo: iskolarblockBase64,
+        skLogo: skLogoBase64,
+      });
+
+      // Download the PDF
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const periodTitle =
+        periods.find((p) => p.id === selectedPeriodId)?.title ||
+        "awarding-sheet";
+      const sanitizedTitle = periodTitle
+        .replace(/[^a-z0-9]/gi, "-")
+        .toLowerCase();
+      link.download = `awarding-sheet-${sanitizedTitle}-${
+        new Date().toISOString().split("T")[0]
+      }.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Awarding sheet generated successfully!");
+    } catch (error) {
+      console.error("Error generating awarding sheet:", error);
+      toast.error("Failed to generate awarding sheet. Please try again.");
+    } finally {
+      setIsGeneratingAwardingSheet(false);
+    }
+  };
+
   const canModifyAwards =
     selectedPeriodId !== null && selectedPeriodId === latestPeriodId;
 
@@ -424,16 +518,25 @@ export default function AwardingPage() {
                   period
                 </p>
               </div>
-              {selectedPeriodId && (
-                <Badge
-                  variant="outline"
-                  className="bg-white text-gray-700 border-gray-200 py-2 px-4"
-                >
-                  <Award className="w-4 h-4 mr-2 text-orange-500" />
-                  {periods.find((p) => p.id === selectedPeriodId)?.title ??
-                    "No period selected"}
-                </Badge>
-              )}
+              <Button
+                onClick={handleGenerateAwardingSheet}
+                disabled={
+                  isGeneratingAwardingSheet || applications.length === 0
+                }
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {isGeneratingAwardingSheet ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Generate Awarding Sheet
+                  </>
+                )}
+              </Button>
             </div>
 
             {/* Application Period Selector */}

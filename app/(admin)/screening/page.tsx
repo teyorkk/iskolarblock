@@ -305,6 +305,7 @@ export default function ScreeningPage() {
   }, [searchTerm]);
 
   // Helper function to get applicant name from applicationDetails or User.name
+  // Format: "Surname, Firstname M.I."
   const getApplicantName = (app: Application): string => {
     // Try to extract name from applicationDetails first
     if (app.applicationDetails) {
@@ -323,7 +324,23 @@ export default function ScreeningPage() {
         const firstName = personalInfo.firstName as string | undefined;
         const middleName = personalInfo.middleName as string | undefined;
         const lastName = personalInfo.lastName as string | undefined;
-        const nameParts = [firstName, middleName, lastName].filter(Boolean);
+
+        // Format as "LastName, FirstName M.I."
+        if (lastName) {
+          const parts: string[] = [lastName];
+          if (firstName) {
+            let namePart = firstName;
+            // Add middle initial if middle name exists
+            if (middleName && middleName.trim()) {
+              const middleInitial = middleName.trim().charAt(0).toUpperCase();
+              namePart += ` ${middleInitial}.`;
+            }
+            parts.push(namePart);
+          }
+          return parts.join(", ") || "N/A";
+        }
+        // Fallback if no lastname
+        const nameParts = [firstName, middleName].filter(Boolean);
         if (nameParts.length > 0) {
           return nameParts.join(" ");
         }
@@ -334,9 +351,31 @@ export default function ScreeningPage() {
     return app.User?.name || "Unknown";
   };
 
-  // Helper function to get applicant name for sorting (lowercase)
-  const getApplicantNameForSort = (app: Application): string => {
-    return getApplicantName(app).toLowerCase();
+  // Helper function to get lastname for sorting
+  const getLastName = (app: Application): string => {
+    if (app.applicationDetails) {
+      const details = app.applicationDetails;
+      let personalInfo: Record<string, unknown> | null = null;
+
+      if (typeof details === "object" && details !== null) {
+        if ("personalInfo" in details && details.personalInfo) {
+          personalInfo = details.personalInfo as Record<string, unknown>;
+        } else {
+          personalInfo = details as Record<string, unknown>;
+        }
+      }
+
+      if (personalInfo) {
+        const lastName = personalInfo.lastName as string | undefined;
+        return (lastName || "").toLowerCase().trim();
+      }
+    }
+    // Fallback to User.name - extract last word
+    const fullName = app.User?.name || "Unknown";
+    const nameParts = fullName.split(" ");
+    return nameParts.length > 0
+      ? nameParts[nameParts.length - 1].toLowerCase()
+      : "";
   };
 
   const filteredApplications = useMemo(() => {
@@ -358,19 +397,18 @@ export default function ScreeningPage() {
       );
     });
 
-    // Apply sorting
-    if (sortOrder !== "default") {
-      filtered = [...filtered].sort((a, b) => {
-        const nameA = getApplicantNameForSort(a);
-        const nameB = getApplicantNameForSort(b);
+    // Apply sorting by lastname (always sort, default is A-Z)
+    filtered = [...filtered].sort((a, b) => {
+      const lastNameA = getLastName(a);
+      const lastNameB = getLastName(b);
 
-        if (sortOrder === "az") {
-          return nameA.localeCompare(nameB);
-        } else {
-          return nameB.localeCompare(nameA);
-        }
-      });
-    }
+      if (sortOrder === "za") {
+        return lastNameB.localeCompare(lastNameA);
+      } else {
+        // Default and "az" both sort A-Z
+        return lastNameA.localeCompare(lastNameB);
+      }
+    });
 
     return filtered;
   }, [applications, statusFilter, debouncedSearchTerm, sortOrder]);
