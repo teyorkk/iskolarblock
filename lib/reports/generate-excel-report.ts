@@ -45,6 +45,51 @@ const getStatusColor = (status: string) => {
   }
 };
 
+// Helper function to get applicant name from applicationDetails
+// Format: "Surname, First Name M.I."
+const getApplicantName = (app: Application): string => {
+  const personalInfo = app.applicationDetails?.personalInfo;
+  if (personalInfo) {
+    const firstName = personalInfo.firstName || "";
+    const middleName = personalInfo.middleName || "";
+    const lastName = personalInfo.lastName || "";
+
+    // Format as "LastName, FirstName M.I."
+    if (lastName) {
+      const parts: string[] = [lastName];
+      if (firstName) {
+        let namePart = firstName;
+        // Add middle initial if middle name exists
+        if (middleName && middleName.trim()) {
+          const middleInitial = middleName.trim().charAt(0).toUpperCase();
+          namePart += ` ${middleInitial}.`;
+        }
+        parts.push(namePart);
+      }
+      return parts.join(", ") || "N/A";
+    }
+    // Fallback if no lastname
+    const nameParts = [firstName, middleName].filter(Boolean);
+    return nameParts.join(" ").trim() || "N/A";
+  }
+  return "N/A";
+};
+
+// Helper function to get lastname for sorting
+const getLastName = (app: Application): string => {
+  const lastName = app.applicationDetails?.personalInfo?.lastName;
+  return (lastName || "").toLowerCase().trim();
+};
+
+// Helper function to sort applications by lastname alphabetically
+const sortByLastName = (applications: Application[]): Application[] => {
+  return [...applications].sort((a, b) => {
+    const lastNameA = getLastName(a);
+    const lastNameB = getLastName(b);
+    return lastNameA.localeCompare(lastNameB);
+  });
+};
+
 // Helper function to create applicant sheet
 const createApplicantSheet = (
   workbook: ExcelJS.Workbook,
@@ -52,6 +97,9 @@ const createApplicantSheet = (
   applicantList: Application[]
 ) => {
   const sheet = workbook.addWorksheet(sheetName);
+
+  // Sort applicants by lastname alphabetically
+  const sortedApplicants = sortByLastName(applicantList);
 
   // Set column widths
   sheet.columns = [
@@ -92,13 +140,8 @@ const createApplicantSheet = (
 
   // Data rows
   let currentRow = 4;
-  applicantList.forEach((app) => {
-    const personalInfo = app.applicationDetails?.personalInfo;
-    const fullName = personalInfo
-      ? `${personalInfo.firstName || ""} ${
-          personalInfo.middleName ? personalInfo.middleName + " " : ""
-        }${personalInfo.lastName || ""}`.trim()
-      : "N/A";
+  sortedApplicants.forEach((app) => {
+    const fullName = getApplicantName(app);
 
     const row = sheet.getRow(currentRow);
     row.values = [

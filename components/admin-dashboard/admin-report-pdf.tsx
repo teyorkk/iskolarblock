@@ -265,16 +265,48 @@ export function AdminReportPDF({
   };
 
   // Extract full name from applicationDetails.personalInfo
+  // Format: "Surname, First Name M.I."
   const getApplicantName = (application: Application): string => {
     const personalInfo = application.applicationDetails?.personalInfo;
     if (personalInfo) {
       const firstName = personalInfo.firstName || "";
       const middleName = personalInfo.middleName || "";
       const lastName = personalInfo.lastName || "";
-      const nameParts = [firstName, middleName, lastName].filter(Boolean);
-      return nameParts.join(" ") || "N/A";
+
+      // Format as "LastName, FirstName M.I."
+      if (lastName) {
+        const parts: string[] = [lastName];
+        if (firstName) {
+          let namePart = firstName;
+          // Add middle initial if middle name exists
+          if (middleName && middleName.trim()) {
+            const middleInitial = middleName.trim().charAt(0).toUpperCase();
+            namePart += ` ${middleInitial}.`;
+          }
+          parts.push(namePart);
+        }
+        return parts.join(", ") || "N/A";
+      }
+      // Fallback if no lastname
+      const nameParts = [firstName, middleName].filter(Boolean);
+      return nameParts.join(" ").trim() || "N/A";
     }
     return "N/A";
+  };
+
+  // Helper function to get lastname for sorting
+  const getLastName = (application: Application): string => {
+    const lastName = application.applicationDetails?.personalInfo?.lastName;
+    return (lastName || "").toLowerCase().trim();
+  };
+
+  // Helper function to sort applications by lastname alphabetically
+  const sortByLastName = (applications: Application[]): Application[] => {
+    return [...applications].sort((a, b) => {
+      const lastNameA = getLastName(a);
+      const lastNameB = getLastName(b);
+      return lastNameA.localeCompare(lastNameB);
+    });
   };
 
   // Format status for display
@@ -396,10 +428,12 @@ export function AdminReportPDF({
               const yearLevel = app.applicationDetails?.personalInfo?.yearLevel;
               return yearLevel === "G11" || yearLevel === "G12";
             });
-            return shsApplicants.length > 0 ? (
+            // Sort by lastname alphabetically
+            const sortedShsApplicants = sortByLastName(shsApplicants);
+            return sortedShsApplicants.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>
-                  SHS Applicants ({shsApplicants.length})
+                  SHS Applicants ({sortedShsApplicants.length})
                 </Text>
                 <View style={styles.table}>
                   <View style={[styles.tableRow, styles.tableHeader]}>
@@ -408,7 +442,7 @@ export function AdminReportPDF({
                     <Text style={styles.tableCellRemarks}>Remarks</Text>
                     <Text style={styles.tableCellDate}>Date Submitted</Text>
                   </View>
-                  {shsApplicants.map((application) => (
+                  {sortedShsApplicants.map((application) => (
                     <View key={application.id} style={styles.tableRow}>
                       <Text style={styles.tableCellName}>
                         {getApplicantName(application)}
@@ -449,10 +483,12 @@ export function AdminReportPDF({
                 yearLevel === "4"
               );
             });
-            return collegeApplicants.length > 0 ? (
+            // Sort by lastname alphabetically
+            const sortedCollegeApplicants = sortByLastName(collegeApplicants);
+            return sortedCollegeApplicants.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>
-                  College Applicants ({collegeApplicants.length})
+                  College Applicants ({sortedCollegeApplicants.length})
                 </Text>
                 <View style={styles.table}>
                   <View style={[styles.tableRow, styles.tableHeader]}>
@@ -461,7 +497,7 @@ export function AdminReportPDF({
                     <Text style={styles.tableCellRemarks}>Remarks</Text>
                     <Text style={styles.tableCellDate}>Date Submitted</Text>
                   </View>
-                  {collegeApplicants.map((application) => (
+                  {sortedCollegeApplicants.map((application) => (
                     <View key={application.id} style={styles.tableRow}>
                       <Text style={styles.tableCellName}>
                         {getApplicantName(application)}
