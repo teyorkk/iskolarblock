@@ -19,6 +19,7 @@ import {
   Phone,
   Edit,
 } from "lucide-react";
+import { PrintPersonalInfo } from "./print-personal-info";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -705,6 +706,10 @@ export function ApplicationDetailsDialog({
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2 flex-wrap">
+              <PrintPersonalInfo
+                personalInfo={personalInfo}
+                userEmail={application?.User?.email}
+              />
               {!isActionDisabled && (
                 <>
                   {application.status !== "PENDING" && (
