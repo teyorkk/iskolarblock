@@ -190,14 +190,6 @@ export function PrintPersonalInfo({
               font-size: 9px;
               color: #6b7280;
             }
-            h1 {
-              color: #f97316;
-              border-bottom: 2px solid #f97316;
-              padding-bottom: 5px;
-              margin-bottom: 10px;
-              margin-top: 12px;
-              font-size: 14px;
-            }
             .info-section {
               margin-bottom: 12px;
             }
@@ -225,6 +217,14 @@ export function PrintPersonalInfo({
             }
             .full-width {
               grid-column: 1 / -1;
+            }
+            h1 {
+              color: #f97316;
+              border-bottom: 2px solid #f97316;
+              padding-bottom: 5px;
+              margin-bottom: 10px;
+              margin-top: 12px;
+              font-size: 14px;
             }
           </style>
         </head>
@@ -290,11 +290,6 @@ export function PrintPersonalInfo({
                 <div class="info-label">Religion:</div>
                 <div class="info-value">${personalInfo.religion || "N/A"}</div>
               </div>
-            </div>
-          </div>
-          <h1>Contact Information</h1>
-          <div class="info-section">
-            <div class="info-grid">
               <div class="info-row">
                 <div class="info-label">Contact Number:</div>
                 <div class="info-value">${
@@ -302,18 +297,18 @@ export function PrintPersonalInfo({
                 }</div>
               </div>
               <div class="info-row">
-                <div class="info-label">Email:</div>
-                <div class="info-value">${userEmail || "N/A"}</div>
+                <div class="info-label">Course:</div>
+                <div class="info-value">${personalInfo.course || "N/A"}</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Year Level:</div>
+                <div class="info-value">${personalInfo.yearLevel || "N/A"}</div>
               </div>
             </div>
           </div>
           <h1>Address</h1>
           <div class="info-section">
             <div class="info-grid">
-              <div class="info-row full-width">
-                <div class="info-label">Complete Address:</div>
-                <div class="info-value">${address || "N/A"}</div>
-              </div>
               <div class="info-row">
                 <div class="info-label">House Number:</div>
                 <div class="info-value">${
@@ -337,19 +332,6 @@ export function PrintPersonalInfo({
               <div class="info-row">
                 <div class="info-label">Province:</div>
                 <div class="info-value">${personalInfo.province || "N/A"}</div>
-              </div>
-            </div>
-          </div>
-          <h1>Academic Information</h1>
-          <div class="info-section">
-            <div class="info-grid">
-              <div class="info-row">
-                <div class="info-label">Course:</div>
-                <div class="info-value">${personalInfo.course || "N/A"}</div>
-              </div>
-              <div class="info-row">
-                <div class="info-label">Year Level:</div>
-                <div class="info-value">${personalInfo.yearLevel || "N/A"}</div>
               </div>
             </div>
           </div>
