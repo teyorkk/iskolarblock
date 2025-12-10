@@ -2,7 +2,15 @@
 
 import { useEffect, useState, Suspense, lazy } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, FileText, Users, Coins, Shield, Award } from "lucide-react";
+import {
+  Calendar,
+  FileText,
+  Users,
+  Coins,
+  Shield,
+  Award,
+  TrendingUp,
+} from "lucide-react";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { StatsGrid } from "@/components/common/stats-grid";
 import { AdminDashboardHeader } from "@/components/admin-dashboard/admin-dashboard-header";
@@ -231,6 +239,143 @@ export default function AdminDashboard() {
         }
       }
 
+      // Calculate recommended budget for next cycle
+      let recommendedBudget = 0;
+      let budgetChange = 0;
+      let budgetChangePercent = 0;
+
+      if (periods.length > 0) {
+        // Sort periods by start date (most recent first)
+        const sortedPeriods = [...periods].sort(
+          (a, b) =>
+            new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        );
+
+        // Use the most recent period as the base for calculation
+        const basePeriod = sortedPeriods[0];
+        const previousPeriod =
+          sortedPeriods.length > 1 ? sortedPeriods[1] : null;
+
+        if (basePeriod) {
+          // Fetch base period's budget
+          const { data: basePeriodData } = await supabase
+            .from("ApplicationPeriod")
+            .select("budgetId")
+            .eq("id", basePeriod.id)
+            .single();
+
+          if (basePeriodData?.budgetId) {
+            const { data: baseBudget } = await supabase
+              .from("Budget")
+              .select("totalAmount, remainingAmount")
+              .eq("id", basePeriodData.budgetId)
+              .single();
+
+            if (baseBudget) {
+              const basePeriodBudget = baseBudget.totalAmount;
+              const basePeriodSpent =
+                basePeriodBudget - baseBudget.remainingAmount;
+
+              // Fetch base period's applications
+              const { data: baseApplications } = await supabase
+                .from("Application")
+                .select("status, applicationDetails")
+                .eq("applicationPeriodId", basePeriod.id);
+
+              if (baseApplications) {
+                const baseTotalApplicants = baseApplications.length;
+                const baseGrantedCount = baseApplications.filter(
+                  (app) => app.status === "GRANTED"
+                ).length;
+                const baseApprovedCount = baseApplications.filter(
+                  (app) => app.status === "APPROVED"
+                ).length;
+
+                // Calculate approval rate
+                const approvalRate =
+                  baseTotalApplicants > 0
+                    ? baseApprovedCount / baseTotalApplicants
+                    : 0.5; // Default 50% if no data
+
+                // Calculate grant rate (approved -> granted)
+                const grantRate =
+                  baseApprovedCount > 0
+                    ? baseGrantedCount / baseApprovedCount
+                    : 0.8; // Default 80% if no data
+
+                // Calculate applicant growth rate if we have previous period data
+                let applicantGrowthRate = 0;
+                if (previousPeriod) {
+                  const { data: prevApplications } = await supabase
+                    .from("Application")
+                    .select("id")
+                    .eq("applicationPeriodId", previousPeriod.id);
+
+                  const prevTotalApplicants = prevApplications?.length || 0;
+                  if (prevTotalApplicants > 0) {
+                    applicantGrowthRate =
+                      (baseTotalApplicants - prevTotalApplicants) /
+                      prevTotalApplicants;
+                  }
+                }
+
+                // Algorithm to calculate recommended budget:
+                // Base: Current period's spent budget (or total if not much spent yet)
+                // Factor 1: Applicant growth trend (if more applicants, increase budget)
+                // Factor 2: Approval rate (if approval rate is high, expect more grants)
+                // Factor 3: Grant rate (if grant rate is high, expect more spending)
+                // Factor 4: Add buffer for unexpected approvals (10% buffer)
+
+                // Use spent budget if significant (>20% spent), otherwise use total budget
+                const baseBudget =
+                  basePeriodSpent > basePeriodBudget * 0.2
+                    ? basePeriodSpent
+                    : basePeriodBudget;
+
+                // Adjust for applicant growth (cap at 50% increase/decrease)
+                const growthFactor = Math.max(
+                  -0.5,
+                  Math.min(0.5, applicantGrowthRate)
+                );
+
+                // Adjust for approval rate (if approval rate is high, expect more grants)
+                const approvalFactor =
+                  approvalRate > 0.7 ? 1.1 : approvalRate > 0.5 ? 1.0 : 0.9;
+
+                // Adjust for grant rate (if grant rate is high, expect more spending)
+                const grantFactor =
+                  grantRate > 0.8 ? 1.1 : grantRate > 0.6 ? 1.0 : 0.9;
+
+                // Buffer for unexpected approvals (10%)
+                const bufferFactor = 1.1;
+
+                // Calculate recommended budget
+                recommendedBudget = Math.round(
+                  baseBudget *
+                    (1 + growthFactor) *
+                    approvalFactor *
+                    grantFactor *
+                    bufferFactor
+                );
+
+                // Ensure minimum budget (at least 50% of base period budget)
+                recommendedBudget = Math.max(
+                  recommendedBudget,
+                  basePeriodBudget * 0.5
+                );
+
+                // Calculate change compared to base period budget
+                budgetChange = recommendedBudget - basePeriodBudget;
+                budgetChangePercent =
+                  basePeriodBudget > 0
+                    ? (budgetChange / basePeriodBudget) * 100
+                    : 0;
+              }
+            }
+          }
+        }
+      }
+
       // Calculate statistics (using all applications)
       const totalApplicantsCount = applications?.length || 0;
       const pendingCount =
@@ -347,13 +492,18 @@ export default function AdminDashboard() {
           trendUp: remainingBudget > 0,
         },
         {
-          title: "Granted Scholars",
-          value: grantedCount.toString(),
-          description: "Scholarships granted",
-          icon: Award,
+          title: "Recommended Budget",
+          value: formatCurrency(recommendedBudget),
+          description: "For next cycle",
+          icon: TrendingUp,
           color: "bg-purple-500",
-          trend: grantedCount > 0 ? `${grantedCount} granted` : "None granted",
-          trendUp: grantedCount > 0,
+          trend:
+            recommendedBudget > 0
+              ? `${budgetChange >= 0 ? "+" : ""}${budgetChangePercent.toFixed(
+                  1
+                )}%`
+              : "No data",
+          trendUp: budgetChange >= 0,
         },
       ]);
 
