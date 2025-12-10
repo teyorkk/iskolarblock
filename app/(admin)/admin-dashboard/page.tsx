@@ -1,66 +1,18 @@
 "use client";
 
-import { useEffect, useState, Suspense, lazy } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Calendar,
-  FileText,
-  Users,
-  Coins,
-  Shield,
-  Award,
-  TrendingUp,
-} from "lucide-react";
+import { FileText, Users, Shield, Award } from "lucide-react";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { StatsGrid } from "@/components/common/stats-grid";
 import { AdminDashboardHeader } from "@/components/admin-dashboard/admin-dashboard-header";
 import { ApplicationPeriodBanner } from "@/components/common/application-period-banner";
 import { RecentApplicants } from "@/components/admin-dashboard/recent-applicants";
 import { QuickActions } from "@/components/admin-dashboard/quick-actions";
+import { PeriodSelector } from "@/components/admin-dashboard/period-selector";
+import { DashboardCharts } from "@/components/admin-dashboard/dashboard-charts";
+import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-// Lazy load heavy chart components
-const LineChart = lazy(() =>
-  import("@/components/common/line-chart").then((mod) => ({
-    default: mod.LineChart,
-  }))
-);
-const PieChart = lazy(() =>
-  import("@/components/common/pie-chart").then((mod) => ({
-    default: mod.PieChart,
-  }))
-);
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import type { StatsCard } from "@/types";
-
-interface Applicant {
-  id: string;
-  name: string;
-  email: string;
-  type: string;
-  status: string;
-  submittedDate: string;
-  profilePicture?: string | null;
-}
-
-interface ChartDataPoint {
-  month: string;
-  applications: number;
-}
 
 interface ApplicationPeriod {
   id: string;
@@ -69,34 +21,8 @@ interface ApplicationPeriod {
   endDate: string;
 }
 
-interface Application {
-  id: string;
-  status: string;
-  createdAt: string;
-  userId: string;
-  applicationPeriodId: string | null;
-  applicationType: string;
-  applicationDetails?: {
-    personalInfo?: {
-      firstName?: string;
-      middleName?: string | null;
-      lastName?: string;
-      yearLevel?: string;
-    };
-  } | null;
-}
-
 export default function AdminDashboard() {
   const router = useRouter();
-  const [stats, setStats] = useState<StatsCard[]>([]);
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [pieData, setPieData] = useState<
-    Array<{ name: string; value: number; color: string }>
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [totalApplicants, setTotalApplicants] = useState(0);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<ApplicationPeriod[]>([]);
   const [timeFilter, setTimeFilter] = useState<
@@ -105,6 +31,21 @@ export default function AdminDashboard() {
   const [educationLevelFilter, setEducationLevelFilter] = useState<
     "all" | "college" | "shs"
   >("all");
+
+  const {
+    stats,
+    applicants,
+    applications,
+    chartData,
+    pieData,
+    totalApplicants,
+    isLoading,
+  } = useDashboardData(
+    selectedPeriodId,
+    timeFilter,
+    educationLevelFilter,
+    periods
+  );
 
   const quickActions = [
     {
@@ -164,562 +105,18 @@ export default function AdminDashboard() {
     void fetchPeriods();
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      const supabase = getSupabaseBrowserClient();
-
-      // Fetch applications - for "all" and "monthly" filters, get all applications
-      // For "weekly" and "daily", filter by selected period
-      let applicationsQuery = supabase
-        .from("Application")
-        .select("*")
-        .order("createdAt", { ascending: false });
-
-      // Only filter by period for weekly and daily views
-      if (
-        selectedPeriodId &&
-        (timeFilter === "weekly" || timeFilter === "daily")
-      ) {
-        applicationsQuery = applicationsQuery.eq(
-          "applicationPeriodId",
-          selectedPeriodId
-        );
-      }
-
-      const { data: applications, error: appsError } = await applicationsQuery;
-
-      if (appsError) {
-        console.error("Error fetching applications:", appsError);
-      }
-
-      // Store applications for PDF report
-      setApplications(applications || []);
-
-      // Fetch user data for applications
-      const userIds =
-        applications?.map((app) => app.userId).filter((id) => id) || [];
-      let userMap = new Map();
-
-      if (userIds.length > 0) {
-        const { data: users, error: usersError } = await supabase
-          .from("User")
-          .select("id, name, email, profilePicture")
-          .in("id", userIds);
-
-        if (usersError) {
-          console.error("Error fetching users:", usersError);
-        } else if (users) {
-          // Create a map for quick user lookup
-          userMap = new Map(users.map((u) => [u.id, u]));
-        }
-      }
-
-      // Fetch budget for selected period
-      let totalBudget = 0;
-      let remainingBudget = 0;
-
-      if (selectedPeriodId) {
-        const { data: currentPeriod } = await supabase
-          .from("ApplicationPeriod")
-          .select("budgetId")
-          .eq("id", selectedPeriodId)
-          .single();
-
-        if (currentPeriod?.budgetId) {
-          const { data: budget } = await supabase
-            .from("Budget")
-            .select("*")
-            .eq("id", currentPeriod.budgetId)
-            .single();
-
-          if (budget) {
-            totalBudget = budget.totalAmount;
-            remainingBudget = budget.remainingAmount;
-          }
-        }
-      }
-
-      // Calculate recommended budget for next cycle
-      let recommendedBudget = 0;
-      let budgetChange = 0;
-      let budgetChangePercent = 0;
-
-      if (periods.length > 0) {
-        // Sort periods by start date (most recent first)
-        const sortedPeriods = [...periods].sort(
-          (a, b) =>
-            new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-        );
-
-        // Use the most recent period as the base for calculation
-        const basePeriod = sortedPeriods[0];
-        const previousPeriod =
-          sortedPeriods.length > 1 ? sortedPeriods[1] : null;
-
-        if (basePeriod) {
-          // Fetch base period's budget
-          const { data: basePeriodData } = await supabase
-            .from("ApplicationPeriod")
-            .select("budgetId")
-            .eq("id", basePeriod.id)
-            .single();
-
-          if (basePeriodData?.budgetId) {
-            const { data: baseBudget } = await supabase
-              .from("Budget")
-              .select("totalAmount, remainingAmount")
-              .eq("id", basePeriodData.budgetId)
-              .single();
-
-            if (baseBudget) {
-              const basePeriodBudget = baseBudget.totalAmount;
-              const basePeriodSpent =
-                basePeriodBudget - baseBudget.remainingAmount;
-
-              // Fetch base period's applications
-              const { data: baseApplications } = await supabase
-                .from("Application")
-                .select("status, applicationDetails")
-                .eq("applicationPeriodId", basePeriod.id);
-
-              if (baseApplications) {
-                const baseTotalApplicants = baseApplications.length;
-                const baseGrantedCount = baseApplications.filter(
-                  (app) => app.status === "GRANTED"
-                ).length;
-                const baseApprovedCount = baseApplications.filter(
-                  (app) => app.status === "APPROVED"
-                ).length;
-
-                // Calculate approval rate
-                const approvalRate =
-                  baseTotalApplicants > 0
-                    ? baseApprovedCount / baseTotalApplicants
-                    : 0.5; // Default 50% if no data
-
-                // Calculate grant rate (approved -> granted)
-                const grantRate =
-                  baseApprovedCount > 0
-                    ? baseGrantedCount / baseApprovedCount
-                    : 0.8; // Default 80% if no data
-
-                // Calculate applicant growth rate if we have previous period data
-                let applicantGrowthRate = 0;
-                if (previousPeriod) {
-                  const { data: prevApplications } = await supabase
-                    .from("Application")
-                    .select("id")
-                    .eq("applicationPeriodId", previousPeriod.id);
-
-                  const prevTotalApplicants = prevApplications?.length || 0;
-                  if (prevTotalApplicants > 0) {
-                    applicantGrowthRate =
-                      (baseTotalApplicants - prevTotalApplicants) /
-                      prevTotalApplicants;
-                  }
-                }
-
-                // Algorithm to calculate recommended budget:
-                // Base: Current period's spent budget (or total if not much spent yet)
-                // Factor 1: Applicant growth trend (if more applicants, increase budget)
-                // Factor 2: Approval rate (if approval rate is high, expect more grants)
-                // Factor 3: Grant rate (if grant rate is high, expect more spending)
-                // Factor 4: Add buffer for unexpected approvals (10% buffer)
-
-                // Use spent budget if significant (>20% spent), otherwise use total budget
-                const baseBudget =
-                  basePeriodSpent > basePeriodBudget * 0.2
-                    ? basePeriodSpent
-                    : basePeriodBudget;
-
-                // Adjust for applicant growth (cap at 50% increase/decrease)
-                const growthFactor = Math.max(
-                  -0.5,
-                  Math.min(0.5, applicantGrowthRate)
-                );
-
-                // Adjust for approval rate (if approval rate is high, expect more grants)
-                const approvalFactor =
-                  approvalRate > 0.7 ? 1.1 : approvalRate > 0.5 ? 1.0 : 0.9;
-
-                // Adjust for grant rate (if grant rate is high, expect more spending)
-                const grantFactor =
-                  grantRate > 0.8 ? 1.1 : grantRate > 0.6 ? 1.0 : 0.9;
-
-                // Buffer for unexpected approvals (10%)
-                const bufferFactor = 1.1;
-
-                // Calculate recommended budget
-                recommendedBudget = Math.round(
-                  baseBudget *
-                    (1 + growthFactor) *
-                    approvalFactor *
-                    grantFactor *
-                    bufferFactor
-                );
-
-                // Ensure minimum budget (at least 50% of base period budget)
-                recommendedBudget = Math.max(
-                  recommendedBudget,
-                  basePeriodBudget * 0.5
-                );
-
-                // Calculate change compared to base period budget
-                budgetChange = recommendedBudget - basePeriodBudget;
-                budgetChangePercent =
-                  basePeriodBudget > 0
-                    ? (budgetChange / basePeriodBudget) * 100
-                    : 0;
-              }
-            }
-          }
-        }
-      }
-
-      // Calculate statistics (using all applications)
-      const totalApplicantsCount = applications?.length || 0;
-      const pendingCount =
-        applications?.filter((app) => app.status === "PENDING").length || 0;
-      const approvedCount =
-        applications?.filter((app) => app.status === "APPROVED").length || 0;
-      const rejectedCount =
-        applications?.filter((app) => app.status === "REJECTED").length || 0;
-      const grantedCount =
-        applications?.filter((app) => app.status === "GRANTED").length || 0;
-
-      // Filter applications by application period and education level for pie chart only
-      let filteredApplications = applications || [];
-
-      // First, filter by application period if a period is selected
-      if (selectedPeriodId) {
-        filteredApplications = filteredApplications.filter(
-          (app) => app.applicationPeriodId === selectedPeriodId
-        );
-      }
-
-      // Then, filter by education level if not "all"
-      if (educationLevelFilter !== "all") {
-        filteredApplications = filteredApplications.filter((app) => {
-          const yearLevel =
-            app.applicationDetails?.personalInfo?.yearLevel || "";
-          if (educationLevelFilter === "college") {
-            return ["1", "2", "3", "4"].includes(yearLevel);
-          } else if (educationLevelFilter === "shs") {
-            return ["G11", "G12"].includes(yearLevel);
-          }
-          return true;
-        });
-      }
-
-      // Calculate pie chart statistics (using filtered applications)
-      const filteredPendingCount =
-        filteredApplications.filter((app) => app.status === "PENDING").length ||
-        0;
-      const filteredApprovedCount =
-        filteredApplications.filter((app) => app.status === "APPROVED")
-          .length || 0;
-      const filteredRejectedCount =
-        filteredApplications.filter((app) => app.status === "REJECTED")
-          .length || 0;
-      const filteredGrantedCount =
-        filteredApplications.filter((app) => app.status === "GRANTED").length ||
-        0;
-      const filteredTotalApplicants = filteredApplications.length || 0;
-
-      // Calculate this month's applicants
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const thisMonthApps =
-        applications?.filter((app) => new Date(app.createdAt) >= startOfMonth)
-          .length || 0;
-
-      // Calculate last month's applicants for trend
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-      const lastMonthApps =
-        applications?.filter(
-          (app) =>
-            new Date(app.createdAt) >= lastMonth &&
-            new Date(app.createdAt) <= lastMonthEnd
-        ).length || 0;
-
-      const monthTrend =
-        lastMonthApps > 0
-          ? (((thisMonthApps - lastMonthApps) / lastMonthApps) * 100).toFixed(1)
-          : "0";
-      const trendUp = thisMonthApps >= lastMonthApps;
-
-      // Format budget values
-      const formatCurrency = (amount: number) => {
-        return `₱${amount.toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`;
-      };
-
-      // Set stats
-      setStats([
-        {
-          title: "Total Applicants",
-          value: totalApplicantsCount.toString(),
-          description: "This cycle",
-          icon: Users,
-          color: "bg-blue-500",
-          trend: `${trendUp ? "+" : ""}${monthTrend}%`,
-          trendUp,
-        },
-        {
-          title: "Total Budget",
-          value: formatCurrency(totalBudget),
-          description: "Allocated funds",
-          icon: Coins,
-          color: "bg-green-500",
-          trend: totalBudget > 0 ? "Active" : "Not set",
-          trendUp: true,
-        },
-        {
-          title: "Remaining Budget",
-          value: formatCurrency(remainingBudget),
-          description: "Available funds",
-          icon: Coins,
-          color: "bg-orange-500",
-          trend:
-            totalBudget > 0
-              ? `${((remainingBudget / totalBudget) * 100).toFixed(
-                  1
-                )}% remaining`
-              : "N/A",
-          trendUp: remainingBudget > 0,
-        },
-        {
-          title: "Recommended Budget",
-          value: formatCurrency(recommendedBudget),
-          description: "For next cycle",
-          icon: TrendingUp,
-          color: "bg-purple-500",
-          trend:
-            recommendedBudget > 0
-              ? `${budgetChange >= 0 ? "+" : ""}${budgetChangePercent.toFixed(
-                  1
-                )}%`
-              : "No data",
-          trendUp: budgetChange >= 0,
-        },
-      ]);
-
-      // Set pie chart data (using filtered applications)
-      setPieData([
-        { name: "Approved", value: filteredApprovedCount, color: "#10b981" },
-        { name: "Pending", value: filteredPendingCount, color: "#f97316" },
-        { name: "Rejected", value: filteredRejectedCount, color: "#ef4444" },
-        { name: "Granted", value: filteredGrantedCount, color: "#a855f7" }, // Purple color
-      ]);
-      setTotalApplicants(filteredTotalApplicants);
-
-      // Generate chart data based on selected time filter
-      const chartDataPoints: ChartDataPoint[] = [];
-
-      if (applications && applications.length > 0) {
-        if (timeFilter === "all") {
-          // Group by month for all time
-          const monthMap = new Map<string, number>();
-          applications.forEach((app) => {
-            const date = new Date(app.createdAt);
-            const monthKey = date.toLocaleDateString("en-US", {
-              month: "short",
-              year: "numeric",
-            });
-            monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + 1);
-          });
-
-          const sortedData = Array.from(monthMap.entries())
-            .map(([month, count]) => ({ month, applications: count }))
-            .sort((a, b) => {
-              const dateA = new Date(a.month);
-              const dateB = new Date(b.month);
-              return dateA.getTime() - dateB.getTime();
-            });
-
-          chartDataPoints.push(...sortedData);
-        } else if (timeFilter === "monthly") {
-          // Group by month
-          const monthMap = new Map<string, number>();
-          applications.forEach((app) => {
-            const date = new Date(app.createdAt);
-            const monthKey = date.toLocaleDateString("en-US", {
-              month: "short",
-              year: "numeric",
-            });
-            monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + 1);
-          });
-
-          const sortedData = Array.from(monthMap.entries())
-            .map(([month, count]) => ({ month, applications: count }))
-            .sort((a, b) => {
-              const dateA = new Date(a.month);
-              const dateB = new Date(b.month);
-              return dateA.getTime() - dateB.getTime();
-            });
-
-          chartDataPoints.push(...sortedData);
-        } else if (timeFilter === "weekly") {
-          // Group by week - only for current period
-          if (selectedPeriodId && periods.length > 0) {
-            const currentPeriod = periods.find(
-              (p) => p.id === selectedPeriodId
-            );
-            if (currentPeriod) {
-              const periodStart = new Date(currentPeriod.startDate);
-              const periodEnd = new Date(currentPeriod.endDate);
-
-              let weekStart = new Date(periodStart);
-              let weekNumber = 1;
-
-              while (weekStart <= periodEnd) {
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekEnd.getDate() + 6);
-                if (weekEnd > periodEnd) {
-                  weekEnd.setTime(periodEnd.getTime());
-                }
-
-                const weekApps =
-                  applications?.filter((app) => {
-                    const appDate = new Date(app.createdAt);
-                    return appDate >= weekStart && appDate <= weekEnd;
-                  }).length || 0;
-
-                const weekLabel = `Week ${weekNumber}`;
-
-                chartDataPoints.push({
-                  month: weekLabel,
-                  applications: weekApps,
-                });
-
-                weekStart = new Date(weekEnd);
-                weekStart.setDate(weekStart.getDate() + 1);
-                weekNumber++;
-              }
-            }
-          } else {
-            // If no period selected, show empty
-            chartDataPoints.push({
-              month: "No Period Selected",
-              applications: 0,
-            });
-          }
-        } else if (timeFilter === "daily") {
-          // Group by day - only show dates where applications were made within the cycle
-          if (selectedPeriodId && periods.length > 0) {
-            const currentPeriod = periods.find(
-              (p) => p.id === selectedPeriodId
-            );
-            if (currentPeriod) {
-              const periodStart = new Date(currentPeriod.startDate);
-              const periodEnd = new Date(currentPeriod.endDate);
-              periodStart.setHours(0, 0, 0, 0);
-              periodEnd.setHours(23, 59, 59, 999);
-
-              // Only create entries for days that have applications
-              const dayMap = new Map<string, number>();
-
-              // Count applications for each day within the period
-              applications.forEach((app) => {
-                const date = new Date(app.createdAt);
-                date.setHours(0, 0, 0, 0);
-
-                // Only count if within the period
-                if (date >= periodStart && date <= periodEnd) {
-                  const dayKey = date.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  });
-                  dayMap.set(dayKey, (dayMap.get(dayKey) || 0) + 1);
-                }
-              });
-
-              // Only include days that have applications
-              const sortedData = Array.from(dayMap.entries())
-                .map(([day, count]) => ({ month: day, applications: count }))
-                .sort((a, b) => {
-                  const dateA = new Date(a.month);
-                  const dateB = new Date(b.month);
-                  return dateA.getTime() - dateB.getTime();
-                });
-
-              chartDataPoints.push(...sortedData);
-            }
-          } else {
-            // If no period selected, show empty
-            chartDataPoints.push({
-              month: "No Period Selected",
-              applications: 0,
-            });
-          }
-        }
-      }
-
-      // If no data, show empty chart
-      if (chartDataPoints.length === 0) {
-        chartDataPoints.push({
-          month: "No Data",
-          applications: 0,
-        });
-      }
-
-      setChartData(chartDataPoints);
-
-      // Set recent applicants
-      const recentApps: Applicant[] =
-        applications?.slice(0, 10).map((app) => {
-          const user = userMap.get(app.userId);
-          // Use name if available, otherwise fall back to email, then "Unknown"
-          const displayName = user?.name || user?.email || "Unknown";
-          return {
-            id: app.id,
-            name: displayName,
-            email: user?.email || "",
-            type: app.applicationType === "NEW" ? "New" : "Renewal",
-            status: app.status,
-            submittedDate: new Date(app.createdAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }),
-            profilePicture: user?.profilePicture || null,
-          };
-        }) || [];
-
-      setApplicants(recentApps);
-      // Note: totalApplicants for pie chart is set separately below
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedPeriodId) {
-      void fetchDashboardData();
-    } else if (periods.length === 0) {
-      // Only fetch if we're still loading periods
-      void fetchDashboardData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriodId, timeFilter, educationLevelFilter]);
-
   // Listen for refresh events from edit dialog
   useEffect(() => {
     const handleRefresh = () => {
-      void fetchDashboardData();
+      // Trigger refresh by updating a dependency
+      setSelectedPeriodId((prev) => prev);
     };
 
     window.addEventListener("refreshDashboard", handleRefresh);
     return () => {
       window.removeEventListener("refreshDashboard", handleRefresh);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriodId]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -756,173 +153,25 @@ export default function AdminDashboard() {
               }}
             />
 
-            {/* Application Period Selector */}
-            {periods.length > 0 && (
-              <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                <Label htmlFor="period-select" className="text-sm font-medium">
-                  View Application Cycle:
-                </Label>
-                <Select
-                  value={selectedPeriodId || undefined}
-                  onValueChange={(value) => setSelectedPeriodId(value)}
-                >
-                  <SelectTrigger
-                    id="period-select"
-                    className="w-full sm:w-[300px]"
-                  >
-                    <SelectValue placeholder="Select application period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {periods.map((period) => (
-                      <SelectItem key={period.id} value={period.id}>
-                        {period.title} (
-                        {new Date(period.startDate).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )}{" "}
-                        -{" "}
-                        {new Date(period.endDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          year: "numeric",
-                        })}
-                        )
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <PeriodSelector
+              periods={periods}
+              selectedPeriodId={selectedPeriodId}
+              onPeriodChange={setSelectedPeriodId}
+            />
 
             <ApplicationPeriodBanner periodId={selectedPeriodId} />
 
             <StatsGrid stats={stats} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <div className="relative">
-                  <div className="absolute top-4 right-4 z-10">
-                    <Select
-                      value={timeFilter}
-                      onValueChange={(value) =>
-                        setTimeFilter(
-                          value as "all" | "monthly" | "weekly" | "daily"
-                        )
-                      }
-                    >
-                      <SelectTrigger className="w-[140px] h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Time</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="daily">By Day</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Suspense
-                    fallback={
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>
-                            <div className="flex items-center">
-                              <Calendar className="w-5 h-5 mr-2 text-red-500" />
-                              Application Trends
-                            </div>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-96 flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    }
-                  >
-                    <LineChart
-                      data={chartData}
-                      color="#dc2626"
-                      title={
-                        <div className="flex items-center">
-                          <Calendar className="w-5 h-5 mr-2 text-red-500" />
-                          Application Trends
-                        </div>
-                      }
-                      description={
-                        timeFilter === "all"
-                          ? "All-time scholarship application statistics"
-                          : timeFilter === "monthly"
-                          ? "Monthly scholarship application statistics"
-                          : timeFilter === "weekly"
-                          ? "Weekly scholarship application statistics"
-                          : "Daily application activity within the cycle"
-                      }
-                    />
-                  </Suspense>
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="absolute top-4 right-4 z-20">
-                  <Select
-                    value={educationLevelFilter}
-                    onValueChange={(value) =>
-                      setEducationLevelFilter(
-                        value as "all" | "college" | "shs"
-                      )
-                    }
-                  >
-                    <SelectTrigger className="w-[140px] h-8 text-xs bg-white shadow-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="college">College</SelectItem>
-                      <SelectItem value="shs">SHS</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Suspense
-                  fallback={
-                    <Card>
-                      <CardHeader className="pr-32">
-                        <CardTitle>
-                          <div className="flex items-center">
-                            <FileText className="w-5 h-5 mr-2 text-red-500" />
-                            Application Status
-                          </div>
-                        </CardTitle>
-                        <CardDescription>
-                          Current distribution of applications
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-96 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  }
-                >
-                  <div className="relative">
-                    <PieChart
-                      data={pieData}
-                      total={totalApplicants}
-                      title={
-                        <div className="flex items-center pr-32">
-                          <FileText className="w-5 h-5 mr-2 text-red-500" />
-                          Application Status
-                        </div>
-                      }
-                      description="Current distribution of applications"
-                    />
-                  </div>
-                </Suspense>
-              </div>
-            </div>
+            <DashboardCharts
+              chartData={chartData}
+              pieData={pieData}
+              totalApplicants={totalApplicants}
+              timeFilter={timeFilter}
+              educationLevelFilter={educationLevelFilter}
+              onTimeFilterChange={setTimeFilter}
+              onEducationLevelFilterChange={setEducationLevelFilter}
+            />
 
             <RecentApplicants applicants={applicants} />
 
