@@ -1,17 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense, lazy } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, FileText, Users, Coins, Shield, Award } from "lucide-react";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { StatsGrid } from "@/components/common/stats-grid";
-import { LineChart } from "@/components/common/line-chart";
-import { PieChart } from "@/components/common/pie-chart";
 import { AdminDashboardHeader } from "@/components/admin-dashboard/admin-dashboard-header";
 import { ApplicationPeriodBanner } from "@/components/common/application-period-banner";
 import { RecentApplicants } from "@/components/admin-dashboard/recent-applicants";
 import { QuickActions } from "@/components/admin-dashboard/quick-actions";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+// Lazy load heavy chart components
+const LineChart = lazy(() =>
+  import("@/components/common/line-chart").then((mod) => ({
+    default: mod.LineChart,
+  }))
+);
+const PieChart = lazy(() =>
+  import("@/components/common/pie-chart").then((mod) => ({
+    default: mod.PieChart,
+  }))
+);
 import {
   Select,
   SelectContent,
@@ -656,25 +673,45 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <LineChart
-                    data={chartData}
-                    color="#dc2626"
-                    title={
-                      <div className="flex items-center">
-                        <Calendar className="w-5 h-5 mr-2 text-red-500" />
-                        Application Trends
-                      </div>
+                  <Suspense
+                    fallback={
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>
+                            <div className="flex items-center">
+                              <Calendar className="w-5 h-5 mr-2 text-red-500" />
+                              Application Trends
+                            </div>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-96 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     }
-                    description={
-                      timeFilter === "all"
-                        ? "All-time scholarship application statistics"
-                        : timeFilter === "monthly"
-                        ? "Monthly scholarship application statistics"
-                        : timeFilter === "weekly"
-                        ? "Weekly scholarship application statistics"
-                        : "Daily application activity within the cycle"
-                    }
-                  />
+                  >
+                    <LineChart
+                      data={chartData}
+                      color="#dc2626"
+                      title={
+                        <div className="flex items-center">
+                          <Calendar className="w-5 h-5 mr-2 text-red-500" />
+                          Application Trends
+                        </div>
+                      }
+                      description={
+                        timeFilter === "all"
+                          ? "All-time scholarship application statistics"
+                          : timeFilter === "monthly"
+                          ? "Monthly scholarship application statistics"
+                          : timeFilter === "weekly"
+                          ? "Weekly scholarship application statistics"
+                          : "Daily application activity within the cycle"
+                      }
+                    />
+                  </Suspense>
                 </div>
               </div>
 
@@ -698,17 +735,40 @@ export default function AdminDashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-                <PieChart
-                  data={pieData}
-                  total={totalApplicants}
-                  title={
-                    <div className="flex items-center">
-                      <FileText className="w-5 h-5 mr-2 text-red-500" />
-                      Application Status
-                    </div>
+                <Suspense
+                  fallback={
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>
+                          <div className="flex items-center">
+                            <FileText className="w-5 h-5 mr-2 text-red-500" />
+                            Application Status
+                          </div>
+                        </CardTitle>
+                        <CardDescription>
+                          Current distribution of applications
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-96 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   }
-                  description="Current distribution of applications"
-                />
+                >
+                  <PieChart
+                    data={pieData}
+                    total={totalApplicants}
+                    title={
+                      <div className="flex items-center">
+                        <FileText className="w-5 h-5 mr-2 text-red-500" />
+                        Application Status
+                      </div>
+                    }
+                    description="Current distribution of applications"
+                  />
+                </Suspense>
               </div>
             </div>
 
