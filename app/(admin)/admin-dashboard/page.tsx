@@ -716,7 +716,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="relative">
-                <div className="absolute top-4 right-4 z-10">
+                <div className="absolute top-4 right-4 z-20">
                   <Select
                     value={educationLevelFilter}
                     onValueChange={(value) =>
@@ -725,7 +725,7 @@ export default function AdminDashboard() {
                       )
                     }
                   >
-                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectTrigger className="w-[140px] h-8 text-xs bg-white shadow-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -738,7 +738,7 @@ export default function AdminDashboard() {
                 <Suspense
                   fallback={
                     <Card>
-                      <CardHeader>
+                      <CardHeader className="pr-32">
                         <CardTitle>
                           <div className="flex items-center">
                             <FileText className="w-5 h-5 mr-2 text-red-500" />
@@ -757,17 +757,19 @@ export default function AdminDashboard() {
                     </Card>
                   }
                 >
-                  <PieChart
-                    data={pieData}
-                    total={totalApplicants}
-                    title={
-                      <div className="flex items-center">
-                        <FileText className="w-5 h-5 mr-2 text-red-500" />
-                        Application Status
-                      </div>
-                    }
-                    description="Current distribution of applications"
-                  />
+                  <div className="relative">
+                    <PieChart
+                      data={pieData}
+                      total={totalApplicants}
+                      title={
+                        <div className="flex items-center pr-32">
+                          <FileText className="w-5 h-5 mr-2 text-red-500" />
+                          Application Status
+                        </div>
+                      }
+                      description="Current distribution of applications"
+                    />
+                  </div>
                 </Suspense>
               </div>
             </div>

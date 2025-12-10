@@ -43,12 +43,16 @@ export function PieChart({
     >
       <Card>
         {title && (
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-            {description && <CardDescription>{description}</CardDescription>}
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{title}</CardTitle>
+            {description && (
+              <CardDescription className="text-xs mt-1">
+                {description}
+              </CardDescription>
+            )}
           </CardHeader>
         )}
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="h-64" style={{ minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RechartsPieChart>
@@ -58,30 +62,43 @@ export function PieChart({
                   cy="50%"
                   innerRadius={60}
                   outerRadius={80}
-                  paddingAngle={5}
+                  paddingAngle={2}
                   dataKey="value"
                 >
                   {data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "white",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                  }}
+                />
               </RechartsPieChart>
             </ResponsiveContainer>
           </div>
-          <div className="space-y-2 mt-4">
+          <div className="space-y-2.5 pt-2 border-t">
             {data.map((item, index) => {
               const percentage = getPercentage(item.value);
               return (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center">
+                <div
+                  key={index}
+                  className="flex items-center justify-between py-1"
+                >
+                  <div className="flex items-center gap-2.5">
                     <div
-                      className="w-3 h-3 rounded-full mr-2"
+                      className="w-3 h-3 rounded-full shrink-0"
                       style={{ backgroundColor: item.color }}
                     />
-                    <span className="text-sm text-gray-600">{item.name}</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {item.name}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium">{percentage}%</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {percentage}%
+                  </span>
                 </div>
               );
             })}
