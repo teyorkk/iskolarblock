@@ -300,7 +300,7 @@ export default function AdminDashboard() {
         {
           title: "Total Applicants",
           value: totalApplicantsCount.toString(),
-          description: "This month",
+          description: "This cycle",
           icon: Users,
           color: "bg-blue-500",
           trend: `${trendUp ? "+" : ""}${monthTrend}%`,
