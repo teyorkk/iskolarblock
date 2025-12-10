@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -79,21 +79,14 @@ export function RecentApplicants({
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-gray-50 rounded-lg"
               >
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                  <Avatar className="w-10 h-10 flex-shrink-0">
                     {applicant.profilePicture ? (
-                      <Image
-                        src={applicant.profilePicture}
-                        alt={applicant.name}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-sm font-medium text-gray-600">
-                        {applicant.name.charAt(0)}
-                      </span>
-                    )}
-                  </div>
+                      <AvatarImage src={applicant.profilePicture} alt={applicant.name} />
+                    ) : null}
+                    <AvatarFallback className="bg-orange-100 text-orange-600 text-sm font-medium">
+                      {applicant.name?.charAt(0) || applicant.email?.charAt(0) || "U"}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-gray-900 truncate">
                       {applicant.name}
