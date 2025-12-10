@@ -24,7 +24,12 @@ export function DeleteUserDialog({
 }: DeleteUserDialogProps): React.JSX.Element {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        className="data-[state=closed]:!translate-x-0 data-[state=closed]:!translate-y-0 data-[state=open]:!translate-x-0 data-[state=open]:!translate-y-0"
+        style={{
+          transform: "translate(-50%, -50%)",
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>

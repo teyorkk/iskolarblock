@@ -11,20 +11,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  CheckCircle,
-  XCircle,
-  Clock,
-  FileSearch,
-  Filter,
-  Search,
-  ArrowUpDown,
-} from "lucide-react";
+import { FileSearch } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ApplicationDetailsDialog } from "@/components/admin-screening/application-details-dialog";
+import { ScreeningStats } from "@/components/admin-screening/screening-stats";
+import { ScreeningFilters } from "@/components/admin-screening/screening-filters";
+import { ApproveConfirmationDialog } from "@/components/admin-screening/approve-confirmation-dialog";
+import { RejectConfirmationDialog } from "@/components/admin-screening/reject-confirmation-dialog";
 import {
   Select,
   SelectContent,
@@ -38,17 +32,6 @@ import { ResponsiveTableWrapper } from "@/components/common/responsive-table-wra
 import { ScreeningTableDesktop } from "@/components/admin-screening/screening-table-desktop";
 import { ScreeningTableMobile } from "@/components/admin-screening/screening-table-mobile";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Textarea } from "@/components/ui/textarea";
 import type { ScreeningApplication } from "@/types/components";
 
 type Application = ScreeningApplication;
@@ -488,40 +471,16 @@ export default function ScreeningPage() {
               </div>
             )}
 
-            {/* Search Bar and Sort */}
-            <div className="mb-4 flex flex-col sm:flex-row gap-3">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search by name, email, or type..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <div className="w-full sm:w-auto">
-                <Select
-                  value={sortOrder}
-                  onValueChange={(value: "default" | "az" | "za") =>
-                    setSortOrder(value)
-                  }
-                >
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <div className="flex items-center gap-2">
-                      <ArrowUpDown className="w-4 h-4 text-gray-500" />
-                      <SelectValue placeholder="Sort by name" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="az">A-Z</SelectItem>
-                    <SelectItem value="za">Z-A</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <ScreeningFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              sortOrder={sortOrder}
+              onSortChange={setSortOrder}
+              statusFilter={statusFilter}
+              statusFilters={statusFilters}
+              onStatusFilterChange={setStatusFilter}
+            />
 
-            {/* Stats Cards */}
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 {[1, 2, 3, 4].map((i) => (
@@ -536,103 +495,13 @@ export default function ScreeningPage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">
-                          Total Applicants
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {stats.total}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Users className="w-5 h-5 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Pending</p>
-                        <p className="text-2xl font-bold text-orange-600">
-                          {stats.pending}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-orange-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Approved</p>
-                        <p className="text-2xl font-bold text-green-600">
-                          {stats.approved}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Rejected</p>
-                        <p className="text-2xl font-bold text-red-600">
-                          {stats.rejected}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <XCircle className="w-5 h-5 text-red-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <ScreeningStats
+                total={stats.total}
+                approved={stats.approved}
+                rejected={stats.rejected}
+                pending={stats.pending}
+              />
             )}
-
-            {/* Status Filters */}
-            <div className="mb-4">
-              <div className="flex flex-wrap items-center gap-3 bg-white border rounded-lg p-3 shadow-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Filter className="w-4 h-4" />
-                  <span className="text-sm font-medium">Filter by status:</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {statusFilters.map((filter) => (
-                    <Button
-                      key={filter.value}
-                      variant={
-                        statusFilter === filter.value ? "default" : "outline"
-                      }
-                      size="sm"
-                      className={
-                        statusFilter === filter.value
-                          ? "bg-orange-500 hover:bg-orange-600 text-white"
-                          : undefined
-                      }
-                      onClick={() => setStatusFilter(filter.value)}
-                    >
-                      {filter.label} ({filter.count})
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
 
             {/* Applicants Table */}
             <Card>
@@ -726,206 +595,40 @@ export default function ScreeningPage() {
         }}
       />
 
-      {/* Approve Confirmation Dialog */}
-      {confirmApproveId &&
-        (() => {
-          const application = applications.find(
-            (app) => app.id === confirmApproveId
-          );
-          const getApplicantName = (app: typeof application): string => {
-            if (!app) return "Unknown";
+      <ApproveConfirmationDialog
+        isOpen={confirmApproveId !== null}
+        application={applications.find((app) => app.id === confirmApproveId)}
+        onConfirm={() => {
+          if (confirmApproveId) {
+            handleStatusUpdate(confirmApproveId, "APPROVED");
+          }
+        }}
+        onCancel={() => setConfirmApproveId(null)}
+      />
 
-            // Try to extract name from applicationDetails first
-            if (app.applicationDetails) {
-              const details = app.applicationDetails;
-              let personalInfo: Record<string, unknown> | null = null;
-
-              if (typeof details === "object" && details !== null) {
-                if ("personalInfo" in details && details.personalInfo) {
-                  personalInfo = details.personalInfo as Record<
-                    string,
-                    unknown
-                  >;
-                } else {
-                  personalInfo = details as Record<string, unknown>;
-                }
-              }
-
-              if (personalInfo) {
-                const firstName = personalInfo.firstName as string | undefined;
-                const middleName = personalInfo.middleName as
-                  | string
-                  | undefined;
-                const lastName = personalInfo.lastName as string | undefined;
-                const nameParts = [firstName, middleName, lastName].filter(
-                  Boolean
-                );
-                if (nameParts.length > 0) {
-                  return nameParts.join(" ");
-                }
-              }
-            }
-
-            // Fallback to User.name
-            return app.User?.name || "Unknown";
-          };
-
-          return (
-            <AlertDialog
-              open={confirmApproveId !== null}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setConfirmApproveId(null);
-                }
-              }}
-            >
-              <AlertDialogContent
-                className="border border-orange-100 bg-white data-[state=closed]:!translate-x-0 data-[state=closed]:!translate-y-0 data-[state=open]:!translate-x-0 data-[state=open]:!translate-y-0"
-                style={{
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
-                    <CheckCircle className="w-5 h-5 text-orange-600" />
-                    Confirm Approval
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="pt-2 text-gray-600">
-                    Are you sure you want to approve the application for{" "}
-                    <span className="font-semibold text-gray-900">
-                      {getApplicantName(application)}
-                    </span>
-                    ?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() =>
-                      handleStatusUpdate(confirmApproveId, "APPROVED")
-                    }
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
-                  >
-                    Confirm Approval
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          );
-        })()}
-
-      {/* Reject Confirmation Dialog */}
-      {confirmRejectId &&
-        (() => {
-          const application = applications.find(
-            (app) => app.id === confirmRejectId
-          );
-          const getApplicantName = (app: typeof application): string => {
-            if (!app) return "Unknown";
-
-            // Try to extract name from applicationDetails first
-            if (app.applicationDetails) {
-              const details = app.applicationDetails;
-              let personalInfo: Record<string, unknown> | null = null;
-
-              if (typeof details === "object" && details !== null) {
-                if ("personalInfo" in details && details.personalInfo) {
-                  personalInfo = details.personalInfo as Record<
-                    string,
-                    unknown
-                  >;
-                } else {
-                  personalInfo = details as Record<string, unknown>;
-                }
-              }
-
-              if (personalInfo) {
-                const firstName = personalInfo.firstName as string | undefined;
-                const middleName = personalInfo.middleName as
-                  | string
-                  | undefined;
-                const lastName = personalInfo.lastName as string | undefined;
-                const nameParts = [firstName, middleName, lastName].filter(
-                  Boolean
-                );
-                if (nameParts.length > 0) {
-                  return nameParts.join(" ");
-                }
-              }
-            }
-
-            // Fallback to User.name
-            return app.User?.name || "Unknown";
-          };
-
-          return (
-            <AlertDialog
-              open={confirmRejectId !== null}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setConfirmRejectId(null);
-                  setRejectionReason("");
-                }
-              }}
-            >
-              <AlertDialogContent
-                className="border border-orange-100 bg-white data-[state=closed]:!translate-x-0 data-[state=closed]:!translate-y-0 data-[state=open]:!translate-x-0 data-[state=open]:!translate-y-0"
-                style={{
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
-                    <XCircle className="w-5 h-5 text-orange-600" />
-                    Confirm Rejection
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="pt-2 text-gray-600">
-                    Are you sure you want to reject the application for{" "}
-                    <span className="font-semibold text-gray-900">
-                      {getApplicantName(application)}
-                    </span>
-                    ?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="py-4">
-                  <Label
-                    htmlFor="rejection-reason"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Reason for Rejection (Required)
-                  </Label>
-                  <Textarea
-                    id="rejection-reason"
-                    placeholder="Enter the reason for rejection..."
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    className="mt-2 min-h-[100px]"
-                  />
-                </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      if (!rejectionReason.trim()) {
-                        toast.error("Please provide a reason for rejection");
-                        return;
-                      }
-                      handleStatusUpdate(
-                        confirmRejectId,
-                        "REJECTED",
-                        rejectionReason.trim()
-                      );
-                    }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
-                    disabled={!rejectionReason.trim()}
-                  >
-                    Confirm Rejection
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          );
-        })()}
+      <RejectConfirmationDialog
+        isOpen={confirmRejectId !== null}
+        application={applications.find((app) => app.id === confirmRejectId)}
+        rejectionReason={rejectionReason}
+        onRejectionReasonChange={setRejectionReason}
+        onConfirm={() => {
+          if (!rejectionReason.trim()) {
+            toast.error("Please provide a reason for rejection");
+            return;
+          }
+          if (confirmRejectId) {
+            handleStatusUpdate(
+              confirmRejectId,
+              "REJECTED",
+              rejectionReason.trim()
+            );
+          }
+        }}
+        onCancel={() => {
+          setConfirmRejectId(null);
+          setRejectionReason("");
+        }}
+      />
     </div>
   );
 }

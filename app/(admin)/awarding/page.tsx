@@ -21,21 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  CheckCircle,
-  Clock,
-  Coins,
-  Filter,
-  Search,
-  ArrowUpDown,
-  FileText,
-  Loader2,
-} from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/common/pagination";
 import { ResponsiveTableWrapper } from "@/components/common/responsive-table-wrapper";
 import { AwardingTableDesktop } from "@/components/admin-awarding/awarding-table-desktop";
 import { AwardingTableMobile } from "@/components/admin-awarding/awarding-table-mobile";
+import { AwardingStats } from "@/components/admin-awarding/awarding-stats";
+import { AwardingFilters } from "@/components/admin-awarding/awarding-filters";
+import { GenerateAwardingSheetButton } from "@/components/admin-awarding/generate-awarding-sheet-button";
 import type {
   AwardingApplication,
   AwardingStatus,
@@ -534,25 +527,11 @@ export default function AwardingPage() {
                   period
                 </p>
               </div>
-              <Button
+              <GenerateAwardingSheetButton
                 onClick={handleGenerateAwardingSheet}
-                disabled={
-                  isGeneratingAwardingSheet || applications.length === 0
-                }
-                className="bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                {isGeneratingAwardingSheet ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Generate Awarding Sheet
-                  </>
-                )}
-              </Button>
+                isLoading={isGeneratingAwardingSheet}
+                disabled={applications.length === 0}
+              />
             </div>
 
             {/* Application Period Selector */}
@@ -592,143 +571,37 @@ export default function AwardingPage() {
               </div>
             )}
 
-            {/* Search & Sort */}
-            <div className="mb-4 flex flex-col sm:flex-row gap-3">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search by name, email, or type..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <div className="w-full sm:w-auto">
-                <Select
-                  value={sortOrder}
-                  onValueChange={(value: "default" | "az" | "za") =>
-                    setSortOrder(value)
-                  }
-                >
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <div className="flex items-center gap-2">
-                      <ArrowUpDown className="w-4 h-4 text-gray-500" />
-                      <SelectValue placeholder="Sort by name" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="az">A-Z</SelectItem>
-                    <SelectItem value="za">Z-A</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <AwardingFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              sortOrder={sortOrder}
+              onSortChange={setSortOrder}
+              statusFilters={statusFilters}
+              onStatusFilterToggle={toggleStatusFilter}
+              levelFilters={levelFilters}
+              onLevelFilterToggle={toggleLevelFilter}
+            />
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Pending Release</p>
-                      <p className="text-2xl font-bold text-orange-600">
-                        {isLoading ? "--" : stats.pending}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <Clock className="w-5 h-5 text-orange-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Granted Scholars</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {isLoading ? "--" : stats.granted}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        Projected Disbursement Amount
-                      </p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {isLoading
-                          ? "--"
-                          : currencyFormatter.format(stats.totalAmount)}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Coins className="w-5 h-5 text-purple-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Status Filters */}
-            <div className="mb-4">
-              <div className="flex flex-wrap items-center gap-3 bg-white border rounded-lg p-3 shadow-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Filter className="w-4 h-4" />
-                  <span className="text-sm font-medium">Filter by status:</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(["APPROVED", "GRANTED"] as AwardingStatus[]).map(
-                    (status) => (
-                      <Button
-                        key={status}
-                        type="button"
-                        variant={
-                          statusFilters.has(status) ? "default" : "outline"
-                        }
-                        size="sm"
-                        className={
-                          statusFilters.has(status)
-                            ? "bg-orange-500 hover:bg-orange-600 text-white"
-                            : undefined
-                        }
-                        onClick={() => toggleStatusFilter(status)}
-                      >
-                        {status === "GRANTED" ? "Granted" : "Pending"}
-                      </Button>
-                    )
-                  )}
-                  {(["SENIOR_HIGH", "COLLEGE"] as LevelFilter[]).map(
-                    (level) => (
-                      <Button
-                        key={level}
-                        type="button"
-                        variant={
-                          levelFilters.has(level) ? "default" : "outline"
-                        }
-                        size="sm"
-                        className={
-                          levelFilters.has(level)
-                            ? "bg-orange-500 hover:bg-orange-600 text-white"
-                            : undefined
-                        }
-                        onClick={() => toggleLevelFilter(level)}
-                      >
-                        {formatLevel(level)}
-                      </Button>
-                    )
-                  )}
-                </div>
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                        <div className="h-8 bg-gray-200 rounded w-16"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            </div>
+            ) : (
+              <AwardingStats
+                pending={stats.pending}
+                granted={stats.granted}
+                totalAmount={stats.totalAmount}
+              />
+            )}
 
             {/* Scholars Table */}
             <Card>
