@@ -3,6 +3,15 @@ import { sign } from "jsonwebtoken";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { validateJwtSecret } from "@/lib/utils/jwt-validation";
 
+// Configure body size limit for file uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb",
+    },
+  },
+};
+
 export interface CORExtractionResponse {
   "Certificate of Registration": boolean;
   school: string | null;
