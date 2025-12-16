@@ -15,7 +15,7 @@ interface SendEmailNotificationParams {
 }
 
 /**
- * Sends an email notification via the internal API route
+ * Sends an email notification directly to n8n webhook
  * @param params Email notification parameters
  * @returns Promise<boolean> - true if successful, false otherwise
  */
@@ -39,28 +39,43 @@ export async function sendEmailNotification(
       applicationId: params.applicationId,
     });
 
-    const response = await fetch(
-      `${process.env.APP_URL || "http://localhost:3000"}/api/send-email`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    // Get n8n webhook URL from environment variable
+    const webhookUrl = process.env.N8N_WEBHOOK_URL_EMAIL;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Email notification failed:", errorData);
+    if (!webhookUrl) {
+      console.warn(
+        "⚠️ N8N_WEBHOOK_URL_EMAIL not configured, skipping email notification"
+      );
       return false;
     }
 
-    const result = await response.json();
-    console.log("Email notification sent successfully:", result);
+    // Send directly to n8n webhook
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const contentType = response.headers.get("content-type");
+      let errorData;
+
+      if (contentType && contentType.includes("application/json")) {
+        errorData = await response.json();
+      } else {
+        errorData = await response.text();
+      }
+
+      console.error("❌ Email notification failed:", errorData);
+      return false;
+    }
+
+    console.log("✅ Email notification sent successfully");
     return true;
   } catch (error) {
-    console.error(" Error sending email notification:", error);
+    console.error("❌ Error sending email notification:", error);
     return false;
   }
 }
