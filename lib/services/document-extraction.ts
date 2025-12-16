@@ -63,18 +63,65 @@ export async function extractCOGData(
   }
 
   try {
-    // Convert file to base64 if provided
+    // For large files (>3MB), upload directly to Supabase Storage first
+    // This bypasses Vercel's 4.5MB request body limit
     let fileData: string | undefined;
+    let fileUrl: string | undefined;
     let fileName: string | undefined;
 
     if (file && userId) {
-      fileData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      fileName = file.name;
+      const fileSizeMB = file.size / (1024 * 1024);
+      console.log(`📊 COG file size: ${fileSizeMB.toFixed(2)}MB, threshold: 3MB`);
+      
+      // Upload large files directly to Supabase Storage
+      if (fileSizeMB > 3) {
+        console.log("📤 File exceeds 3MB, uploading directly to Supabase Storage...");
+        try {
+          const { uploadFileToSupabase } = await import("@/lib/utils/file-upload");
+          const storagePath = await uploadFileToSupabase(file, userId, undefined, "cog");
+          fileUrl = storagePath;
+          fileName = file.name;
+          console.log("✅ Large file uploaded directly to Supabase:", fileUrl);
+        } catch (uploadError) {
+          console.error("❌ Failed to upload large file to Supabase:", uploadError);
+          const errorMessage = uploadError instanceof Error ? uploadError.message : String(uploadError);
+          
+          // Check if it's an RLS policy error
+          if (errorMessage.includes("new row violates row-level security") || 
+              errorMessage.includes("RLS") ||
+              errorMessage.includes("permission denied")) {
+            throw new Error(
+              "Upload permission denied. Please check your account permissions or contact support."
+            );
+          }
+          
+          // Fall back to base64 for smaller payload (only if file is small enough after all)
+          if (fileSizeMB <= 3.5) {
+            console.log("⚠️ Falling back to base64 encoding...");
+            fileData = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+            fileName = file.name;
+          } else {
+            throw new Error(
+              `File too large (${fileSizeMB.toFixed(2)}MB). Please compress the file and try again. Upload error: ${errorMessage}`
+            );
+          }
+        }
+      } else {
+        // Small files can be sent as base64
+        console.log("📝 File is small, using base64 encoding...");
+        fileData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        fileName = file.name;
+      }
     }
 
     let response: Response;
@@ -87,6 +134,7 @@ export async function extractCOGData(
         body: JSON.stringify({
           ocrText,
           fileData,
+          fileUrl,
           fileName,
           userId,
           applicantName,
@@ -220,18 +268,65 @@ export async function extractCORData(
   }
 
   try {
-    // Convert file to base64 if provided
+    // For large files (>3MB), upload directly to Supabase Storage first
+    // This bypasses Vercel's 4.5MB request body limit
     let fileData: string | undefined;
+    let fileUrl: string | undefined;
     let fileName: string | undefined;
 
     if (file && userId) {
-      fileData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      fileName = file.name;
+      const fileSizeMB = file.size / (1024 * 1024);
+      console.log(`📊 COR file size: ${fileSizeMB.toFixed(2)}MB, threshold: 3MB`);
+      
+      // Upload large files directly to Supabase Storage
+      if (fileSizeMB > 3) {
+        console.log("📤 File exceeds 3MB, uploading directly to Supabase Storage...");
+        try {
+          const { uploadFileToSupabase } = await import("@/lib/utils/file-upload");
+          const storagePath = await uploadFileToSupabase(file, userId, undefined, "cor");
+          fileUrl = storagePath;
+          fileName = file.name;
+          console.log("✅ Large file uploaded directly to Supabase:", fileUrl);
+        } catch (uploadError) {
+          console.error("❌ Failed to upload large file to Supabase:", uploadError);
+          const errorMessage = uploadError instanceof Error ? uploadError.message : String(uploadError);
+          
+          // Check if it's an RLS policy error
+          if (errorMessage.includes("new row violates row-level security") || 
+              errorMessage.includes("RLS") ||
+              errorMessage.includes("permission denied")) {
+            throw new Error(
+              "Upload permission denied. Please check your account permissions or contact support."
+            );
+          }
+          
+          // Fall back to base64 for smaller payload (only if file is small enough after all)
+          if (fileSizeMB <= 3.5) {
+            console.log("⚠️ Falling back to base64 encoding...");
+            fileData = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+            fileName = file.name;
+          } else {
+            throw new Error(
+              `File too large (${fileSizeMB.toFixed(2)}MB). Please compress the file and try again. Upload error: ${errorMessage}`
+            );
+          }
+        }
+      } else {
+        // Small files can be sent as base64
+        console.log("📝 File is small, using base64 encoding...");
+        fileData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        fileName = file.name;
+      }
     }
 
     // Call our API route which handles JWT signing and webhook communication.
@@ -246,6 +341,7 @@ export async function extractCORData(
         body: JSON.stringify({
           ocrText,
           fileData,
+          fileUrl,
           fileName,
           userId,
           applicantName,
