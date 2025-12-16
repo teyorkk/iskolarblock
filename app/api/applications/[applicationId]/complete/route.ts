@@ -264,26 +264,51 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .from("CertificateOfGrades")
         .delete()
         .eq("applicationId", applicationId);
-      const { error: cogInsertError } = await supabase
+
+      const cogId = randomUUID();
+      const { error: cogInsertError, data: cogInsertData } = await supabase
         .from("CertificateOfGrades")
         .insert({
-          id: randomUUID(),
+          id: cogId,
           applicationId,
-          school: cogDetails.school,
-          schoolYear: cogDetails.schoolYear,
-          semester: cogDetails.semester,
-          course: cogDetails.course,
-          name: cogDetails.name,
-          gwa: Number(cogDetails.gwa) || 0,
-          totalUnits: Number(cogDetails.totalUnits) || 0,
+          school: cogDetails.school || "",
+          schoolYear: cogDetails.schoolYear || "",
+          semester: cogDetails.semester || "",
+          course: cogDetails.course || "",
+          name: cogDetails.name || "",
+          gwa: cogDetails.gwa ? Number(cogDetails.gwa) : 0,
+          totalUnits: cogDetails.totalUnits ? Number(cogDetails.totalUnits) : 0,
           subjects: [],
           fileUrl: cogFileUrl,
-        });
+        })
+        .select();
 
       if (cogInsertError) {
-        console.error("COG insert error:", cogInsertError);
+        console.error("COG insert error:", {
+          error: cogInsertError,
+          code: cogInsertError.code,
+          message: cogInsertError.message,
+          details: cogInsertError.details,
+          hint: cogInsertError.hint,
+          data: {
+            id: cogId,
+            applicationId,
+            school: cogDetails.school,
+            schoolYear: cogDetails.schoolYear,
+            semester: cogDetails.semester,
+            course: cogDetails.course,
+            name: cogDetails.name,
+            gwa: cogDetails.gwa,
+            totalUnits: cogDetails.totalUnits,
+            fileUrl: cogFileUrl,
+          },
+        });
         return NextResponse.json(
-          { error: "Failed to save Certificate of Grades" },
+          {
+            error: "Failed to save Certificate of Grades",
+            details: cogInsertError.message,
+            code: cogInsertError.code,
+          },
           { status: 500 }
         );
       }
@@ -295,24 +320,47 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .delete()
         .eq("applicationId", applicationId);
 
-      const { error: corInsertError } = await supabase
+      const corId = randomUUID();
+      const { error: corInsertError, data: corInsertData } = await supabase
         .from("CertificateOfRegistration")
         .insert({
-          id: randomUUID(),
+          id: corId,
           applicationId,
-          school: corDetails.school,
-          schoolYear: corDetails.schoolYear,
-          semester: corDetails.semester,
-          course: corDetails.course,
-          name: corDetails.name,
-          totalUnits: Number(corDetails.totalUnits) || 0,
+          school: corDetails.school || "",
+          schoolYear: corDetails.schoolYear || "",
+          semester: corDetails.semester || "",
+          course: corDetails.course || "",
+          name: corDetails.name || "",
+          totalUnits: corDetails.totalUnits ? Number(corDetails.totalUnits) : 0,
           fileUrl: corFileUrl,
-        });
+        })
+        .select();
 
       if (corInsertError) {
-        console.error("COR insert error:", corInsertError);
+        console.error("COR insert error:", {
+          error: corInsertError,
+          code: corInsertError.code,
+          message: corInsertError.message,
+          details: corInsertError.details,
+          hint: corInsertError.hint,
+          data: {
+            id: corId,
+            applicationId,
+            school: corDetails.school,
+            schoolYear: corDetails.schoolYear,
+            semester: corDetails.semester,
+            course: corDetails.course,
+            name: corDetails.name,
+            totalUnits: corDetails.totalUnits,
+            fileUrl: corFileUrl,
+          },
+        });
         return NextResponse.json(
-          { error: "Failed to save Certificate of Registration" },
+          {
+            error: "Failed to save Certificate of Registration",
+            details: corInsertError.message,
+            code: corInsertError.code,
+          },
           { status: 500 }
         );
       }

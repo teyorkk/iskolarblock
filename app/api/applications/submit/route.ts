@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
     // Create CertificateOfGrades record
     if (body.cogOcr?.extractedData) {
       const cogId = randomUUID();
-      const { error: cogError } = await supabase
+      const { error: cogError, data: cogInsertData } = await supabase
         .from("CertificateOfGrades")
         .insert({
           id: cogId,
@@ -368,17 +368,44 @@ export async function POST(request: NextRequest) {
           totalUnits: body.cogOcr.extractedData.total_units || 0,
           subjects: body.cogOcr.extractedData.subjects || [],
           fileUrl: cogDocumentUrl,
-        });
+        })
+        .select();
 
       if (cogError) {
-        console.error("CertificateOfGrades creation error:", cogError);
+        console.error("CertificateOfGrades creation error:", {
+          error: cogError,
+          code: cogError.code,
+          message: cogError.message,
+          details: cogError.details,
+          hint: cogError.hint,
+          data: {
+            id: cogId,
+            applicationId,
+            school: body.cogOcr.extractedData.school,
+            schoolYear: body.cogOcr.extractedData.school_year,
+            semester: body.cogOcr.extractedData.semester,
+            course: body.cogOcr.extractedData.course,
+            name: body.cogOcr.extractedData.name,
+            gwa: body.cogOcr.extractedData.gwa,
+            totalUnits: body.cogOcr.extractedData.total_units,
+            fileUrl: cogDocumentUrl,
+          },
+        });
+        return NextResponse.json(
+          {
+            error: "Failed to save Certificate of Grades",
+            details: cogError.message,
+            code: cogError.code,
+          },
+          { status: 500 }
+        );
       }
     }
 
     // Create CertificateOfRegistration record (no subjects)
     if (body.corOcr?.extractedData) {
       const corId = randomUUID();
-      const { error: corError } = await supabase
+      const { error: corError, data: corInsertData } = await supabase
         .from("CertificateOfRegistration")
         .insert({
           id: corId,
@@ -398,10 +425,36 @@ export async function POST(request: NextRequest) {
             : "",
           totalUnits: body.corOcr.extractedData.total_units || 0,
           fileUrl: corDocumentUrl,
-        });
+        })
+        .select();
 
       if (corError) {
-        console.error("CertificateOfRegistration creation error:", corError);
+        console.error("CertificateOfRegistration creation error:", {
+          error: corError,
+          code: corError.code,
+          message: corError.message,
+          details: corError.details,
+          hint: corError.hint,
+          data: {
+            id: corId,
+            applicationId,
+            school: body.corOcr.extractedData.school,
+            schoolYear: body.corOcr.extractedData.school_year,
+            semester: body.corOcr.extractedData.semester,
+            course: body.corOcr.extractedData.course,
+            name: body.corOcr.extractedData.name,
+            totalUnits: body.corOcr.extractedData.total_units,
+            fileUrl: corDocumentUrl,
+          },
+        });
+        return NextResponse.json(
+          {
+            error: "Failed to save Certificate of Registration",
+            details: corError.message,
+            code: corError.code,
+          },
+          { status: 500 }
+        );
       }
     }
 
