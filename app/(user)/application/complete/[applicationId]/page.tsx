@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
 import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
 import { useDropzone } from "react-dropzone";
@@ -273,6 +274,7 @@ export default function CompleteApplicationPage() {
       setIsSubmitting(true);
       const payload: Record<string, unknown> = {};
 
+      // Handle COG file - upload to Supabase first, fallback to base64
       if (certificateOfGrades) {
         const details = buildCogDetails(cogExtractedData);
         if (!details) {
@@ -282,11 +284,52 @@ export default function CompleteApplicationPage() {
           setIsSubmitting(false);
           return;
         }
-        payload.cogFile = await fileToBase64(certificateOfGrades);
+
+        console.log("📤 Uploading COG file to Supabase...");
+        const { uploadFileToSupabase } = await import(
+          "@/lib/utils/file-upload"
+        );
+        const supabase = getSupabaseBrowserClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        
+        if (user?.email) {
+          const { data: userData } = await supabase
+            .from("User")
+            .select("id")
+            .eq("email", user.email)
+            .single();
+          
+          if (userData) {
+            try {
+              const cogFileUrl = await uploadFileToSupabase(
+                certificateOfGrades,
+                userData.id,
+                applicationId,
+                "cog"
+              );
+              console.log("✅ COG uploaded to Supabase:", cogFileUrl);
+              payload.cogFileUrl = cogFileUrl;
+            } catch (uploadError) {
+              console.warn("⚠️ Supabase upload failed, falling back to base64:", uploadError);
+              payload.cogFile = await fileToBase64(certificateOfGrades);
+              console.log("✅ COG converted to base64 (fallback)");
+            }
+          } else {
+            console.warn("⚠️ User data not found, falling back to base64");
+            payload.cogFile = await fileToBase64(certificateOfGrades);
+          }
+        } else {
+          console.warn("⚠️ User not authenticated, falling back to base64");
+          payload.cogFile = await fileToBase64(certificateOfGrades);
+        }
+
         payload.cogFileName = certificateOfGrades.name;
         payload.cogDetails = details;
       }
 
+      // Handle COR file - upload to Supabase first, fallback to base64
       if (certificateOfRegistration) {
         const details = buildCorDetails(corExtractedData);
         if (!details) {
@@ -296,7 +339,47 @@ export default function CompleteApplicationPage() {
           setIsSubmitting(false);
           return;
         }
-        payload.corFile = await fileToBase64(certificateOfRegistration);
+
+        console.log("📤 Uploading COR file to Supabase...");
+        const { uploadFileToSupabase } = await import(
+          "@/lib/utils/file-upload"
+        );
+        const supabase = getSupabaseBrowserClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        
+        if (user?.email) {
+          const { data: userData } = await supabase
+            .from("User")
+            .select("id")
+            .eq("email", user.email)
+            .single();
+          
+          if (userData) {
+            try {
+              const corFileUrl = await uploadFileToSupabase(
+                certificateOfRegistration,
+                userData.id,
+                applicationId,
+                "cor"
+              );
+              console.log("✅ COR uploaded to Supabase:", corFileUrl);
+              payload.corFileUrl = corFileUrl;
+            } catch (uploadError) {
+              console.warn("⚠️ Supabase upload failed, falling back to base64:", uploadError);
+              payload.corFile = await fileToBase64(certificateOfRegistration);
+              console.log("✅ COR converted to base64 (fallback)");
+            }
+          } else {
+            console.warn("⚠️ User data not found, falling back to base64");
+            payload.corFile = await fileToBase64(certificateOfRegistration);
+          }
+        } else {
+          console.warn("⚠️ User not authenticated, falling back to base64");
+          payload.corFile = await fileToBase64(certificateOfRegistration);
+        }
+
         payload.corFileName = certificateOfRegistration.name;
         payload.corDetails = details;
       }

@@ -63,18 +63,49 @@ export async function extractCOGData(
   }
 
   try {
-    // Convert file to base64 if provided
+    // For large files (>3MB), upload directly to Supabase Storage first
+    // This bypasses Vercel's 4.5MB request body limit
     let fileData: string | undefined;
+    let fileUrl: string | undefined;
     let fileName: string | undefined;
 
     if (file && userId) {
-      fileData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
       fileName = file.name;
+      
+      // Upload to Supabase Storage first (all files)
+      console.log("📤 Uploading COG file to Supabase Storage...");
+      try {
+        const { uploadFileToSupabase } = await import(
+          "@/lib/utils/file-upload"
+        );
+        const storagePath = await uploadFileToSupabase(
+          file,
+          userId,
+          undefined,
+          "cog"
+        );
+        fileUrl = storagePath;
+        console.log("✅ COG file uploaded to Supabase:", fileUrl);
+      } catch (uploadError) {
+        const errorMessage =
+          uploadError instanceof Error
+            ? uploadError.message
+            : String(uploadError);
+        console.warn(
+          "⚠️ Supabase upload failed, falling back to base64:",
+          errorMessage
+        );
+
+        // Fall back to base64
+        console.log("📦 Converting COG file to base64...");
+        fileData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        console.log("✅ COG converted to base64 (fallback)");
+      }
     }
 
     let response: Response;
@@ -87,6 +118,7 @@ export async function extractCOGData(
         body: JSON.stringify({
           ocrText,
           fileData,
+          fileUrl,
           fileName,
           userId,
           applicantName,
@@ -220,18 +252,49 @@ export async function extractCORData(
   }
 
   try {
-    // Convert file to base64 if provided
+    // For large files (>3MB), upload directly to Supabase Storage first
+    // This bypasses Vercel's 4.5MB request body limit
     let fileData: string | undefined;
+    let fileUrl: string | undefined;
     let fileName: string | undefined;
 
     if (file && userId) {
-      fileData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
       fileName = file.name;
+      
+      // Upload to Supabase Storage first (all files)
+      console.log("📤 Uploading COR file to Supabase Storage...");
+      try {
+        const { uploadFileToSupabase } = await import(
+          "@/lib/utils/file-upload"
+        );
+        const storagePath = await uploadFileToSupabase(
+          file,
+          userId,
+          undefined,
+          "cor"
+        );
+        fileUrl = storagePath;
+        console.log("✅ COR file uploaded to Supabase:", fileUrl);
+      } catch (uploadError) {
+        const errorMessage =
+          uploadError instanceof Error
+            ? uploadError.message
+            : String(uploadError);
+        console.warn(
+          "⚠️ Supabase upload failed, falling back to base64:",
+          errorMessage
+        );
+
+        // Fall back to base64
+        console.log("📦 Converting COR file to base64...");
+        fileData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        console.log("✅ COR converted to base64 (fallback)");
+      }
     }
 
     // Call our API route which handles JWT signing and webhook communication.
@@ -246,6 +309,7 @@ export async function extractCORData(
         body: JSON.stringify({
           ocrText,
           fileData,
+          fileUrl,
           fileName,
           userId,
           applicantName,
