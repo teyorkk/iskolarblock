@@ -3,15 +3,6 @@ import { sign } from "jsonwebtoken";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { validateJwtSecret } from "@/lib/utils/jwt-validation";
 
-// Configure body size limit for file uploads
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "10mb",
-    },
-  },
-};
-
 export interface CORExtractionResponse {
   "Certificate of Registration": boolean;
   school: string | null;
@@ -40,7 +31,8 @@ interface N8NWebhookResponse {
 
 interface RequestBody {
   ocrText: string;
-  fileData?: string; // Base64 file data
+  fileData?: string; // Base64 file data (for small files < 4MB)
+  fileUrl?: string; // Supabase storage path (for large files > 4MB)
   fileName?: string;
   userId?: string;
   applicantName?: string | null;
@@ -127,6 +119,19 @@ export async function POST(request: NextRequest) {
     try {
       body = (await request.json()) as RequestBody;
     } catch (parseError) {
+      // Check if it's a 413 error from Vercel (payload too large)
+      if (
+        (parseError instanceof Error && parseError.message.includes("413")) ||
+        parseError instanceof SyntaxError
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Request payload too large. For files larger than 4MB, please upload them to storage first and provide the fileUrl instead of fileData.",
+          },
+          { status: 413 }
+        );
+      }
       console.error("Failed to parse request body:", parseError);
       return NextResponse.json(
         { error: "Invalid request body" },
@@ -134,11 +139,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ocrText, fileData, fileName, userId, applicantName } = body;
+    const { ocrText, fileData, fileUrl, fileName, userId, applicantName } =
+      body;
 
-    // Upload file to Supabase storage if provided
-    let fileUrl: string | null = null;
-    if (fileData && fileName && userId) {
+    // Use provided fileUrl or upload fileData to Supabase storage
+    let finalFileUrl: string | null = fileUrl || null;
+
+    // Upload file to Supabase storage if fileData is provided (for smaller files)
+    if (fileData && fileName && userId && !fileUrl) {
       try {
         const supabase = getSupabaseServerClient();
 
@@ -162,8 +170,8 @@ export async function POST(request: NextRequest) {
         if (uploadError) {
           console.error("COR file upload error:", uploadError);
         } else {
-          fileUrl = uploadData.path;
-          console.log("✅ COR file uploaded to storage:", fileUrl);
+          finalFileUrl = uploadData.path;
+          console.log("✅ COR file uploaded to storage:", finalFileUrl);
         }
       } catch (storageError) {
         console.error("COR storage error:", storageError);
@@ -398,7 +406,7 @@ export async function POST(request: NextRequest) {
     );
     return NextResponse.json({
       ...data,
-      fileUrl,
+      fileUrl: finalFileUrl,
     });
   } catch (error) {
     // Catch-all error handler
