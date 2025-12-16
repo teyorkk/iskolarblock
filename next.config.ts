@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["rimraf", "fstream"],
+  // Increase body size limit for file uploads (COG/COR documents)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   // Webpack fallback for production builds
   webpack: (config) => {
     config.resolve.alias.canvas = false;
