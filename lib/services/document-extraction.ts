@@ -71,30 +71,49 @@ export async function extractCOGData(
 
     if (file && userId) {
       const fileSizeMB = file.size / (1024 * 1024);
-      console.log(`📊 COG file size: ${fileSizeMB.toFixed(2)}MB, threshold: 3MB`);
-      
+      console.log(
+        `📊 COG file size: ${fileSizeMB.toFixed(2)}MB, threshold: 3MB`
+      );
+
       // Upload large files directly to Supabase Storage
       if (fileSizeMB > 3) {
-        console.log("📤 File exceeds 3MB, uploading directly to Supabase Storage...");
+        console.log(
+          "📤 File exceeds 3MB, uploading directly to Supabase Storage..."
+        );
         try {
-          const { uploadFileToSupabase } = await import("@/lib/utils/file-upload");
-          const storagePath = await uploadFileToSupabase(file, userId, undefined, "cog");
+          const { uploadFileToSupabase } = await import(
+            "@/lib/utils/file-upload"
+          );
+          const storagePath = await uploadFileToSupabase(
+            file,
+            userId,
+            undefined,
+            "cog"
+          );
           fileUrl = storagePath;
           fileName = file.name;
           console.log("✅ Large file uploaded directly to Supabase:", fileUrl);
         } catch (uploadError) {
-          console.error("❌ Failed to upload large file to Supabase:", uploadError);
-          const errorMessage = uploadError instanceof Error ? uploadError.message : String(uploadError);
-          
+          console.error(
+            "❌ Failed to upload large file to Supabase:",
+            uploadError
+          );
+          const errorMessage =
+            uploadError instanceof Error
+              ? uploadError.message
+              : String(uploadError);
+
           // Check if it's an RLS policy error
-          if (errorMessage.includes("new row violates row-level security") || 
-              errorMessage.includes("RLS") ||
-              errorMessage.includes("permission denied")) {
+          if (
+            errorMessage.includes("new row violates row-level security") ||
+            errorMessage.includes("RLS") ||
+            errorMessage.includes("permission denied")
+          ) {
             throw new Error(
               "Upload permission denied. Please check your account permissions or contact support."
             );
           }
-          
+
           // Fall back to base64 for smaller payload (only if file is small enough after all)
           if (fileSizeMB <= 3.5) {
             console.log("⚠️ Falling back to base64 encoding...");
@@ -107,7 +126,9 @@ export async function extractCOGData(
             fileName = file.name;
           } else {
             throw new Error(
-              `File too large (${fileSizeMB.toFixed(2)}MB). Please compress the file and try again. Upload error: ${errorMessage}`
+              `File too large (${fileSizeMB.toFixed(
+                2
+              )}MB). Please compress the file and try again. Upload error: ${errorMessage}`
             );
           }
         }
@@ -276,30 +297,49 @@ export async function extractCORData(
 
     if (file && userId) {
       const fileSizeMB = file.size / (1024 * 1024);
-      console.log(`📊 COR file size: ${fileSizeMB.toFixed(2)}MB, threshold: 3MB`);
-      
+      console.log(
+        `📊 COR file size: ${fileSizeMB.toFixed(2)}MB, threshold: 3MB`
+      );
+
       // Upload large files directly to Supabase Storage
       if (fileSizeMB > 3) {
-        console.log("📤 File exceeds 3MB, uploading directly to Supabase Storage...");
+        console.log(
+          "📤 File exceeds 3MB, uploading directly to Supabase Storage..."
+        );
         try {
-          const { uploadFileToSupabase } = await import("@/lib/utils/file-upload");
-          const storagePath = await uploadFileToSupabase(file, userId, undefined, "cor");
+          const { uploadFileToSupabase } = await import(
+            "@/lib/utils/file-upload"
+          );
+          const storagePath = await uploadFileToSupabase(
+            file,
+            userId,
+            undefined,
+            "cor"
+          );
           fileUrl = storagePath;
           fileName = file.name;
           console.log("✅ Large file uploaded directly to Supabase:", fileUrl);
         } catch (uploadError) {
-          console.error("❌ Failed to upload large file to Supabase:", uploadError);
-          const errorMessage = uploadError instanceof Error ? uploadError.message : String(uploadError);
-          
+          console.error(
+            "❌ Failed to upload large file to Supabase:",
+            uploadError
+          );
+          const errorMessage =
+            uploadError instanceof Error
+              ? uploadError.message
+              : String(uploadError);
+
           // Check if it's an RLS policy error
-          if (errorMessage.includes("new row violates row-level security") || 
-              errorMessage.includes("RLS") ||
-              errorMessage.includes("permission denied")) {
+          if (
+            errorMessage.includes("new row violates row-level security") ||
+            errorMessage.includes("RLS") ||
+            errorMessage.includes("permission denied")
+          ) {
             throw new Error(
               "Upload permission denied. Please check your account permissions or contact support."
             );
           }
-          
+
           // Fall back to base64 for smaller payload (only if file is small enough after all)
           if (fileSizeMB <= 3.5) {
             console.log("⚠️ Falling back to base64 encoding...");
@@ -312,7 +352,9 @@ export async function extractCORData(
             fileName = file.name;
           } else {
             throw new Error(
-              `File too large (${fileSizeMB.toFixed(2)}MB). Please compress the file and try again. Upload error: ${errorMessage}`
+              `File too large (${fileSizeMB.toFixed(
+                2
+              )}MB). Please compress the file and try again. Upload error: ${errorMessage}`
             );
           }
         }

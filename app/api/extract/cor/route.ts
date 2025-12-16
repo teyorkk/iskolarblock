@@ -126,11 +126,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ocrText, fileData, fileUrl, fileName, userId, applicantName } = body;
+    const { ocrText, fileData, fileUrl, fileName, userId, applicantName } =
+      body;
 
     // Use provided fileUrl or upload fileData to Supabase storage
     let finalFileUrl: string | null = fileUrl || null;
-    
+
     // Upload file to Supabase storage if fileData is provided (for smaller files)
     if (fileData && fileName && userId && !fileUrl) {
       try {

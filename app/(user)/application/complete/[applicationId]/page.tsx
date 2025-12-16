@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { DocumentsUploadStep } from "@/components/application/documents-upload-step";
 import { FileUploadConfirmationModal } from "@/components/application/file-upload-confirmation-modal";
 import { useDropzone } from "react-dropzone";
@@ -273,6 +274,7 @@ export default function CompleteApplicationPage() {
       setIsSubmitting(true);
       const payload: Record<string, unknown> = {};
 
+      // Handle COG file - upload large files to Supabase first
       if (certificateOfGrades) {
         const details = buildCogDetails(cogExtractedData);
         if (!details) {
@@ -282,11 +284,47 @@ export default function CompleteApplicationPage() {
           setIsSubmitting(false);
           return;
         }
-        payload.cogFile = await fileToBase64(certificateOfGrades);
+
+        const cogSizeMB = certificateOfGrades.size / (1024 * 1024);
+        console.log(`📊 COG file size: ${cogSizeMB.toFixed(2)}MB`);
+
+        if (cogSizeMB > 3) {
+          // Large file - upload directly to Supabase
+          console.log("📤 Uploading large COG file to Supabase...");
+          const { uploadFileToSupabase } = await import(
+            "@/lib/utils/file-upload"
+          );
+          const supabase = getSupabaseBrowserClient();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (user?.email) {
+            const { data: userData } = await supabase
+              .from("User")
+              .select("id")
+              .eq("email", user.email)
+              .single();
+            if (userData) {
+              const cogFileUrl = await uploadFileToSupabase(
+                certificateOfGrades,
+                userData.id,
+                applicationId,
+                "cog"
+              );
+              console.log("✅ COG uploaded to Supabase:", cogFileUrl);
+              payload.cogFileUrl = cogFileUrl;
+            }
+          }
+        } else {
+          // Small file - use base64
+          payload.cogFile = await fileToBase64(certificateOfGrades);
+        }
+
         payload.cogFileName = certificateOfGrades.name;
         payload.cogDetails = details;
       }
 
+      // Handle COR file - upload large files to Supabase first
       if (certificateOfRegistration) {
         const details = buildCorDetails(corExtractedData);
         if (!details) {
@@ -296,7 +334,42 @@ export default function CompleteApplicationPage() {
           setIsSubmitting(false);
           return;
         }
-        payload.corFile = await fileToBase64(certificateOfRegistration);
+
+        const corSizeMB = certificateOfRegistration.size / (1024 * 1024);
+        console.log(`📊 COR file size: ${corSizeMB.toFixed(2)}MB`);
+
+        if (corSizeMB > 3) {
+          // Large file - upload directly to Supabase
+          console.log("📤 Uploading large COR file to Supabase...");
+          const { uploadFileToSupabase } = await import(
+            "@/lib/utils/file-upload"
+          );
+          const supabase = getSupabaseBrowserClient();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (user?.email) {
+            const { data: userData } = await supabase
+              .from("User")
+              .select("id")
+              .eq("email", user.email)
+              .single();
+            if (userData) {
+              const corFileUrl = await uploadFileToSupabase(
+                certificateOfRegistration,
+                userData.id,
+                applicationId,
+                "cor"
+              );
+              console.log("✅ COR uploaded to Supabase:", corFileUrl);
+              payload.corFileUrl = corFileUrl;
+            }
+          }
+        } else {
+          // Small file - use base64
+          payload.corFile = await fileToBase64(certificateOfRegistration);
+        }
+
         payload.corFileName = certificateOfRegistration.name;
         payload.corDetails = details;
       }

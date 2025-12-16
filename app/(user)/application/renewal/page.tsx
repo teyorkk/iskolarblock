@@ -373,6 +373,14 @@ export default function RenewalApplicationPage() {
         corFileName: certificateOfRegistration?.name ?? null,
       };
 
+      console.log("📦 Payload prepared:", {
+        hasCogFile: !!cogFileBase64,
+        hasCogUrl: !!cogFileUrl,
+        hasCorFile: !!corFileBase64,
+        hasCorUrl: !!corFileUrl,
+      });
+
+      console.log("📤 Sending renewal application to server...");
       const response = await fetch("/api/applications/renew", {
         method: "POST",
         headers: {
@@ -381,9 +389,33 @@ export default function RenewalApplicationPage() {
         body: JSON.stringify(submissionData),
       });
 
+      console.log("📥 Response status:", response.status);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to submit renewal application");
+        // Handle 413 errors (Content Too Large) - Vercel returns plain text, not JSON
+        if (response.status === 413) {
+          const errorText = await response.text();
+          console.error("❌ 413 Error:", errorText);
+          throw new Error(
+            "Request payload too large. Some files may be too big. Please try compressing them."
+          );
+        }
+
+        // Try to parse JSON error, fallback to text if it fails
+        let error;
+        try {
+          error = await response.json();
+          console.error("❌ API Error:", error);
+        } catch {
+          const errorText = await response.text();
+          console.error("❌ API Error (text):", errorText);
+          throw new Error(
+            errorText || `Request failed with status ${response.status}`
+          );
+        }
+        throw new Error(
+          error.error || error.details || "Failed to submit renewal application"
+        );
       }
 
       const result = await response.json();

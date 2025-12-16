@@ -26,8 +26,10 @@ interface DocumentDetails {
 interface CompletionRequestBody {
   cogDetails?: DocumentDetails;
   corDetails?: Omit<DocumentDetails, "gwa">;
-  cogFile?: string;
-  corFile?: string;
+  cogFile?: string; // base64 (for small files)
+  cogFileUrl?: string; // Supabase storage path (for large files)
+  corFile?: string; // base64 (for small files)
+  corFileUrl?: string; // Supabase storage path (for large files)
   cogFileName?: string;
   corFileName?: string;
 }
@@ -200,7 +202,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       cogDetails,
       corDetails,
       cogFile,
+      cogFileUrl,
       corFile,
+      corFileUrl,
       cogFileName,
       corFileName,
     } = body;
@@ -236,11 +240,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    let cogFileUrl = existingCog?.fileUrl ?? null;
-    let corFileUrl = existingCor?.fileUrl ?? null;
+    let finalCogFileUrl = cogFileUrl || existingCog?.fileUrl || null;
+    let finalCorFileUrl = corFileUrl || existingCor?.fileUrl || null;
 
-    if (willUploadCog && cogFile && cogFileName) {
-      cogFileUrl = await uploadDocument(supabase, {
+    // Only upload if file data is provided (small files) and no URL is provided (large files)
+    if (willUploadCog && cogFile && cogFileName && !cogFileUrl) {
+      finalCogFileUrl = await uploadDocument(supabase, {
         base64: cogFile,
         fileName: cogFileName,
         applicationId,
@@ -249,8 +254,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       });
     }
 
-    if (willUploadCor && corFile && corFileName) {
-      corFileUrl = await uploadDocument(supabase, {
+    if (willUploadCor && corFile && corFileName && !corFileUrl) {
+      finalCorFileUrl = await uploadDocument(supabase, {
         base64: corFile,
         fileName: corFileName,
         applicationId,
@@ -259,7 +264,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       });
     }
 
-    if (willUploadCog && cogDetails && cogFileUrl) {
+    if (willUploadCog && cogDetails && finalCogFileUrl) {
       await supabase
         .from("CertificateOfGrades")
         .delete()
@@ -277,7 +282,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           gwa: Number(cogDetails.gwa) || 0,
           totalUnits: Number(cogDetails.totalUnits) || 0,
           subjects: [],
-          fileUrl: cogFileUrl,
+          fileUrl: finalCogFileUrl,
         });
 
       if (cogInsertError) {
@@ -289,7 +294,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     }
 
-    if (willUploadCor && corDetails && corFileUrl) {
+    if (willUploadCor && corDetails && finalCorFileUrl) {
       await supabase
         .from("CertificateOfRegistration")
         .delete()
@@ -306,7 +311,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           course: corDetails.course,
           name: corDetails.name,
           totalUnits: Number(corDetails.totalUnits) || 0,
-          fileUrl: corFileUrl,
+          fileUrl: finalCorFileUrl,
         });
 
       if (corInsertError) {
@@ -319,8 +324,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     // Check if both files exist after processing
-    const finalCogUrl = cogFileUrl || existingCog?.fileUrl;
-    const finalCorUrl = corFileUrl || existingCor?.fileUrl;
+    const finalCogUrl = finalCogFileUrl || existingCog?.fileUrl;
+    const finalCorUrl = finalCorFileUrl || existingCor?.fileUrl;
     const hasCogDocument = Boolean(finalCogUrl);
     const hasCorDocument = Boolean(finalCorUrl);
     const remarks = getDocumentRemarks(hasCogDocument, hasCorDocument);

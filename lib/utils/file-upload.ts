@@ -101,4 +101,3 @@ export function shouldUploadDirectly(file: File): boolean {
   const sizeInMB = file.size / (1024 * 1024);
   return sizeInMB > 3; // 3MB threshold (base64 adds ~33% overhead, so 3MB file ≈ 4MB base64)
 }
-
