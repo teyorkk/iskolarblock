@@ -70,78 +70,41 @@ export async function extractCOGData(
     let fileName: string | undefined;
 
     if (file && userId) {
-      const fileSizeMB = file.size / (1024 * 1024);
-      console.log(
-        `📊 COG file size: ${fileSizeMB.toFixed(2)}MB, threshold: 3MB`
-      );
-
-      // Upload large files directly to Supabase Storage
-      if (fileSizeMB > 3) {
-        console.log(
-          "📤 File exceeds 3MB, uploading directly to Supabase Storage..."
+      fileName = file.name;
+      
+      // Upload to Supabase Storage first (all files)
+      console.log("📤 Uploading COG file to Supabase Storage...");
+      try {
+        const { uploadFileToSupabase } = await import(
+          "@/lib/utils/file-upload"
         );
-        try {
-          const { uploadFileToSupabase } = await import(
-            "@/lib/utils/file-upload"
-          );
-          const storagePath = await uploadFileToSupabase(
-            file,
-            userId,
-            undefined,
-            "cog"
-          );
-          fileUrl = storagePath;
-          fileName = file.name;
-          console.log("✅ Large file uploaded directly to Supabase:", fileUrl);
-        } catch (uploadError) {
-          console.error(
-            "❌ Failed to upload large file to Supabase:",
-            uploadError
-          );
-          const errorMessage =
-            uploadError instanceof Error
-              ? uploadError.message
-              : String(uploadError);
+        const storagePath = await uploadFileToSupabase(
+          file,
+          userId,
+          undefined,
+          "cog"
+        );
+        fileUrl = storagePath;
+        console.log("✅ COG file uploaded to Supabase:", fileUrl);
+      } catch (uploadError) {
+        const errorMessage =
+          uploadError instanceof Error
+            ? uploadError.message
+            : String(uploadError);
+        console.warn(
+          "⚠️ Supabase upload failed, falling back to base64:",
+          errorMessage
+        );
 
-          // Check if it's an RLS policy error
-          if (
-            errorMessage.includes("new row violates row-level security") ||
-            errorMessage.includes("RLS") ||
-            errorMessage.includes("permission denied")
-          ) {
-            throw new Error(
-              "Upload permission denied. Please check your account permissions or contact support."
-            );
-          }
-
-          // Fall back to base64 for smaller payload (only if file is small enough after all)
-          if (fileSizeMB <= 3.5) {
-            console.log("⚠️ Falling back to base64 encoding...");
-            fileData = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
-            fileName = file.name;
-          } else {
-            throw new Error(
-              `File too large (${fileSizeMB.toFixed(
-                2
-              )}MB). Please compress the file and try again. Upload error: ${errorMessage}`
-            );
-          }
-        }
-      } else {
-        // Small files can be sent as base64
-        console.log("📝 File is small, using base64 encoding...");
+        // Fall back to base64
+        console.log("📦 Converting COG file to base64...");
         fileData = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        fileName = file.name;
+        console.log("✅ COG converted to base64 (fallback)");
       }
     }
 
@@ -296,78 +259,41 @@ export async function extractCORData(
     let fileName: string | undefined;
 
     if (file && userId) {
-      const fileSizeMB = file.size / (1024 * 1024);
-      console.log(
-        `📊 COR file size: ${fileSizeMB.toFixed(2)}MB, threshold: 3MB`
-      );
-
-      // Upload large files directly to Supabase Storage
-      if (fileSizeMB > 3) {
-        console.log(
-          "📤 File exceeds 3MB, uploading directly to Supabase Storage..."
+      fileName = file.name;
+      
+      // Upload to Supabase Storage first (all files)
+      console.log("📤 Uploading COR file to Supabase Storage...");
+      try {
+        const { uploadFileToSupabase } = await import(
+          "@/lib/utils/file-upload"
         );
-        try {
-          const { uploadFileToSupabase } = await import(
-            "@/lib/utils/file-upload"
-          );
-          const storagePath = await uploadFileToSupabase(
-            file,
-            userId,
-            undefined,
-            "cor"
-          );
-          fileUrl = storagePath;
-          fileName = file.name;
-          console.log("✅ Large file uploaded directly to Supabase:", fileUrl);
-        } catch (uploadError) {
-          console.error(
-            "❌ Failed to upload large file to Supabase:",
-            uploadError
-          );
-          const errorMessage =
-            uploadError instanceof Error
-              ? uploadError.message
-              : String(uploadError);
+        const storagePath = await uploadFileToSupabase(
+          file,
+          userId,
+          undefined,
+          "cor"
+        );
+        fileUrl = storagePath;
+        console.log("✅ COR file uploaded to Supabase:", fileUrl);
+      } catch (uploadError) {
+        const errorMessage =
+          uploadError instanceof Error
+            ? uploadError.message
+            : String(uploadError);
+        console.warn(
+          "⚠️ Supabase upload failed, falling back to base64:",
+          errorMessage
+        );
 
-          // Check if it's an RLS policy error
-          if (
-            errorMessage.includes("new row violates row-level security") ||
-            errorMessage.includes("RLS") ||
-            errorMessage.includes("permission denied")
-          ) {
-            throw new Error(
-              "Upload permission denied. Please check your account permissions or contact support."
-            );
-          }
-
-          // Fall back to base64 for smaller payload (only if file is small enough after all)
-          if (fileSizeMB <= 3.5) {
-            console.log("⚠️ Falling back to base64 encoding...");
-            fileData = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
-            fileName = file.name;
-          } else {
-            throw new Error(
-              `File too large (${fileSizeMB.toFixed(
-                2
-              )}MB). Please compress the file and try again. Upload error: ${errorMessage}`
-            );
-          }
-        }
-      } else {
-        // Small files can be sent as base64
-        console.log("📝 File is small, using base64 encoding...");
+        // Fall back to base64
+        console.log("📦 Converting COR file to base64...");
         fileData = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        fileName = file.name;
+        console.log("✅ COR converted to base64 (fallback)");
       }
     }
 

@@ -308,25 +308,103 @@ export default function RenewalApplicationPage() {
         idImageBase64 = await readFileAsBase64(uploadedFile);
       }
 
+      // Handle COG file - upload to Supabase first, fallback to base64
       let cogFileBase64: string | null = null;
+      let cogFileUrl: string | null = null;
       if (certificateOfGrades) {
         try {
-          cogFileBase64 = await readFileAsBase64(certificateOfGrades);
+          console.log("📤 Uploading COG file to Supabase...");
+          const { uploadFileToSupabase } = await import(
+            "@/lib/utils/file-upload"
+          );
+          const supabase = getSupabaseBrowserClient();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          
+          if (user?.email) {
+            const { data: userData } = await supabase
+              .from("User")
+              .select("id")
+              .eq("email", user.email)
+              .single();
+            
+            if (userData) {
+              try {
+                cogFileUrl = await uploadFileToSupabase(
+                  certificateOfGrades,
+                  userData.id,
+                  undefined,
+                  "cog"
+                );
+                console.log("✅ COG uploaded to Supabase:", cogFileUrl);
+              } catch (uploadError) {
+                console.warn("⚠️ Supabase upload failed, falling back to base64:", uploadError);
+                cogFileBase64 = await readFileAsBase64(certificateOfGrades);
+                console.log("✅ COG converted to base64 (fallback)");
+              }
+            } else {
+              console.warn("⚠️ User data not found, falling back to base64");
+              cogFileBase64 = await readFileAsBase64(certificateOfGrades);
+            }
+          } else {
+            console.warn("⚠️ User not authenticated, falling back to base64");
+            cogFileBase64 = await readFileAsBase64(certificateOfGrades);
+          }
         } catch (error) {
-          console.error("COG file conversion error:", error);
-          toast.error("Failed to read Certificate of Grades file");
+          console.error("❌ COG file processing error:", error);
+          toast.error("Failed to process Certificate of Grades file");
           setIsSubmitting(false);
           return;
         }
       }
 
+      // Handle COR file - upload to Supabase first, fallback to base64
       let corFileBase64: string | null = null;
+      let corFileUrl: string | null = null;
       if (certificateOfRegistration) {
         try {
-          corFileBase64 = await readFileAsBase64(certificateOfRegistration);
+          console.log("📤 Uploading COR file to Supabase...");
+          const { uploadFileToSupabase } = await import(
+            "@/lib/utils/file-upload"
+          );
+          const supabase = getSupabaseBrowserClient();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          
+          if (user?.email) {
+            const { data: userData } = await supabase
+              .from("User")
+              .select("id")
+              .eq("email", user.email)
+              .single();
+            
+            if (userData) {
+              try {
+                corFileUrl = await uploadFileToSupabase(
+                  certificateOfRegistration,
+                  userData.id,
+                  undefined,
+                  "cor"
+                );
+                console.log("✅ COR uploaded to Supabase:", corFileUrl);
+              } catch (uploadError) {
+                console.warn("⚠️ Supabase upload failed, falling back to base64:", uploadError);
+                corFileBase64 = await readFileAsBase64(certificateOfRegistration);
+                console.log("✅ COR converted to base64 (fallback)");
+              }
+            } else {
+              console.warn("⚠️ User data not found, falling back to base64");
+              corFileBase64 = await readFileAsBase64(certificateOfRegistration);
+            }
+          } else {
+            console.warn("⚠️ User not authenticated, falling back to base64");
+            corFileBase64 = await readFileAsBase64(certificateOfRegistration);
+          }
         } catch (error) {
-          console.error("COR file conversion error:", error);
-          toast.error("Failed to read Certificate of Registration file");
+          console.error("❌ COR file processing error:", error);
+          toast.error("Failed to process Certificate of Registration file");
           setIsSubmitting(false);
           return;
         }
