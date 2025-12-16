@@ -51,7 +51,8 @@ interface N8NWebhookResponse {
 
 interface RequestBody {
   ocrText: string;
-  fileData?: string; // Base64 file data
+  fileData?: string; // Base64 file data (for small files < 4MB)
+  fileUrl?: string; // Supabase storage path (for large files > 4MB)
   fileName?: string;
   userId?: string;
   applicantName?: string | null;
@@ -156,11 +157,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ocrText, fileData, fileName, userId, applicantName } = body;
+    const { ocrText, fileData, fileUrl, fileName, userId, applicantName } =
+      body;
 
-    // Upload file to Supabase storage if provided
-    let fileUrl: string | null = null;
-    if (fileData && fileName && userId) {
+    // Use provided fileUrl or upload fileData to Supabase storage
+    let finalFileUrl: string | null = fileUrl || null;
+
+    // Upload file to Supabase storage if fileData is provided (for smaller files)
+    if (fileData && fileName && userId && !fileUrl) {
       try {
         const supabase = getSupabaseServerClient();
 
@@ -184,8 +188,8 @@ export async function POST(request: NextRequest) {
         if (uploadError) {
           console.error("COG file upload error:", uploadError);
         } else {
-          fileUrl = uploadData.path;
-          console.log("✅ COG file uploaded to storage:", fileUrl);
+          finalFileUrl = uploadData.path;
+          console.log("✅ COG file uploaded to storage:", finalFileUrl);
         }
       } catch (storageError) {
         console.error("COG storage error:", storageError);
@@ -419,7 +423,7 @@ export async function POST(request: NextRequest) {
     );
     return NextResponse.json({
       ...data,
-      fileUrl,
+      fileUrl: finalFileUrl,
     });
   } catch (error) {
     // Catch-all error handler

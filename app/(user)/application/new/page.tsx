@@ -527,6 +527,23 @@ export default function NewApplicationPage() {
         corFileName: certificateOfRegistration?.name ?? null,
       };
 
+      // Check payload size before sending (Vercel has 4.5MB limit)
+      const payloadSize = new Blob([JSON.stringify(submissionData)]).size;
+      const payloadSizeMB = payloadSize / (1024 * 1024);
+
+      if (payloadSizeMB > 4) {
+        toast.error(
+          "Request payload too large. Please reduce file sizes or try again later.",
+          {
+            description: `Payload size: ${payloadSizeMB.toFixed(
+              2
+            )}MB (max: 4MB)`,
+          }
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       const response = await fetch("/api/applications/submit", {
         method: "POST",
         headers: {
@@ -536,7 +553,24 @@ export default function NewApplicationPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        // Handle 413 errors (Content Too Large) - Vercel returns plain text, not JSON
+        if (response.status === 413) {
+          const errorText = await response.text();
+          throw new Error(
+            "Request payload too large. Please reduce file sizes or try again later."
+          );
+        }
+
+        // Try to parse JSON error, fallback to text if it fails
+        let error;
+        try {
+          error = await response.json();
+        } catch {
+          const errorText = await response.text();
+          throw new Error(
+            errorText || `Request failed with status ${response.status}`
+          );
+        }
         throw new Error(error.error || "Failed to submit application");
       }
 
