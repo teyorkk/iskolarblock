@@ -18,6 +18,17 @@ export async function uploadFileToSupabase(
 ): Promise<string> {
   const supabase = getSupabaseBrowserClient();
 
+  // Check if user is authenticated
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session) {
+    console.error("Supabase session error:", sessionError);
+    throw new Error("You must be logged in to upload files");
+  }
+
   // Generate file path
   const timestamp = Date.now();
   let filePath: string;
@@ -27,6 +38,13 @@ export async function uploadFileToSupabase(
   } else {
     filePath = `${userId}/${type}/${timestamp}-${file.name}`;
   }
+
+  console.log("Uploading file to Supabase:", {
+    filePath,
+    fileName: file.name,
+    fileSize: `${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+    type,
+  });
 
   // Upload file directly to Supabase Storage
   const { data: uploadData, error: uploadError } = await supabase.storage
@@ -40,9 +58,21 @@ export async function uploadFileToSupabase(
     });
 
   if (uploadError) {
-    console.error("File upload error:", uploadError);
+    console.error("File upload error details:", {
+      error: uploadError,
+      message: uploadError.message,
+      name: uploadError.name,
+      filePath,
+      fileName: file.name,
+    });
     throw new Error(`Failed to upload file: ${uploadError.message}`);
   }
+
+  if (!uploadData) {
+    throw new Error("Upload succeeded but no data returned");
+  }
+
+  console.log("✅ File uploaded successfully to Supabase:", uploadData.path);
 
   // Return the storage path (not public URL, as it might be in a private bucket)
   return uploadData.path;
